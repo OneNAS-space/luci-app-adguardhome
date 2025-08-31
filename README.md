@@ -29,7 +29,8 @@
 > iifname { "eth0", "eth1", "macvlan0" } return
 > ```
 
-*提示: 设备名可通过 `ip a` / `ifconfig` 查看*
+> [!TIP]
+> *设备名可通过 `ip a` / `ifconfig` 查看*
 
 ## 声明
 本项目基于 https://github.com/rufengsuixing/luci-app-adguardhome 修改。
