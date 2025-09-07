@@ -9,6 +9,7 @@ CONFIGURATION=AdGuardHome
 CRON_FILE=/etc/crontabs/root
 NFT_RULES_FILE="/var/etc/adguardhome.nft"
 NFT_RULES_TPL="/usr/share/AdGuardHome/adguardhome.nft.tpl"
+NFT_TABLE="adguardhome"
 
 EXTRA_COMMANDS="do_redirect testbackup test_crontab force_reload isrunning"
 EXTRA_HELP="        do_redirect 0 or 1\
@@ -19,20 +20,15 @@ EXTRA_HELP="        do_redirect 0 or 1\
 
 set_nft_redirect() {
     local port="$1"
+    [ -z "$port" ] && return 1
     [ ! -f "$NFT_RULES_TPL" ] && return 1
 
     sed "s/__AGH_PORT__/${port}/g" "$NFT_RULES_TPL" > "$NFT_RULES_FILE"
 
-    uci -q batch <<-EOF
-        set firewall.adguardhome_nft_include='include'
-        set firewall.adguardhome_nft_include.type='nftables'
-        set firewall.adguardhome_nft_include.path='/var/etc/adguardhome.nft'
-        set firewall.adguardhome_nft_include.position='ruleset-post'
-        delete firewall.adguardhome_nft_include.family
-        delete firewall.adguardhome_nft_include.reload
-        commit firewall
-EOF
-    /etc/init.d/firewall reload >/dev/null 2>&1
+    nft delete table inet "$NFT_TABLE" 2>/dev/null
+
+    nft -f "$NFT_RULES_FILE" 2>/dev/null
+    logger -t adguardhome "nft table $NFT_TABLE applied on port $port"
 }
 
 clear_nft_redirect() {
@@ -40,11 +36,8 @@ clear_nft_redirect() {
     uci -q commit firewall
 
     [ -f "$NFT_RULES_FILE" ] && rm -f "$NFT_RULES_FILE"
-
-    nft list table inet adguardhome >/dev/null 2>&1 && \
-        nft delete table inet adguardhome >/dev/null 2>&1
-
-    /etc/init.d/firewall reload >/dev/null 2>&1
+    nft delete table inet "$NFT_TABLE" 2>/dev/null
+    logger -t adguardhome "nft table $NFT_TABLE cleared"
 }
 
 set_forward_dnsmasq() {
@@ -87,42 +80,45 @@ agh_reload() {
 }
 
 rm_port53() {
-    local AdGuardHome_PORT
+    local configpath
+    config_get configpath $CONFIGURATION configpath "/etc/AdGuardHome.yaml"
+
+    local AdGuardHome_PORT dnsmasq_port binpath
     AdGuardHome_PORT=$(config_editor "dns.port" "" "$configpath" "1")
     dnsmasq_port=$(uci get dhcp.@dnsmasq[0].port 2>/dev/null)
-    if [ -z "$dnsmasq_port" ]; then
-        dnsmasq_port="53"
-    fi
-    if [ "$dnsmasq_port" == "$AdGuardHome_PORT" ]; then
-        if [ "$dnsmasq_port" == "53" ]; then
-            dnsmasq_port="1745"
-        fi
-    elif [ "$dnsmasq_port" == "53" ]; then
+    [ -z "$dnsmasq_port" ] && dnsmasq_port="53"
+
+    if [ "$dnsmasq_port" = "$AdGuardHome_PORT" ]; then
+        [ "$dnsmasq_port" = "53" ] && dnsmasq_port="1745"
+    elif [ "$dnsmasq_port" = "53" ]; then
         return
     fi
+
     config_editor "dns.port" "$dnsmasq_port" "$configpath"
     uci set dhcp.@dnsmasq[0].port="53"
     uci commit dhcp
+
     config_get binpath $CONFIGURATION binpath "/usr/bin/AdGuardHome/AdGuardHome"
-    killall -9 $binpath
+    killall -9 "$binpath" 2>/dev/null
     /etc/init.d/dnsmasq restart
     agh_reload
 }
 
 use_port53() {
-    local AdGuardHome_PORT
+    local configpath
+    config_get configpath $CONFIGURATION configpath "/etc/AdGuardHome.yaml"
+
+    local AdGuardHome_PORT dnsmasq_port
     AdGuardHome_PORT=$(config_editor "dns.port" "" "$configpath" "1")
     dnsmasq_port=$(uci get dhcp.@dnsmasq[0].port 2>/dev/null)
-    if [ -z "$dnsmasq_port" ]; then
-        dnsmasq_port="53"
-    fi
-    if [ "$dnsmasq_port" == "$AdGuardHome_PORT" ]; then
-        if [ "$dnsmasq_port" == "53" ]; then
-            AdGuardHome_PORT="1745"
-        fi
-    elif [ "$AdGuardHome_PORT" == "53" ]; then
+    [ -z "$dnsmasq_port" ] && dnsmasq_port="53"
+
+    if [ "$dnsmasq_port" = "$AdGuardHome_PORT" ]; then
+        [ "$dnsmasq_port" = "53" ] && AdGuardHome_PORT="1745"
+    elif [ "$AdGuardHome_PORT" = "53" ]; then
         return
     fi
+
     config_editor "dns.port" "53" "$configpath"
     uci set dhcp.@dnsmasq[0].port="$AdGuardHome_PORT"
     uci commit dhcp
@@ -142,7 +138,7 @@ mark_redirect_flag() {
         flag=1
 
         if [ "$redirect" = "redirect" ]; then
-            nft list table inet adguardhome >/dev/null 2>&1 || flag=0
+            nft list table inet "$NFT_TABLE" >/dev/null 2>&1 || flag=0
 
         elif [ "$redirect" = "dnsmasq-upstream" ]; then
             local s
@@ -232,7 +228,6 @@ do_redirect() {
 
 service_triggers() {
     procd_add_reload_trigger "$CONFIGURATION"
-    [ "$(uci -q get AdGuardHome.AdGuardHome.redirect)" = "redirect" ] && procd_add_reload_trigger firewall
 }
 
 isrunning() {
