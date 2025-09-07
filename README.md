@@ -3,7 +3,7 @@
 面向已熟悉原项目的用户: 仅将 **DNS** 重定向从 `iptables` 迁移到 `nftables`, 核心语义不变
 
 ## 变更概览
-- `iptables` → `nftables`：通过 **fw4** 的 **include** 注入生成的 `/var/etc/adguardhome.nft`
+- `iptables` → `nftables`：使用 nft 应用/清理规则 `/var/etc/adguardhome.nft`
 - 模板路径：`/usr/share/AdGuardHome/adguardhome.nft.tpl`
 
 ## 模板与默认行为
