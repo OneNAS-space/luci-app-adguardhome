@@ -105,7 +105,7 @@ jobs:
           path: out/
           if-no-files-found: error
 
-      - name: 创建 tag（仅 master/workflow_dispatch 且需发布时）
+      - name: 确保 tag 存在（仅 master/workflow_dispatch）
         if: env.RESOLVED_TAG != '' && github.ref_type != 'tag'
         run: |
           TAG="${RESOLVED_TAG}"
@@ -134,6 +134,7 @@ jobs:
             done
           else
             echo "Release $TAG 不存在，将新建"
+            gh release create "$TAG" -t "$TAG" -n "Release $TAG"
           fi
 
           gh release upload "$TAG" out/*.ipk --clobber
