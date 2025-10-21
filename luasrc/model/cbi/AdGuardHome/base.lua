@@ -9,6 +9,17 @@ local binpath = uci:get("AdGuardHome", "AdGuardHome", "binpath") or "/usr/bin/Ad
 httpport=uci:get("AdGuardHome","AdGuardHome","httpport") or "3000"
 m = Map("AdGuardHome", "AdGuard Home")
 m.description = translate("Free and open source, powerful network-wide ads & trackers blocking DNS server.")
+    .. [[<style>
+    div[id^="cbid.AdGuardHome.AdGuardHome."] {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1em;
+    }
+    div[id^="cbid.AdGuardHome.AdGuardHome."] .cbi-checkbox {
+      display: inline-flex;
+      align-items: center;
+    }
+    </style>]]
 m:section(SimpleSection).template  = "AdGuardHome/AdGuardHome_status"
 
 s = m:section(TypedSection, "AdGuardHome")
@@ -196,7 +207,7 @@ o = s:option(Flag, "waitonboot", translate("On boot when network ok restart"))
 o.default = 1
 o.optional = true
 local workdir = uci:get("AdGuardHome", "AdGuardHome", "workdir") or "/usr/bin/AdGuardHome"
-o = s:option(MultiValue, "backupfile", translate("Backup workdir files when shutdown"))
+o = s:option(MultiValue, "backupfile", translate("Backup files when shutdown"))
 o1 = s:option(Value, "backupwdpath", translate("Backup workdir path"))
 local name
 o:value("filters","filters")
