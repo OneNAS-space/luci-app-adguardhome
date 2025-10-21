@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       release_version:
-        description: '手动指定 PKG_RELEASE 版本号（可选）'
+        description: 'Manually specify PKG_RELEASE version (optional)'
         required: false
         default: ''
 
@@ -24,39 +24,59 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: 检出代码
+      - name: Checkout code
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: 确定版本号
+      - name: Resolve version
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && -n "${{ github.event.inputs.release_version }}" ]]; then
             REL="${{ github.event.inputs.release_version }}"
-            echo "使用手动输入的版本号: ${REL}"
+            echo "Using manually specified version: ${REL}"
+
           elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             REL="${GITHUB_REF_NAME}"
-            echo "使用 Tag 作为版本号: ${REL}"
+            echo "Using tag as version: ${REL}"
             sed -i "s/^PKG_RELEASE:=.*/PKG_RELEASE:=${REL}/" Makefile
+
           elif [[ "${GITHUB_REF}" == refs/heads/master ]]; then
-            if git diff --name-only HEAD~1 | grep -q '^Makefile$'; then
+            CHANGED=$(git diff --name-only HEAD~1)
+
+            if echo "$CHANGED" | grep -Eq '^(Makefile|luasrc/|root/)'; then
+              if echo "$CHANGED" | grep -Eq '^(luasrc/|root/)'; then
+                CUR_VER=$(grep -E '^PKG_VERSION:=' Makefile | sed 's/^PKG_VERSION:=//')
+                IFS='.' read -r major minor patch <<< "$CUR_VER"
+                patch=$((patch + 1))
+                NEW_VER="${major}.${minor}.${patch}"
+                sed -i "s/^PKG_VERSION:=.*/PKG_VERSION:=${NEW_VER}/" Makefile
+                echo "Source code changed, PKG_VERSION incremented: ${CUR_VER} → ${NEW_VER}"
+
+                git config user.name "github-actions[bot]"
+                git config user.email "github-actions[bot]@users.noreply.github.com"
+                git add Makefile
+                git commit -m "ci: bump PKG_VERSION to ${NEW_VER} [skip ci]" || true
+                git push origin HEAD:master || true
+              fi
+
               REL=$(grep -E '^PKG_RELEASE:=' Makefile | sed 's/^PKG_RELEASE:=//')
-              echo "检测到 Makefile 改动，使用 Makefile 中的版本号: ${REL}"
+              echo "Using PKG_RELEASE from Makefile as version: ${REL}"
             else
-              echo "Makefile 未改动，不发布 Release"
+              echo "No relevant changes detected, skipping release"
               REL=""
             fi
           fi
+
           echo "RESOLVED_TAG=${REL}" >> "$GITHUB_ENV"
 
-      - name: 安装构建依赖
+      - name: Install build dependencies
         run: |
           sudo apt update
           sudo apt install -y build-essential clang flex bison g++ gawk \
             gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev \
             python3-setuptools rsync swig unzip zlib1g-dev file wget zstd gh
 
-      - name: 下载并解压 SDK
+      - name: Download and extract SDK
         run: |
           set -eux
           BASE="https://downloads.openwrt.org/releases/${RELEASE}/targets/${TARGET}/${SUBTARGET}/"
@@ -67,73 +87,73 @@ jobs:
           SDK_DIR="$(find "$PWD/_sdk" -maxdepth 1 -type d -name 'openwrt-sdk-*' -print -quit)"
           echo "SDK_DIR=${SDK_DIR}" >> "$GITHUB_ENV"
 
-      - name: 将包拷入 SDK
+      - name: Copy package into SDK
         run: |
           cd "$SDK_DIR"
           mkdir -p package/${PKG_DIR_NAME}
           rsync -a --delete "$GITHUB_WORKSPACE/" "package/${PKG_DIR_NAME}/" \
             --exclude '.git' --exclude '.github' --exclude '_sdk' --exclude 'out'
 
-      - name: 仅更新 luci 源并安装 luci-base
+      - name: Update luci feed and install luci-base
         run: |
           cd "$SDK_DIR"
           ./scripts/feeds update luci
           ./scripts/feeds install luci-base
 
-      - name: 生成默认配置
+      - name: Generate default config
         run: |
           cd "$SDK_DIR"
           make defconfig
 
-      - name: 编译包
+      - name: Build package
         run: |
           cd "$SDK_DIR"
           make package/${PKG_DIR_NAME}/clean V=s || true
           make package/${PKG_DIR_NAME}/compile -j"$(nproc)" V=sc
 
-      - name: 收集构建产物
+      - name: Collect build artifacts
         run: |
           cd "$SDK_DIR"
           mkdir -p "$GITHUB_WORKSPACE/out"
           find bin/packages -type f -name "*${PKG_DIR_NAME}*ipk" -print -exec cp -f {} "$GITHUB_WORKSPACE/out/" \;
           cd "$GITHUB_WORKSPACE/out" && sha256sum *.ipk > SHA256SUMS.txt || true && ls -l
 
-      - name: 上传构建产物
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ipks-${{ env.RESOLVED_TAG != '' && env.RESOLVED_TAG || github.ref_name }}-x86_64
           path: out/
           if-no-files-found: error
 
-      - name: 确保 tag 存在（仅 master/workflow_dispatch）
+      - name: Ensure tag exists (only master/workflow_dispatch)
         if: env.RESOLVED_TAG != '' && github.ref_type != 'tag'
         run: |
           TAG="${RESOLVED_TAG}"
           if git ls-remote --tags origin | grep -q "refs/tags/${TAG}$"; then
-            echo "Tag ${TAG} 已存在，跳过创建"
+            echo "Tag ${TAG} already exists, skipping creation"
           else
-            echo "创建并推送 tag: ${TAG}"
+            echo "Creating and pushing tag: ${TAG}"
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git tag -a "$TAG" -m "Release $TAG"
             git push origin "$TAG"
           fi
 
-      - name: 发布到 Releases（自动清理旧附件）
+      - name: Publish to Releases (replace old assets if exist)
         if: env.RESOLVED_TAG != ''
         run: |
           TAG="${RESOLVED_TAG}"
-          echo "准备发布 Release: $TAG"
+          echo "Preparing release: $TAG"
 
           EXISTING=$(gh release view "$TAG" --json tagName -q .tagName || true)
 
           if [ -n "$EXISTING" ]; then
-            echo "Release $TAG 已存在，删除旧附件"
+            echo "Release $TAG already exists, deleting old assets"
             for asset in $(gh release view "$TAG" --json assets -q '.assets[].name'); do
               gh release delete-asset "$TAG" "$asset" -y
             done
           else
-            echo "Release $TAG 不存在，将新建"
+            echo "Release $TAG does not exist, creating new one"
             gh release create "$TAG" -t "$TAG" -n "Release $TAG"
           fi
 
