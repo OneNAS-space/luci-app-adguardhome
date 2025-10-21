@@ -1,4 +1,4 @@
-name: build-ipk (OpenWrt 24.10.2 x86_64)
+name: build-ipk (OpenWrt 24.10.3 x86_64)
 
 on:
   push:
@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 env:
-  RELEASE: 24.10.2
+  RELEASE: 24.10.3
   TARGET: x86
   SUBTARGET: 64
   PKG_DIR_NAME: luci-app-adguardhome
