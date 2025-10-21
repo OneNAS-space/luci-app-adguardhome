@@ -12,7 +12,7 @@ PKG_RELEASE:=20250907
 
 PKG_LICENSE:=MIT
 PKG_LICENSE_FILES:=LICENSE
-PKG_MAINTAINER:=w9315273
+PKG_MAINTAINER:=OneNAS-space
 
 PKG_BUILD_DEPENDS:=luci-base/host
 
@@ -23,7 +23,7 @@ define Package/luci-app-adguardhome
 	CATEGORY:=LuCI
 	SUBMENU:=3. Applications
 	TITLE:=LuCI app for adguardhome
-	PKG_MAINTAINER:=https://github.com/w9315273/luci-app-adguardhome
+	PKG_MAINTAINER:=https://github.com/OneNAS-space/luci-app-adguardhome
 	PKGARCH:=all
 	DEPENDS:=+wget-ssl +tar +xz-utils
 endef
