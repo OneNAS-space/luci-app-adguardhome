@@ -252,11 +252,17 @@ force_reload() {
 
 get_tz() {
     SET_TZ=""
-    [ -e "/etc/localtime" ] && return
+    local zonename
+    zonename="$(uci get system.@system[0].zonename 2>/dev/null)"
+    if [ -n "$zonename" ]; then
+        SET_TZ="$zonename"
+        return
+    fi
     for tzfile in /etc/TZ /var/etc/TZ; do
         [ -e "$tzfile" ] && tz="$(cat "$tzfile" 2>/dev/null)" && break
     done
-    [ -n "$tz" ] && SET_TZ=$tz
+    [ -n "$tz" ] && SET_TZ=$tz && return
+    [ -e "/etc/localtime" ] && return
 }
 
 get_filesystem() {
