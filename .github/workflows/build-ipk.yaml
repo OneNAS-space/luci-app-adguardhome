@@ -2,8 +2,10 @@ name: build-ipk (OpenWrt 24.10.3 x86_64)
 
 on:
   push:
+    branches: [ master ]
     tags: ['*']
-
+  workflow_dispatch:
+  
 permissions:
   contents: write
 
