@@ -171,7 +171,7 @@ jobs:
           echo "version=$COMBINED_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Checkout custom-packages repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: OneNAS-space/custom-packages
           token: ${{ secrets.CUSTOM_PACKAGES_TOKEN }}
