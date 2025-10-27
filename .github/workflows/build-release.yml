@@ -1,4 +1,4 @@
-name: build-ipk (OpenWrt 24.10.4 x86_64)
+name: build-release (OpenWrt 24.10.4 x86_64)
 
 on:
   push:
