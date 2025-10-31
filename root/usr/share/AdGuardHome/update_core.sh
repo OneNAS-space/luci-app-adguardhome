@@ -169,25 +169,25 @@ GET_Arch() {
         Archt="$(uname -m)"
         case "${Archt}" in
         i386|i686)
-                Arch=i386
+                Arch="i386"
         ;;
         x86_64|amd64)
-                Arch=amd64
+                Arch="amd64"
         ;;
         mipsel|mipsel*)
-                Arch=mipsle_softfloat
+                Arch="mipsle_softfloat"
         ;;
         mips|mips*)
-                Arch=mips_softfloat
+                Arch="mips_softfloat"
         ;;
         mips64el)
-                Arch=mips64le_softfloat
+                Arch="mips64le_softfloat"
         ;;
         mips64)
-                Arch=mips64_softfloat
+                Arch="mips64_softfloat"
         ;;
         armv5*|armv5l|armv5tel)
-                Arch=armv5
+                Arch="armv5"
         ;;
         armv6*|armv6l)
                 Arch="armv6"
@@ -199,7 +199,7 @@ GET_Arch() {
                 Arch="armv7"
         ;;
         aarch64)
-                Arch=arm64
+                Arch="arm64"
         ;;
         *)
                 echo "Unsupported architecture: [${Archt}]" 
