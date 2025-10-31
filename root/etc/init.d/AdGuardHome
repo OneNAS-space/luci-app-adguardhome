@@ -76,7 +76,9 @@ stop_forward_dnsmasq() {
 }
 
 agh_reload() {
-    return 0
+    if ubus list | grep -q '^service$'; then
+        ubus call service event '{"type":"config.change","data":{"package":"AdGuardHome"}}' >/dev/null 2>&1
+    fi
 }
 
 rm_port53() {
@@ -431,8 +433,13 @@ start_service() {
 
     if [ ! -f "$binpath" ]; then
         _do_redirect 0
+        echo "AdGuardHome binary missing, registering placeholder instance"
+        procd_open_instance
+        procd_set_param command /bin/true
+        procd_set_param respawn
+        procd_close_instance
         /usr/share/AdGuardHome/update_core.sh 2>&1 >/tmp/AdGuardHome_update.log &
-        exit 0
+        return 0
     fi
 
     config_get_bool verbose $CONFIGURATION verbose 0
