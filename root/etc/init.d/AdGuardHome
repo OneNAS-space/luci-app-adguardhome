@@ -331,7 +331,9 @@ testbackup() {
 restore() {
     config_get workdir $CONFIGURATION workdir "/usr/bin/AdGuardHome"
     config_get backupwdpath $CONFIGURATION backupwdpath "/usr/bin/AdGuardHome"
-    cp -u -r -f "$backupwdpath/data" "$workdir"
+    if [ "$backupwdpath" != "$workdir" ]; then
+        cp -u -r -f "$backupwdpath/data" "$workdir"
+    fi
 }
 
 backup() {
@@ -341,18 +343,27 @@ backup() {
     config_get backupfile $CONFIGURATION backupfile ""
     for one in $backupfile; do
         while : ; do
-            if [ -d "$backupwdpath/data/$one" ]; then
-                cpret=$(cp -u -r -f "$workdir/data/$one" "$backupwdpath/data" 2>&1)
-            else
-                cpret=$(cp -u -r -f "$workdir/data/$one" "$backupwdpath/data/$one" 2>&1)
+            src="$workdir/data/$one"
+            dst_dir="$backupwdpath/data"
+            dst="$dst_dir/$one"
+
+            if [ "$workdir" = "$backupwdpath" ]; then
+                break
             fi
+
+            if [ -d "$dst" ]; then
+                cpret=$(cp -u -r -f "$src" "$dst_dir" 2>&1)
+            else
+                cpret=$(cp -u -r -f "$src" "$dst" 2>&1)
+            fi
+
             echo "$cpret"
             echo "$cpret" | grep -q "no space left on device" || break
 
-            echo "磁盘已满,删除log重试中"
+            echo "Disk full, deleting log and retrying"
             del_querylog && continue
-            rm -f -r "$backupwdpath/data/filters"
-            rm -f -r "$workdir/data/filters" && continue
+            rm -rf "$dst_dir/filters"
+            rm -rf "$workdir/data/filters" && continue
             echo "backup failed"
             break
         done
