@@ -452,6 +452,10 @@ start_service() {
     procd_set_param stderr 1
     procd_set_param command "$binpath" $ADDITIONAL_ARGS
     procd_set_param file "$configpath" "/etc/hosts" "/etc/config/AdGuardHome"
+    procd_set_param instances "{}"
+    procd_set_param validate "[]"
+    procd_set_param autostart 1
+    procd_set_param data "{}"
     procd_close_instance
     if [ -f "$configpath" ]; then
         (sleep 5 && _do_redirect 1) &
