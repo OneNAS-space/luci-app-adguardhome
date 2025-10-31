@@ -101,113 +101,126 @@ UPX_Compress(){
 }
 
 Update_Core(){
-	rm -r /tmp/AdGuardHome_Update > /dev/null 2>&1
-	mkdir -p "/tmp/AdGuardHome_Update"
-	GET_Arch
-	eval link="${update_url}"
-	echo "Download link: ${link}"
-    echo "File name: ${link##*/}"
-    echo "Downloading AdGuardHome core ..." 
-	$Downloader /tmp/AdGuardHome_Update/${link##*/} ${link}
-	if [[ $? != 0 ]];then
-		echo "Download failed."
-        rm -r /tmp/AdGuardHome_Update
-        EXIT 1
-    fi
+        rm -r /tmp/AdGuardHome_Update > /dev/null 2>&1
+        mkdir -p "/tmp/AdGuardHome_Update"
 
-    if [ "${link##*.}" = gz ]; then
-        echo "Extracting AdGuardHome ..."
-        tar -zxf "/tmp/AdGuardHome_Update/${link##*/}" -C "/tmp/AdGuardHome_Update/"
-        if [ ! -e /tmp/AdGuardHome_Update/AdGuardHome ]; then
-            echo "Extraction failed!"
-            rm -rf "/tmp/AdGuardHome_Update"
-			EXIT 1
-		fi
-		downloadbin="/tmp/AdGuardHome_Update/AdGuardHome/AdGuardHome"
-	else
-		downloadbin="/tmp/AdGuardHome_Update/${link##*/}"
-	fi
-	chmod +x ${downloadbin}
-    echo "Core size: $(awk 'BEGIN{printf "%.2fMB\n",'$((`ls -l $downloadbin | awk '{print $5}'`))'/1000000}')"
-	if [[ ${upxflag} != off ]]; then
-		UPX_Compress
-        echo "UPX compression enabled, this may take a while ..."
-		/tmp/upx-${upx_latest_ver}-${Arch_upx}_linux/upx $upxflag $downloadbin > /dev/null 2>&1
-		echo "\n压缩后的核心体积: $(awk 'BEGIN{printf "%.2fMB\n",'$((`ls -l $downloadbin | awk '{print $5}'`))'/1000000}')"
-	else
-        echo "UPX compression disabled, skipping ..."
-	fi
-	/etc/init.d/AdGuardHome stop > /dev/null 2>&1
-    echo "Moving AdGuardHome binary to ${binpath%/*} ..."
-	mv -f ${downloadbin} ${binpath} > /dev/null 2>&1
-	if [ ! -s ${binpath} && $? != 0 ]; then
-		echo -e "AdGuardHome 核心移动失败!\n可能是设备空间不足导致, 请尝试开启 UPX 压缩, 或更改 [执行文件路径] 为 /tmp/AdGuardHome" 
-		EXIT 1
-	fi
-	rm -f /tmp/upx*.tar.xz
-	rm -rf /tmp/upx*	
-	rm -rf /tmp/AdGuardHome_Update
-	chmod +x ${binpath}
-    if [ "${enabled}" = 1 ]; then
-        echo "Restarting AdGuardHome service ..."
-		/etc/init.d/AdGuardHome restart
-	fi
-    echo "AdGuardHome core updated successfully!"
+        GET_Arch
+        eval link="${update_url}"
+        echo "Download link: ${link}"
+        echo "File name: ${link##*/}"
+        echo "Downloading AdGuardHome core ..."
+
+        if ! $Downloader "/tmp/AdGuardHome_Update/${link##*/}" "${link}"; then
+                echo "Download failed."
+                rm -r /tmp/AdGuardHome_Update
+                EXIT 1
+        fi
+
+        if [ "${link##*.}" = "gz" ]; then
+                echo "Extracting AdGuardHome ..."
+                if ! tar -zxf "/tmp/AdGuardHome_Update/${link##*/}" -C "/tmp/AdGuardHome_Update/"; then
+                        echo "Extraction failed!"
+                        rm -rf "/tmp/AdGuardHome_Update"
+                        EXIT 1
+                fi
+                if [ ! -e /tmp/AdGuardHome_Update/AdGuardHome/AdGuardHome ]; then
+                        echo "Extraction failed: binary not found!"
+                        rm -rf "/tmp/AdGuardHome_Update"
+                        EXIT 1
+                fi
+                downloadbin="/tmp/AdGuardHome_Update/AdGuardHome/AdGuardHome"
+        else
+                downloadbin="/tmp/AdGuardHome_Update/${link##*/}"
+        fi
+
+        chmod +x "${downloadbin}"
+        echo "Core size: $(awk 'BEGIN{printf "%.2fMB\n",'$((`ls -l $downloadbin | awk '{print $5}'`))'/1000000}')"
+
+        if [[ "${upxflag}" != "off" ]]; then
+                UPX_Compress
+                echo "UPX compression enabled, this may take a while ..."
+                /tmp/upx-${upx_latest_ver}-${Arch_upx}_linux/upx $upxflag $downloadbin > /dev/null 2>&1
+                echo "\n压缩后的核心体积: $(awk 'BEGIN{printf "%.2fMB\n",'$((`ls -l $downloadbin | awk '{print $5}'`))'/1000000}')"
+        else
+                echo "UPX compression disabled, skipping ..."
+        fi
+
+        /etc/init.d/AdGuardHome stop > /dev/null 2>&1
+        echo "Moving AdGuardHome binary to ${binpath%/*} ..."
+
+        if ! mv -f "${downloadbin}" "${binpath}"; then
+                echo -e "AdGuardHome 核心移动失败!\n可能是设备空间不足导致, 请尝试开启 UPX 压缩, 或更改 [执行文件路径] 为 /tmp/AdGuardHome" 
+                EXIT 1
+        fi
+
+        rm -f /tmp/upx*.tar.xz
+        rm -rf /tmp/upx* /tmp/AdGuardHome_Update
+        chmod +x ${binpath}
+
+        if [ "${enabled}" = 1 ]; then
+                echo "Restarting AdGuardHome service ..."
+                /etc/init.d/AdGuardHome restart
+        fi
+
+        echo "AdGuardHome core updated successfully!"
 }
 
 GET_Arch() {
-	Archt="$(opkg info kernel | grep Architecture | awk -F "[ _]" '{print($2)}')"
-	case "${Archt}" in
-	i386)
-		Arch=i386
-	;;
-	i686)
-		Arch=i386
-	;;
-	x86)
-		Arch=amd64
-	;;
-	mipsel)
-		Arch=mipsle_softfloat
-	;;
-	mips)
-		Arch=mips_softfloat
-	;;
-	mips64el)
-		Arch=mips64le_softfloat
-	;;
-	mips64)
-		Arch=mips64_softfloat
-	;;
-	arm)
-		Arch=arm
-	;;
-	armeb)
-		Arch=armeb
-	;;
-	aarch64)
-		Arch=arm64
-	;;
-	*)
-		echo "Unsupported architecture: [${Archt}]" 
-		EXIT 1
-	esac
-	case "${Archt}" in
-	mipsel)
-		Arch_upx="mipsel"
-		upx_latest_ver="3.95"
-	;;
-	*)
-		Arch_upx="${Arch}"
-		upx_latest_ver="$(${_Downloader} https://api.github.com/repos/upx/upx/releases/latest 2>/dev/null | egrep 'tag_name' | egrep '[0-9.]+' -o 2>/dev/null)"
-	
-	esac
+        Archt="$(uname -m)"
+        case "${Archt}" in
+        i386|i686)
+                Arch=i386
+        ;;
+        x86_64|amd64)
+                Arch=amd64
+        ;;
+        mipsel|mipsel*)
+                Arch=mipsle_softfloat
+        ;;
+        mips|mips*)
+                Arch=mips_softfloat
+        ;;
+        mips64el)
+                Arch=mips64le_softfloat
+        ;;
+        mips64)
+                Arch=mips64_softfloat
+        ;;
+        armv5*|armv5l|armv5tel)
+                Arch=armv5
+        ;;
+        armv6*|armv6l)
+                Arch="armv6"
+        ;;
+        armv7*|armv7l)
+                Arch="armv7"
+        ;;
+        arm|armhf)
+                Arch="armv7"
+        ;;
+        aarch64)
+                Arch=arm64
+        ;;
+        *)
+                echo "Unsupported architecture: [${Archt}]" 
+                EXIT 1
+        esac
+        case "${Archt}" in
+        mipsel)
+                Arch_upx="mipsel"
+                upx_latest_ver="3.95"
+        ;;
+        *)
+                Arch_upx="${Arch}"
+                upx_latest_ver="$(${_Downloader} https://api.github.com/repos/upx/upx/releases/latest 2>/dev/null | egrep 'tag_name' | egrep '[0-9.]+' -o 2>/dev/null)"
+
+        esac
     echo "Detected architecture: ${Arch}"
 }
 
 EXIT(){
 	rm -rf /var/run/update_core $LOCKU 2>/dev/null
-    [ "$1" != 0 ] && touch /var/run/update_core_error
+	[ "$1" != 0 ] && touch /var/run/update_core_error
 	exit $1
 }
 
