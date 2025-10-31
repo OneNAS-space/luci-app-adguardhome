@@ -76,7 +76,9 @@ stop_forward_dnsmasq() {
 }
 
 agh_reload() {
-    ubus call service event '{"type":"config.change","data":{"package":"AdGuardHome"}}' >/dev/null 2>&1
+    if ubus list | grep -q '^service$'; then
+        ubus call service event '{"type":"config.change","data":{"package":"AdGuardHome"}}' >/dev/null 2>&1
+    fi
 }
 
 rm_port53() {
