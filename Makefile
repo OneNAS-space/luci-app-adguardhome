@@ -7,7 +7,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-adguardhome
-PKG_VERSION:=2.2.14
+PKG_VERSION:=2.2.15
 PKG_RELEASE:=20251102
 
 PKG_LICENSE:=MIT
