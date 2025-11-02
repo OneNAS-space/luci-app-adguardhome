@@ -12,11 +12,12 @@ NFT_RULES_TPL="/usr/share/AdGuardHome/adguardhome.nft.tpl"
 NFT_TABLE="adguardhome"
 
 EXTRA_COMMANDS="do_redirect testbackup test_crontab force_reload isrunning"
-EXTRA_HELP="        do_redirect 0 or 1\
-        testbackup backup or restore\
-		test_crontab
-		force_reload
-		isrunning"
+EXTRA_HELP="\
+	do_redirect	0 or 1\n\
+	testbackup	backup or restore\n\
+	test_crontab\n\
+	force_reload\n\
+	isrunning"
 
 set_nft_redirect() {
     local port="$1"
