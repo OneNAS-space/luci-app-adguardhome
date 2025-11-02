@@ -2,7 +2,6 @@
 set -x
 
 USE_PROCD=1
-USE_PROCD_LOCK=1
 
 START=95
 STOP=01
