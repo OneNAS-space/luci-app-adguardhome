@@ -499,6 +499,7 @@ del_querylog() {
 
 stop_service() {
     config_load "${CONFIGURATION}"
+    procd_kill AdGuardHome >/dev/null 2>&1
     ( _do_redirect 0 ) >/dev/null 2>&1
     ( do_crontab ) >/dev/null 2>&1
     if [ "$1" != "nobackup" ]; then
