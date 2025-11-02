@@ -80,13 +80,27 @@ jobs:
             gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev \
             python3-setuptools rsync swig unzip zlib1g-dev file wget zstd gh
 
+      - name: Cache SDK tarball
+        uses: actions/cache@v4
+        with:
+          path: _sdk/sdk.tar.zst
+          key: sdk-${{ env.RELEASE }}-${{ env.TARGET }}-${{ env.SUBTARGET }}
+
+      - name: Cache dl directory
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.SDK_DIR }}/dl
+          key: dl-${{ env.RELEASE }}-${{ env.TARGET }}-${{ env.SUBTARGET }}
+
       - name: Download and extract SDK
         run: |
           set -eux
           BASE="https://downloads.openwrt.org/releases/${RELEASE}/targets/${TARGET}/${SUBTARGET}/"
-          SDK_TARBALL=$(curl -fsSL "$BASE" | grep -o 'openwrt-sdk-[^"]*\.tar\.zst' | head -n1)
-          mkdir -p _sdk
-          wget -q "${BASE}${SDK_TARBALL}" -O _sdk/sdk.tar.zst
+          if [ ! -f _sdk/sdk.tar.zst ]; then
+            SDK_TARBALL=$(curl -fsSL "$BASE" | grep -o 'openwrt-sdk-[^"]*\.tar\.zst' | head -n1)
+            mkdir -p _sdk
+            wget -q "${BASE}${SDK_TARBALL}" -O _sdk/sdk.tar.zst
+          fi
           tar --zstd -xf _sdk/sdk.tar.zst -C _sdk
           SDK_DIR="$(find "$PWD/_sdk" -maxdepth 1 -type d -name 'openwrt-sdk-*' -print -quit)"
           echo "SDK_DIR=${SDK_DIR}" >> "$GITHUB_ENV"
