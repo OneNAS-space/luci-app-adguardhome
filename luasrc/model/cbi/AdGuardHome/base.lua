@@ -7,7 +7,17 @@ local uci=require"luci.model.uci".cursor()
 local configpath=uci:get("AdGuardHome","AdGuardHome","configpath") or "/etc/AdGuardHome.yaml"
 local binpath = uci:get("AdGuardHome", "AdGuardHome", "binpath") or "/usr/bin/AdGuardHome/AdGuardHome"
 httpport=uci:get("AdGuardHome","AdGuardHome","httpport") or "3000"
-m = Map("AdGuardHome", "AdGuard Home")
+local sys  = require "luci.sys"
+local util = require "luci.util"
+local full = util.trim(sys.exec("opkg list-installed | grep luci-app-adguardhome | awk '{print $3}'"))
+local agh_version = full:match("([0-9%.]+)") or full
+
+m = Map("AdGuardHome", [[
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <span>AdGuard Home</span>
+    <span>📦 v ]] .. agh_version .. [[</span>
+  </div>
+]])
 m.description = translate("Free and open source, powerful network-wide ads & trackers blocking DNS server.")
     .. [[<style>
     div[id^="cbid.AdGuardHome.AdGuardHome."] {
