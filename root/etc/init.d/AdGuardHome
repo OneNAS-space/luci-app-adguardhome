@@ -291,7 +291,7 @@ config_editor() {
             if (i==l) {
                 split($0,t,": ");
                 if (ro==""){
-                    system("sed -i '\''"FNR"c\\" t[1] ": " value "'\'' " file);
+                    system("sed -i '\''"FNR"c\\" t[1] ": " value "'\'' " file " >/dev/null 2>&1");
                 } else {
                     print(t[2]);
                 }
