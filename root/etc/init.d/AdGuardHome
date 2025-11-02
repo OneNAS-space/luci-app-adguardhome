@@ -1,4 +1,5 @@
 #!/bin/sh /etc/rc.common
+set -x
 
 USE_PROCD=1
 
