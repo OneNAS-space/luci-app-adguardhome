@@ -7,7 +7,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-adguardhome
-PKG_VERSION:=2.2.12
+PKG_VERSION:=2.2.13
 PKG_RELEASE:=20251102
 
 PKG_LICENSE:=MIT
@@ -56,7 +56,7 @@ define Package/luci-app-adguardhome/postinst
 	/etc/init.d/AdGuardHome enable >/dev/null 2>&1
 	enable=$(uci get AdGuardHome.AdGuardHome.enabled 2>/dev/null)
 	if [ "$enable" == "1" ]; then
-		/etc/init.d/AdGuardHome reload 2>/dev/null
+		/etc/init.d/AdGuardHome reload >/dev/null 2>&1
 	fi
 	rm -f /tmp/luci-indexcache
 	rm -f /tmp/luci-modulecache/*
