@@ -11,7 +11,7 @@ NFT_RULES_FILE="/var/etc/adguardhome.nft"
 NFT_RULES_TPL="/usr/share/AdGuardHome/adguardhome.nft.tpl"
 NFT_TABLE="adguardhome"
 
-EXTRA_COMMANDS="do_redirect testbackup test_crontab force_reload isrunning"
+# EXTRA_COMMANDS="do_redirect testbackup test_crontab force_reload isrunning"
 # EXTRA_HELP="do_redirect 0 or 1 testbackup backup or restore test_crontab force_reload isrunning"
 
 set_nft_redirect() {
