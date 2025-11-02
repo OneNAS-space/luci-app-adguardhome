@@ -1,13 +1,11 @@
 #
-# Copyright (C) 2025 w9315273
-#
-# This is free software, licensed under the Apache License, Version 2.0.
+# Copyright (C) 2025 OneNAS.space, Jackie264 (jackie.han@gmail.com).
 #
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-adguardhome
-PKG_VERSION:=2.2.23
+PKG_VERSION:=2.3.1
 PKG_RELEASE:=20251102
 
 PKG_LICENSE:=MIT
