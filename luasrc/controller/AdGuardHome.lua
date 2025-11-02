@@ -3,10 +3,10 @@ local fs = require "nixio.fs"
 local http = require "luci.http"
 local uci = require"luci.model.uci".cursor()
 function index()
-local page = entry({"admin", "services", "AdGuardHome"},alias("admin", "services", "AdGuardHome", "base"),_("AdGuard Home"))
-page.order = 11
-page.dependent = true
-page.acl_depends = { "luci-app-adguardhome" }
+    local page = entry({"admin", "services", "AdGuardHome"},alias("admin", "services", "AdGuardHome", "base"),_("AdGuard Home"))
+    page.order = 11
+    page.dependent = true
+    page.acl_depends = { "luci-app-adguardhome" }
     entry({"admin", "services", "AdGuardHome", "base"}, cbi("AdGuardHome/base"),  _("Base Setting"), 1).leaf = true
     entry({"admin", "services", "AdGuardHome", "log"}, form("AdGuardHome/log"), _("Log"), 2).leaf = true
     entry({"admin", "services", "AdGuardHome", "manual"}, cbi("AdGuardHome/manual"), _("Manual Config"), 3).leaf = true
@@ -49,14 +49,6 @@ function reload_config()
 	fs.remove("/tmp/AdGuardHometmpconfig.yaml")
 	http.prepare_content("application/json")
 	http.write('')
-end
-function act_status()
-	local e={}
-	local binpath=uci:get("AdGuardHome","AdGuardHome","binpath")
-	e.running=luci.sys.call("pgrep "..binpath.." >/dev/null")==0
-	e.redirect=(fs.readfile("/var/run/AdGredir")=="1")
-	http.prepare_content("application/json")
-	http.write_json(e)
 end
 function do_update()
 	fs.writefile("/var/run/lucilogpos","0")
@@ -116,9 +108,21 @@ function check_update()
 	fdp=f:seek()
 	fs.writefile("/var/run/lucilogpos",tostring(fdp))
 	f:close()
-if fs.access("/var/run/update_core") then
-	http.write(a)
-else
-	http.write(a.."\0")
+    if fs.access("/var/run/update_core") then
+	    http.write(a)
+    else
+	    http.write(a.."\0")
+    end
 end
+function act_status()
+    local sys  = require "luci.sys"
+    local util = require "luci.util"
+    local e = {}
+    local binpath = uci:get("AdGuardHome", "AdGuardHome", "binpath") or "AdGuardHome"
+    e.running = (sys.call("pgrep " .. binpath .. " >/dev/null") == 0)
+    e.redirect = (fs.readfile("/var/run/AdGredir") == "1")
+    local full = util.trim(sys.exec("opkg list-installed | grep luci-app-adguardhome | awk '{print $3}'"))
+    e.version = full:match("([0-9%.]+)") or full
+    http.prepare_content("application/json")
+    http.write_json(e)
 end
