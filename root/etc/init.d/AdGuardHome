@@ -1,6 +1,6 @@
 #!/bin/sh /etc/rc.common
-exec 2>/tmp/agh_debug.log
-set -x
+# exec 2>/tmp/agh_debug.log
+# set -x
 
 USE_PROCD=1
 
