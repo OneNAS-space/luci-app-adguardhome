@@ -127,6 +127,7 @@ use_port53() {
     uci set dhcp.@dnsmasq[0].port="$AdGuardHome_PORT"
     uci commit dhcp
     /etc/init.d/dnsmasq restart
+    /etc/init.d/odhcpd restart
     agh_reload
 }
 
@@ -456,7 +457,7 @@ start_service() {
     procd_set_param file "$configpath" "/etc/hosts" "/etc/config/AdGuardHome"
     procd_close_instance
     if [ -f "$configpath" ]; then
-        (sleep 5 && _do_redirect 1 && /etc/init.d/dnsmasq reload) &
+        (sleep 5 && _do_redirect 1) &
     else
         _do_redirect 0
         config_get "redirect" "AdGuardHome" "redirect" "none"
