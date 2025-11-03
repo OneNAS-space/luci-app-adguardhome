@@ -518,8 +518,10 @@ stop_service() {
     config_get backupfile $CONFIGURATION backupfile "0"
     [ -n "$backupfile" ] && [ "$backupfile" != "0" ] && backup
     
-    echo "AdGuardHome service disabled"
-    touch /var/run/AdGserverdis >/dev/null 2>&1
+    if [ ! -f /var/run/AdGserverdis ]; then
+        echo "AdGuardHome service disabled"
+        touch /var/run/AdGserverdis
+    fi
 }
 
 boot() {
