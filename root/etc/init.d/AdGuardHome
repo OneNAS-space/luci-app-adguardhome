@@ -22,11 +22,6 @@ EXTRA_HELP="\
 \tforce_reload\n\
 \tisrunning"
 
-service_stop() {
-    /etc/init.d/AdGuardHome stop >/dev/null 2>&1
-    return 0 
-}
-
 set_nft_redirect() {
     local port="$1"
     [ -z "$port" ] && return 1
@@ -521,6 +516,7 @@ stop_service() {
         touch /var/run/AdGserverdis
     fi
     procd_close_instance
+    return 0
 }
 
 boot() {
