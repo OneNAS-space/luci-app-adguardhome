@@ -103,8 +103,9 @@ rm_port53() {
     uci commit dhcp
 
     config_get binpath $CONFIGURATION binpath "/usr/bin/AdGuardHome/AdGuardHome"
-    killall -9 "$binpath" 2>/dev/null
+    # killall -9 "$binpath" 2>/dev/null
     /etc/init.d/dnsmasq restart
+    /etc/init.d/odhcpd restart
     agh_reload
 }
 
