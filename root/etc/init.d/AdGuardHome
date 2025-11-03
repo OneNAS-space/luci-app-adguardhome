@@ -512,7 +512,6 @@ service_stop() {
     
     echo "AdGuardHome service disabled"
     touch /var/run/AdGserverdis >/dev/null 2>&1
-
     procd_kill AdGuardHome >/dev/null 2>&1
 }
 
