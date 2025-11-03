@@ -1,6 +1,4 @@
 #!/bin/sh /etc/rc.common
-# exec 2>/tmp/agh_debug.log
-# set -x
 
 USE_PROCD=1
 
@@ -502,28 +500,16 @@ del_querylog() {
     fi
 }
 
-stop_service_cleanup_only() {
+stop_service() {
     config_load "${CONFIGURATION}"
-
-    ( _do_redirect 0 ) >/dev/null 2>&1
-    ( do_crontab ) >/dev/null 2>&1
-
-    config_get backupfile $CONFIGURATION backupfile "0"
-    [ -n "$backupfile" ] && [ "$backupfile" != "0" ] && backup
-
-    if [ ! -f /var/run/AdGserverdis ]; then
-        touch /var/run/AdGserverdis
+    _do_redirect 0
+    do_crontab
+    if [ "$1" != "nobackup" ]; then
+        config_get backupfile $CONFIGURATION backupfile "0"
+        [ -n "$backupfile" ] && [ "$backupfile" != "0" ] && backup
     fi
-}
-
-stop() {
-    local binpath
-    config_load AdGuardHome
-    config_get binpath AdGuardHome AdGuardHome binpath "/usr/bin/AdGuardHome/AdGuardHome"
-    stop_service_cleanup_only >/dev/null 2>&1
-    killall -9 AdGuardHome >/dev/null 2>/dev/null
     echo "AdGuardHome service disabled"
-    exit 0
+    touch /var/run/AdGserverdis
 }
 
 boot() {
