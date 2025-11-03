@@ -515,6 +515,7 @@ stop_service() {
         echo "AdGuardHome service disabled"
         touch /var/run/AdGserverdis
     fi
+    procd_close_instance
 }
 
 boot() {
