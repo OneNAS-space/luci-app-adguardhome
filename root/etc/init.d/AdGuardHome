@@ -504,6 +504,12 @@ del_querylog() {
 }
 
 service_stop() {
+    procd_kill AdGuardHome >/dev/null 2>&1
+}
+
+stop_service() {
+    config_load "${CONFIGURATION}"
+    
     ( _do_redirect 0 ) >/dev/null 2>&1
     ( do_crontab ) >/dev/null 2>&1
     
@@ -512,7 +518,6 @@ service_stop() {
     
     echo "AdGuardHome service disabled"
     touch /var/run/AdGserverdis >/dev/null 2>&1
-    procd_kill AdGuardHome >/dev/null 2>&1
 }
 
 boot() {
