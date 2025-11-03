@@ -13,13 +13,14 @@ NFT_RULES_FILE="/var/etc/adguardhome.nft"
 NFT_RULES_TPL="/usr/share/AdGuardHome/adguardhome.nft.tpl"
 NFT_TABLE="adguardhome"
 
-EXTRA_COMMANDS="do_redirect testbackup test_crontab force_reload isrunning"
+EXTRA_COMMANDS="do_redirect testbackup backup restore test_crontab force_reload isrunning"
 EXTRA_HELP="\
-	do_redirect    0 or 1\n\
-	testbackup    backup or restore\n\
-	test_crontab\n\
-	force_reload\n\
-	isrunning"
+\tdo_redirect \t0 or 1\n\
+\ttestbackup\n\
+\tbackup or restore\n\
+\ttest_crontab\n\
+\tforce_reload\n\
+\tisrunning"
 
 set_nft_redirect() {
     local port="$1"
@@ -502,17 +503,17 @@ del_querylog() {
     fi
 }
 
-stop_service() {
-    config_load "${CONFIGURATION}"
+service_stop() {
     ( _do_redirect 0 ) >/dev/null 2>&1
     ( do_crontab ) >/dev/null 2>&1
-    if [ "$1" != "nobackup" ]; then
-        config_get backupfile $CONFIGURATION backupfile "0"
-        [ -n "$backupfile" ] && [ "$backupfile" != "0" ] && backup
-    fi
-    procd_kill AdGuardHome >/dev/null 2>&1
+    
+    config_get backupfile $CONFIGURATION backupfile "0"
+    [ -n "$backupfile" ] && [ "$backupfile" != "0" ] && backup
+    
     echo "AdGuardHome service disabled"
     touch /var/run/AdGserverdis >/dev/null 2>&1
+
+    procd_kill AdGuardHome >/dev/null 2>&1
 }
 
 boot() {
