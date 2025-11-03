@@ -6,15 +6,15 @@ XHR.poll(3, '<%=url([[admin]], [[services]], [[AdGuardHome]], [[status]])%>', nu
 			var statusText = "";
 
             if (data.running) {
-                statusText = '🟢 <b><%:RUNNING%></b>';
+                statusText = '🟢 <b><%:running%></b>';
             } else {
-                statusText = '🔴 <b><%:NOT RUNNING%></b>';
+                statusText = '🔴 <b><%:NOT running%></b>';
             }
 
             if (data.redirect) {
-                statusText += ' <b><%:Redirected%></b>';
+                statusText += ' 🟢 <b><%:Redirected%></b>';
             } else {
-                statusText += ' <b><%:Not redirect%></b>';
+                statusText += ' 🔴 <b><%:Not redirect%></b>';
             }
 
             tb.innerHTML = `
