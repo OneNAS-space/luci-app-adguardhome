@@ -35,7 +35,7 @@ function gen_template_config()
 end
 m = Map("AdGuardHome")
 local configpath = uci:get("AdGuardHome","AdGuardHome","configpath")
-local binpath = uci:get("AdGuardHome","AdGuardHome","binpath")
+local binpath = "/usr/bin/AdGuardHome"
 s = m:section(TypedSection, "AdGuardHome")
 s.anonymous = true
 s.addremove = false
