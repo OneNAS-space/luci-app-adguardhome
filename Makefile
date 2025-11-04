@@ -51,6 +51,14 @@ define Package/luci-app-adguardhome/install
 	$(INSTALL_BIN) ./root/etc/init.d/AdGuardHome $(1)/etc/init.d/
 
 	$(INSTALL_DIR) $(1)/usr/share/AdGuardHome
+	$(INSTALL_DATA) ./root/usr/share/AdGuardHome/AdGuardHome_template.yaml $(1)/usr/share/AdGuardHome/
+	$(INSTALL_DATA) ./root/usr/share/AdGuardHome/adguardhome.nft.tpl $(1)/usr/share/AdGuardHome/
+	$(INSTALL_DATA) ./root/usr/share/AdGuardHome/links.txt $(1)/usr/share/AdGuardHome/
+	
+	$(INSTALL_BIN) ./root/usr/share/AdGuardHome/addhost.sh $(1)/usr/share/AdGuardHome/
+	$(INSTALL_BIN) ./root/usr/share/AdGuardHome/getsyslog.sh $(1)/usr/share/AdGuardHome/
+	$(INSTALL_BIN) ./root/usr/share/AdGuardHome/gfw2adg.sh $(1)/usr/share/AdGuardHome/
+	$(INSTALL_BIN) ./root/usr/share/AdGuardHome/tailto.sh $(1)/usr/share/AdGuardHome/
 	$(INSTALL_BIN) ./root/usr/share/AdGuardHome/update_core.sh $(1)/usr/share/AdGuardHome/
 	$(INSTALL_BIN) ./root/usr/share/AdGuardHome/watchconfig.sh $(1)/usr/share/AdGuardHome/
 
