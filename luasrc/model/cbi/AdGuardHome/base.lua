@@ -9,18 +9,18 @@ local binpath = uci:get("AdGuardHome", "AdGuardHome", "binpath") or "/usr/bin/Ad
 httpport = uci:get("AdGuardHome","AdGuardHome","httpport") or "3000"
 m = Map("AdGuardHome", "AdGuard Home")
 m.description = translate("Free and open source, powerful network-wide ads & trackers blocking DNS server.")
-    .. [[<style>
-    div[id^="cbid.AdGuardHome.AdGuardHome."] {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1em;
-    }
-    div[id^="cbid.AdGuardHome.AdGuardHome."] .cbi-checkbox {
-      display: inline-flex;
-      align-items: center;
-    }
-    </style>]]
-m:section(SimpleSection).template  = "AdGuardHome/AdGuardHome_status"
+    .. [[<style>
+    div[id^="cbid.AdGuardHome.AdGuardHome."] {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1em;
+    }
+    div[id^="cbid.AdGuardHome.AdGuardHome."] .cbi-checkbox {
+      display: inline-flex;
+      align-items: center;
+    }
+    </style>]]
+m:section(SimpleSection).template  = "AdGuardHome/AdGuardHome_status"
 
 s = m:section(TypedSection, "AdGuardHome")
 s.anonymous = true
@@ -34,10 +34,10 @@ o.default = 3000
 o.datatype = "port"
 o.optional = false
 o.description = translate(
-  "<input type='button' class='cbi-button cbi-button-link' " ..
-  "style='width:210px;font-weight:bold;' " ..
-  "value='AdGuardHome Web:" .. httpport .. "' " ..
-  "onclick=\"window.open('http://' + window.location.hostname + ':" .. httpport .. "')\"/>"
+  "<input type='button' class='cbi-button cbi-button-link' " ..
+  "style='width:210px;font-weight:bold;' " ..
+  "value='AdGuardHome Web:" .. httpport .. "' " ..
+  "onclick=\"window.open('http://' + window.location.hostname + ':" .. httpport .. "')\"/>"
 )
 local binmtime=uci:get("AdGuardHome","AdGuardHome","binmtime") or "0"
 local e = ""
@@ -48,11 +48,11 @@ else
 	local version = uci:get("AdGuardHome","AdGuardHome","version")
 	local testtime = fs.stat(binpath,"mtime")
 	if testtime ~= tonumber(binmtime) or version == nil then
-        version = luci.sys.exec(string.format("echo -n $(%s --version 2>&1 | awk -F 'version ' '{print $2}' | awk -F ',' '{print $1}')", binpath))
-        if version == "" then version = "core error" end
-        uci:set("AdGuardHome", "AdGuardHome", "version", version)
-        uci:set("AdGuardHome", "AdGuardHome", "binmtime", testtime)
-        uci:commit("AdGuardHome")
+        version = luci.sys.exec(string.format("echo -n $(%s --version 2>&1 | awk -F 'version ' '{print $2}' | awk -F ',' '{print $1}')", binpath))
+        if version == "" then version = "core error" end
+        uci:set("AdGuardHome", "AdGuardHome", "version", version)
+        uci:set("AdGuardHome", "AdGuardHome", "binmtime", testtime)
+        uci:commit("AdGuardHome")
 	end
 	e = version..e
 end
@@ -277,7 +277,7 @@ function m.on_commit(map)
 				uci:set("AdGuardHome","AdGuardHome","ucitracktest","2")
 			end
 		end
-        uci:commit("AdGuardHome")
+        uci:commit("AdGuardHome")
 	end
 end
 return m
