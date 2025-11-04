@@ -5,7 +5,7 @@ local m, s, o, o1
 local fs = require"nixio.fs"
 local uci = require"luci.model.uci".cursor()
 local configpath = uci:get("AdGuardHome","AdGuardHome","configpath") or "/etc/AdGuardHome.yaml"
-local binpath = uci:get("AdGuardHome", "AdGuardHome", "binpath") or "/usr/bin/AdGuardHome/AdGuardHome"
+local binpath = uci:get("AdGuardHome", "AdGuardHome", "binpath") or "/usr/bin/AdGuardHome"
 httpport = uci:get("AdGuardHome","AdGuardHome","httpport") or "3000"
 m = Map("AdGuardHome", "AdGuard Home")
 m.description = translate("Free and open source, powerful network-wide ads & trackers blocking DNS server.")
@@ -78,11 +78,11 @@ o:value("exchange", translate("Use port 53 replace dnsmasq"))
 o.default = "none"
 o.optional = true
 o = s:option(Value, "binpath", translate("Bin Path"), translate("AdGuardHome Bin path if no bin will auto download"))
-o.default = "/usr/bin/AdGuardHome/AdGuardHome"
+o.default = "/usr/bin/AdGuardHome"
 o.datatype = "string"
 o.optional = false
 o.rmempty = false
-o.validate = function(self, value)
+o.readonly = true
 if value == "" then return nil end
 if fs.stat(value,"type") == "dir" then
 	fs.rmdir(value)
@@ -128,7 +128,7 @@ end
 return value
 end
 o = s:option(Value, "workdir", translate("Work dir"), translate("AdGuardHome work dir include rules,audit log and database"))
-o.default = "/usr/bin/AdGuardHome"
+o.default = "/var/AdGuardHome"
 o.datatype = "string"
 o.optional = false
 o.rmempty = false
@@ -207,9 +207,6 @@ o:value("$workdir/data/querylog.json",translate("querylog.json"))
 o:value("$workdir/data/filters",translate("filters"))
 o.widget = "checkbox"
 o.default = nil
-o.optional = true
-o = s:option(Flag, "waitonboot", translate("On boot when network ok restart"))
-o.default = 1
 o.optional = true
 local workdir = uci:get("AdGuardHome", "AdGuardHome", "workdir") or "/usr/bin/AdGuardHome"
 o = s:option(MultiValue, "backupfile", translate("Backup files when shutdown"))
