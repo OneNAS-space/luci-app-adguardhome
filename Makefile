@@ -23,7 +23,7 @@ define Package/luci-app-adguardhome
 	TITLE:=LuCI app for adguardhome
 	PKG_MAINTAINER:=https://github.com/OneNAS-space/luci-app-adguardhome
 	PKGARCH:=all
-	DEPENDS:=+wget-ssl +tar +xz-utils
+	DEPENDS:=+wget-ssl +tar +xz
 endef
 
 define Package/luci-app-adguardhome/description
@@ -43,8 +43,17 @@ endef
 define Package/luci-app-adguardhome/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci
 	cp -pR ./luasrc/* $(1)/usr/lib/lua/luci
-	$(INSTALL_DIR) $(1)/
-	cp -pR ./root/* $(1)/
+
+	$(INSTALL_DIR) $(1)/etc/config
+	$(INSTALL_CONF) ./root/etc/config/AdGuardHome $(1)/etc/config/
+
+	$(INSTALL_DIR) $(1)/etc/init.d
+	$(INSTALL_BIN) ./root/etc/init.d/AdGuardHome $(1)/etc/init.d/
+
+	$(INSTALL_DIR) $(1)/usr/share/AdGuardHome
+	$(INSTALL_BIN) ./root/usr/share/AdGuardHome/update_core.sh $(1)/usr/share/AdGuardHome/
+	$(INSTALL_BIN) ./root/usr/share/AdGuardHome/watchconfig.sh $(1)/usr/share/AdGuardHome/
+
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
 	po2lmo ./po/zh-cn/AdGuardHome.po $(1)/usr/lib/lua/luci/i18n/AdGuardHome.zh-cn.lmo
 endef
