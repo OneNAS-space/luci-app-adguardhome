@@ -6,7 +6,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-adguardhome
 PKG_VERSION:=2.3.27
-PKG_RELEASE:=20251103
+PKG_RELEASE:=20251105
 
 PKG_LICENSE:=MIT
 PKG_LICENSE_FILES:=LICENSE
@@ -23,7 +23,7 @@ define Package/luci-app-adguardhome
 	TITLE:=LuCI app for adguardhome
 	PKG_MAINTAINER:=https://github.com/OneNAS-space/luci-app-adguardhome
 	PKGARCH:=all
-	DEPENDS:=+wget-ssl +tar +xz-utils
+	DEPENDS:=+wget-ssl +tar +xz
 endef
 
 define Package/luci-app-adguardhome/description
@@ -51,11 +51,6 @@ endef
 
 define Package/luci-app-adguardhome/postinst
 #!/bin/sh
-	/etc/init.d/AdGuardHome enable >/dev/null 2>&1
-#	enable=$(uci get AdGuardHome.AdGuardHome.enabled 2>/dev/null)
-#	if [ "$enable" == "1" ]; then
-#		/etc/init.d/AdGuardHome reload >/dev/null 2>&1
-#	fi
 	rm -f /tmp/luci-indexcache
 	rm -f /tmp/luci-modulecache/*
 exit 0
@@ -63,14 +58,10 @@ endef
 
 define Package/luci-app-adguardhome/prerm
 #!/bin/sh
-if [ -z "$${IPKG_INSTROOT}" ]; then
-	/etc/init.d/AdGuardHome disable
-#	/etc/init.d/AdGuardHome stop
 uci -q batch <<-EOF >/dev/null 2>&1
 	delete ucitrack.@AdGuardHome[-1]
 	commit ucitrack
 EOF
-fi
 exit 0
 endef
 

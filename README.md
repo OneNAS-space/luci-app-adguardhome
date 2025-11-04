@@ -5,28 +5,19 @@
 ## 变更概览
 - `iptables` → `nftables`：使用 nft 应用/清理规则 `/var/etc/adguardhome.nft`
 - 模板路径：`/usr/share/AdGuardHome/adguardhome.nft.tpl`
+- init 脚本固化bin路径 `PROG=/usr/bin/AdGuardHome`，因此删除了冗余的代码
 
 ## 模板与默认行为
 > [!CAUTION]
-> 模板中默认 **WAN** 接口设备名为 `eth0`, 因此使用如下规则排除来自 **WAN** 的入站流量<br>避免把路由器暴露为‼️**公共解析器**‼️
+> 修订模版以适应动态获取 ***WAN*** 接口, 因此使用如下规则排除来自 **WAN** 的入站流量<br>避免把路由器暴露为‼️**公共解析器**‼️
 > ```
-> iifname { "eth0" } return
+> iifname { __WAN_EXCLUDES__ } return
 > ```
 > 
 > 其余匹配到 `目标为本机` 的 `53` 端口流量会被重定向至 **AdGuard Home** 的监听端口
 > ```
 > fib daddr type local udp dport 53 redirect to :__AGH_PORT__
 > fib daddr type local tcp dport 53 redirect to :__AGH_PORT__
-> ```
-
-> [!CAUTION]
-> ## ‼️如果你的 **WAN** 不是 `eth0`
-> 请手动把上面的接口名改为你的实际 **WAN** 设备名; 多个接口用逗号分隔
-> ```
-> iifname { "eth1" } return
-> ```
-> ```
-> iifname { "eth0", "eth1", "macvlan0" } return
 > ```
 
 > [!TIP]
