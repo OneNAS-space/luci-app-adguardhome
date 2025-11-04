@@ -83,20 +83,7 @@ o.datatype = "string"
 o.optional = false
 o.rmempty = false
 o.readonly = true
-if value == "" then return nil end
-if fs.stat(value,"type") == "dir" then
-	fs.rmdir(value)
-end
-if fs.stat(value,"type") == "dir" then
-	if (m.message) then
-	m.message = m.message.."\nerror!bin path is a dir"
-	else
-	m.message = "error!bin path is a dir"
-	end
-	return nil
-end
-return value
-end
+
 o = s:option(ListValue, "upxflag", translate("use upx to compress bin after download"))
 o:value("", translate("none"))
 o:value("-1", translate("compress faster"))
