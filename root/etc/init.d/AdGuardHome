@@ -330,17 +330,17 @@ testbackup() {
 }
 
 restore() {
-    config_get workdir $CONFIGURATION workdir "/usr/bin/AdGuardHome"
-    config_get backupwdpath $CONFIGURATION backupwdpath "/usr/bin/AdGuardHome"
+    config_get workdir $CONFIGURATION workdir "/var/AdGuardHome"
+    config_get backupwdpath $CONFIGURATION backupwdpath "/etc/AdGuardHome"
     if [ "$backupwdpath" != "$workdir" ]; then
         cp -u -r -f "$backupwdpath/data" "$workdir"
     fi
 }
 
 backup() {
-    config_get backupwdpath $CONFIGURATION backupwdpath "/usr/bin/AdGuardHome"
+    config_get backupwdpath $CONFIGURATION backupwdpath "/etc/AdGuardHome"
     mkdir -p "$backupwdpath/data"
-    config_get workdir $CONFIGURATION workdir "/usr/bin/AdGuardHome"
+    config_get workdir $CONFIGURATION workdir "/var/AdGuardHome"
     config_get backupfile $CONFIGURATION backupfile ""
     for one in $backupfile; do
         while : ; do
@@ -388,7 +388,7 @@ start_service() {
         _do_redirect 0
         return
     fi
-    config_get workdir $CONFIGURATION workdir "/usr/bin/AdGuardHome"
+    config_get workdir $CONFIGURATION workdir "/var/AdGuardHome"
     config_get backupfile $CONFIGURATION backupfile ""
     mkdir -p "$workdir/data"
     if [ -n "$backupfile" ] && [ ! -d "$workdir/data" ]; then
@@ -478,6 +478,10 @@ reload_service() {
 }
 
 del_querylog() {
+    config_load "${CONFIGURATION}"
+    config_get workdir $CONFIGURATION workdir "/var/AdGuardHome"
+    config_get backupwdpath $CONFIGURATION backupwdpath "/etc/AdGuardHome"
+
     local btarget
     local wtarget
     btarget=$(ls "$backupwdpath/data" | grep -F "querylog.json" | sort -r | head -n 1)
