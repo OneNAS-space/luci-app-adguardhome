@@ -1,13 +1,9 @@
 #!/bin/sh
 
 PATH="/usr/sbin:/usr/bin:/sbin:/bin"
+binpath="/usr/bin/AdGuardHome"
 update_mode=$1
-binpath=$(uci get AdGuardHome.AdGuardHome.binpath)
-if [[ -z ${binpath} ]]; then
-	uci set AdGuardHome.AdGuardHome.binpath="/tmp/AdGuardHome/AdGuardHome"
-	binpath="/tmp/AdGuardHome/AdGuardHome"
-fi
-[[ ! -d ${binpath%/*} ]] && mkdir -p ${binpath%/*}
+
 upxflag=$(uci get AdGuardHome.AdGuardHome.upxflag 2>/dev/null)
 
 [[ -z ${upxflag} ]] && upxflag=off
@@ -149,7 +145,7 @@ Update_Core(){
         echo "Moving AdGuardHome binary to ${binpath%/*} ..."
 
         if ! mv -f "${downloadbin}" "${binpath}"; then
-                echo -e "AdGuardHome 核心移动失败!\n可能是设备空间不足导致, 请尝试开启 UPX 压缩, 或更改 [执行文件路径] 为 /tmp/AdGuardHome" 
+                echo -e "AdGuardHome 核心移动失败!\n可能是设备空间不足导致, 请尝试开启 UPX 压缩。" 
                 EXIT 1
         fi
 
