@@ -1,9 +1,11 @@
 #!/bin/sh /etc/rc.common
 
+PROG=/usr/bin/AdGuardHome
+
 USE_PROCD=1
 
-START=95
-STOP=01
+START=19
+STOP=89
 
 CONFIGURATION=AdGuardHome
 CRON_FILE=/etc/crontabs/root
