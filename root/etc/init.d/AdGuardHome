@@ -27,12 +27,27 @@ set_nft_redirect() {
     [ -z "$port" ] && return 1
     [ ! -f "$NFT_RULES_TPL" ] && return 1
 
-    sed "s/__AGH_PORT__/${port}/g" "$NFT_RULES_TPL" > "$NFT_RULES_FILE"
+    local wan_section_name
+    wan_section_name=$(uci show firewall | awk -F'.' '/\.name='\''wan'\''$/ {print $2}')
+    local WAN_IFS=""
+    if [ -n "$wan_section_name" ]; then
+        WAN_IFS=$(uci get firewall.$wan_section_name.network 2>/dev/null | xargs)
+    fi
 
+    local WAN_NFT_SET=""
+    for IF in $WAN_IFS; do
+        WAN_NFT_SET="${WAN_NFT_SET} \"$IF\","
+    done
+    WAN_NFT_SET=$(echo "$WAN_NFT_SET" | sed 's/,$//')
+
+    local TPL_TEMP="/tmp/adguardhome_nft_temp.tpl"
+    sed "s/__WAN_EXCLUDES__/${WAN_NFT_SET}/g" "$NFT_RULES_TPL" > "$TPL_TEMP"
+    sed "s/__AGH_PORT__/${port}/g" "$TPL_TEMP" > "$NFT_RULES_FILE"
+
+    rm -f "$TPL_TEMP"
     nft delete table inet "$NFT_TABLE" 2>/dev/null
-
     nft -f "$NFT_RULES_FILE" 2>/dev/null
-    logger -t adguardhome "nft table $NFT_TABLE applied on port $port"
+    logger -t adguardhome "nft table $NFT_TABLE applied on port $port, WAN excludes: $WAN_NFT_SET"
 }
 
 clear_nft_redirect() {
