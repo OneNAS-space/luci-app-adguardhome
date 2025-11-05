@@ -2,25 +2,25 @@ require("luci.sys")
 require("luci.util")
 require("io")
 local m, s, o, o1
-local fs = require"nixio.fs"
-local uci = require"luci.model.uci".cursor()
-local configpath = uci:get("AdGuardHome","AdGuardHome","configpath") or "/etc/AdGuardHome.yaml"
+local fs = require "nixio.fs"
+local uci = require "luci.model.uci".cursor()
+local configpath = uci:get("AdGuardHome", "AdGuardHome", "configpath") or "/etc/AdGuardHome.yaml"
 local binpath = uci:get("AdGuardHome", "AdGuardHome", "binpath") or "/usr/bin/AdGuardHome"
-httpport = uci:get("AdGuardHome","AdGuardHome","httpport") or "3008"
+httpport = uci:get("AdGuardHome", "AdGuardHome", "httpport") or "3008"
 m = Map("AdGuardHome", "AdGuard Home")
 m.description = translate("Free and open source, powerful network-wide ads & trackers blocking DNS server.")
-    .. [[<style>
-    div[id^="cbid.AdGuardHome.AdGuardHome."] {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1em;
-    }
-    div[id^="cbid.AdGuardHome.AdGuardHome."] .cbi-checkbox {
-      display: inline-flex;
-      align-items: center;
-    }
-    </style>]]
-m:section(SimpleSection).template  = "AdGuardHome/AdGuardHome_status"
+    .. [[<style>
+    div[id^="cbid.AdGuardHome.AdGuardHome."] {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1em;
+    }
+    div[id^="cbid.AdGuardHome.AdGuardHome."] .cbi-checkbox {
+        display: inline-flex;
+        align-items: center;
+    }
+    </style>]]
+m:section(SimpleSection).template = "AdGuardHome/AdGuardHome_status"
 
 s = m:section(TypedSection, "AdGuardHome")
 s.anonymous = true
@@ -34,27 +34,27 @@ o.default = 3008
 o.datatype = "port"
 o.optional = false
 o.description = translate(
-  "<input type='button' class='cbi-button cbi-button-link' " ..
-  "style='width:210px;font-weight:bold;' " ..
-  "value='AdGuardHome Web:" .. httpport .. "' " ..
-  "onclick=\"window.open('http://' + window.location.hostname + ':" .. httpport .. "')\"/>"
+    "<input type='button' class='cbi-button cbi-button-link' "
+    .. "style='width:210px;font-weight:bold;' "
+    .. "value='AdGuardHome Web:" .. httpport .. "' "
+    .. "onclick=\"window.open('http://' + window.location.hostname + ':' + " .. httpport .. ")\"/>"
 )
-local binmtime = uci:get("AdGuardHome","AdGuardHome","binmtime") or "0"
+local binmtime = uci:get("AdGuardHome", "AdGuardHome", "binmtime") or "0"
 local e = ""
 if not fs.access(configpath) then e = e .. " " .. translate("no config") end
 if not fs.access(binpath) then
-	e = e .. " " .. translate("no core")
+    e = e .. " " .. translate("no core")
 else
-	local version = uci:get("AdGuardHome","AdGuardHome","version")
-	local testtime = fs.stat(binpath,"mtime")
-	if testtime ~= tonumber(binmtime) or version == nil then
-        version = luci.sys.exec(string.format("echo -n $(%s --version 2>&1 | awk -F 'version ' '{print $2}' | awk -F ',' '{print $1}')", binpath))
-        if version == "" then version = "core error" end
-        uci:set("AdGuardHome", "AdGuardHome", "version", version)
-        uci:set("AdGuardHome", "AdGuardHome", "binmtime", testtime)
-        uci:commit("AdGuardHome")
-	end
-	e = version .. e
+    local version = uci:get("AdGuardHome", "AdGuardHome", "version")
+    local testtime = fs.stat(binpath, "mtime")
+    if testtime ~= tonumber(binmtime) or version == nil then
+        version = luci.sys.exec(string.format("echo -n $(%s --version 2>&1 | awk -F 'version ' '{print $2}' | awk -F ',' '{print $1}')", binpath))
+        if version == "" then version = "core error" end
+        uci:set("AdGuardHome", "AdGuardHome", "version", version)
+        uci:set("AdGuardHome", "AdGuardHome", "binmtime", testtime)
+        uci:commit("AdGuardHome")
+    end
+    e = version .. e
 end
 
 o = s:option(ListValue, "core_version", translate("Core Version"))
@@ -65,11 +65,11 @@ o = s:option(Button, "restart", translate("Upgrade Core"))
 o.inputtitle = translate("Update core version")
 o.template = "AdGuardHome/AdGuardHome_check"
 o.showfastconfig = (not fs.access(configpath))
-o.description = string.format(translate("Current core version:") .. "<strong><font id='updateversion' style=\'color:green\'>%s </font></strong>", e)
+o.description = string.format(translate("Current core version:") .. "<strong><font id='updateversion' style='color:green'>%s </font></strong>", e)
 local portcommand = "awk '/port:/ && ++count == 2 {sub(/[^0-9]+/, \"\", $2); printf(\"%s\\n\", $2); exit}' " .. configpath .. " 2>nul"
 local port = luci.util.exec(portcommand)
 if (port == "") then port = "?" end
-o = s:option(ListValue, "redirect", port..translate("Redirect"), translate("AdGuardHome redirect mode"))
+o = s:option(ListValue, "redirect", port .. translate("Redirect"), translate("AdGuardHome redirect mode"))
 o.placeholder = "none"
 o:value("none", translate("none"))
 o:value("dnsmasq-upstream", translate("Run as dnsmasq upstream server"))
@@ -102,15 +102,15 @@ o.rmempty = false
 o.validate = function(self, value)
 if value == nil then return nil end
 if fs.stat(value,"type") == "dir" then
-	fs.rmdir(value)
+    fs.rmdir(value)
 end
 if fs.stat(value,"type") == "dir" then
-	if m.message then
-	m.message = m.message.."\nerror!config path is a dir"
-	else
-	m.message = "error!config path is a dir"
-	end
-	return nil
+    if m.message then
+    m.message = m.message .. "\nerror!config path is a dir"
+    else
+    m.message = "error!config path is a dir"
+    end
+    return nil
 end
 return value
 end
@@ -122,17 +122,17 @@ o.rmempty = false
 o.validate = function(self, value)
 if value == "" then return nil end
 if fs.stat(value,"type") == "reg" then
-	if m.message then
-	m.message = m.message .. "\nerror!work dir is a file"
-	else
-	m.message = "error!work dir is a file"
-	end
-	return nil
+    if m.message then
+    m.message = m.message .. "\nerror!work dir is a file"
+    else
+    m.message = "error!work dir is a file"
+    end
+    return nil
 end
 if string.sub(value, -1) == "/" then
-	return string.sub(value, 1, -2)
+    return string.sub(value, 1, -2)
 else
-	return value
+    return value
 end
 end
 o = s:option(Value, "logfile", translate("Runtime log file"), translate("AdGuardHome runtime Log file if 'syslog': write to system log;if empty no log"))
@@ -140,15 +140,15 @@ o.datatype = "string"
 o.rmempty = true
 o.validate = function(self, value)
 if fs.stat(value,"type") == "dir" then
-	fs.rmdir(value)
+    fs.rmdir(value)
 end
 if fs.stat(value,"type") == "dir" then
-	if m.message then
-	m.message = m.message .. "\nerror!log file is a dir"
-	else
-	m.message = "error!log file is a dir"
-	end
-	return nil
+    if m.message then
+    m.message = m.message .. "\nerror!log file is a dir"
+    else
+    m.message = "error!log file is a dir"
+    end
+    return nil
 end
 return value
 end
@@ -165,17 +165,18 @@ o = s:option(Button,"gfwdel",translate("Del gfwlist"),translate(a))
 o.optional = true
 o.inputtitle = translate("Del")
 o.write = function()
-	luci.sys.exec("sh /usr/share/AdGuardHome/gfw2adg.sh del 2>&1")
-	luci.http.redirect(luci.dispatcher.build_url("admin","services","AdGuardHome"))
+    luci.sys.exec("sh /usr/share/AdGuardHome/gfw2adg.sh del 2>&1")
+    luci.http.redirect(luci.dispatcher.build_url("admin", "services", "AdGuardHome"))
 end
 o = s:option(Button,"gfwadd",translate("Add gfwlist"),translate(a))
 o.optional = true
 o.inputtitle = translate("Add")
 o.write = function()
-	luci.sys.exec("sh /usr/share/AdGuardHome/gfw2adg.sh 2>&1")
-	luci.http.redirect(luci.dispatcher.build_url("admin","services","AdGuardHome"))
+    luci.sys.exec("sh /usr/share/AdGuardHome/gfw2adg.sh 2>&1")
+    luci.http.redirect(luci.dispatcher.build_url("admin", "services", "AdGuardHome"))
 end
-o = s:option(Value, "gfwupstream", translate("Gfwlist upstream dns server"), translate("Gfwlist domain upstream dns service") .. translate(a))
+o = s:option(Value, "gfwupstream", translate("Gfwlist upstream dns server"), translate("Gfwlist domain upstream dns service")
+.. translate(a))
 o.default = "tcp://208.67.220.220:5353"
 o.datatype = "string"
 o.optional = true
@@ -199,21 +200,21 @@ local workdir = uci:get("AdGuardHome", "AdGuardHome", "workdir") or "/usr/bin/Ad
 o = s:option(MultiValue, "backupfile", translate("Backup files when shutdown"))
 o1 = s:option(Value, "backupwdpath", translate("Backup workdir path"))
 local name
-o:value("filters","filters")
-o:value("stats.db","stats.db")
-o:value("querylog.json","querylog.json")
-o:value("sessions.db","sessions.db")
+o:value("filters", "filters")
+o:value("stats.db", "stats.db")
+o:value("querylog.json", "querylog.json")
+o:value("sessions.db", "sessions.db")
 o1:depends ("backupfile", "filters")
 o1:depends ("backupfile", "stats.db")
 o1:depends ("backupfile", "querylog.json")
 o1:depends ("backupfile", "sessions.db")
 for name in fs.glob(workdir.."/data/*")
 do
-	name = fs.basename (name)
-	if name ~= "filters" and name ~= "stats.db" and name ~= "querylog.json" and name ~= "sessions.db" then
-		o:value(name,name)
-		o1:depends ("backupfile", name)
-	end
+    name = fs.basename (name)
+    if name ~= "filters" and name ~= "stats.db" and name ~= "querylog.json" and name ~= "sessions.db" then
+        o:value(name, name)
+        o1:depends ("backupfile", name)
+    end
 end
 o.widget = "checkbox"
 o.default = nil
@@ -225,17 +226,17 @@ o1.datatype = "string"
 o1.optional = false
 o1.validate = function(self, value)
 if fs.stat(value,"type") == "reg" then
-	if m.message then
-	m.message = m.message .. "\nerror!backup dir is a file"
-	else
-	m.message = "error!backup dir is a file"
-	end
-	return nil
+    if m.message then
+    m.message = m.message .. "\nerror!backup dir is a file"
+    else
+    m.message = "error!backup dir is a file"
+    end
+    return nil
 end
-if string.sub(value,-1) == "/" then
-	return string.sub(value, 1, -2)
+if string.sub(value, -1) == "/" then
+    return string.sub(value, 1, -2)
 else
-	return value
+    return value
 end
 end
 
@@ -256,28 +257,28 @@ o.rmempty = false
 o.optional = false
 
 function m.on_commit(map)
-	if (fs.access("/var/run/AdGserverdis")) then
-		io.popen("/etc/init.d/AdGuardHome reload &")
-		return
-	end
-	local ucitracktest = uci:get("AdGuardHome","AdGuardHome","ucitracktest")
-	if ucitracktest == "1" then
-		return
-	elseif ucitracktest == "0" then
-		io.popen("/etc/init.d/AdGuardHome reload &")
-	else
-		if (fs.access("/var/run/AdGlucitest")) then
-			uci:set("AdGuardHome","AdGuardHome","ucitracktest","0")
-			io.popen("/etc/init.d/AdGuardHome reload &")
-		else
-			fs.writefile("/var/run/AdGlucitest","")
-			if (ucitracktest == "2") then
-				uci:set("AdGuardHome","AdGuardHome","ucitracktest","1")
-			else
-				uci:set("AdGuardHome","AdGuardHome","ucitracktest","2")
-			end
-		end
-        uci:commit("AdGuardHome")
-	end
+    if (fs.access("/var/run/AdGserverdis")) then
+        io.popen("/etc/init.d/AdGuardHome reload &")
+        return
+    end
+    local ucitracktest = uci:get("AdGuardHome", "AdGuardHome", "ucitracktest")
+    if ucitracktest == "1" then
+        return
+    elseif ucitracktest == "0" then
+        io.popen("/etc/init.d/AdGuardHome reload &")
+    else
+        if (fs.access("/var/run/AdGlucitest")) then
+            uci:set("AdGuardHome", "AdGuardHome", "ucitracktest", "0")
+            io.popen("/etc/init.d/AdGuardHome reload &")
+        else
+            fs.writefile("/var/run/AdGlucitest", "")
+            if (ucitracktest == "2") then
+                uci:set("AdGuardHome", "AdGuardHome", "ucitracktest", "1")
+            else
+                uci:set("AdGuardHome", "AdGuardHome", "ucitracktest", "2")
+            end
+        end
+        uci:commit("AdGuardHome")
+    end
 end
 return m
