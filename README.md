@@ -3,13 +3,17 @@
 面向已熟悉原项目的用户: 仅将 **DNS** 重定向从 `iptables` 迁移到 `nftables`, 核心语义不变
 
 ## 变更概览
+- 修订 Makefile 中 postinst 和 prerm 冗余的 `enable` `disable` `reload`，全部交给 Openwrt `rc.common` 执行
 - `iptables` → `nftables`：使用 nft 应用/清理规则 `/var/etc/adguardhome.nft`
 - 模板路径：`/usr/share/AdGuardHome/adguardhome.nft.tpl`
-- init 脚本固化bin路径 `PROG=/usr/bin/AdGuardHome`，因此删除了冗余的代码
+- 修订 init 脚本，固化bin路径 `PROG=/usr/bin/AdGuardHome`，删除了冗余代码
+- 修订 init 脚本 `START` `STOP` 顺序，以完全适配 Openwrt 的 dnsmasq 和 networking
+- 修订 init 脚本，动态获取 ***WAN*** 接口传递给 nft 规则
+- 修订 init 脚本 `service_triggers()` 函数，等待 interface 启动后再真正启动 AdGuardHome，删除 `waitnet.sh` 及相关逻辑块。https://github.com/openwrt/packages/issues/21868
 
 ## 模板与默认行为
 > [!CAUTION]
-> 修订模版以适应动态获取 ***WAN*** 接口, 因此使用如下规则排除来自 **WAN** 的入站流量<br>避免把路由器暴露为‼️**公共解析器**‼️
+> 修订模版以适配动态获取 ***WAN*** 接口, 使用如下规则排除来自 **WAN** 的入站流量<br>避免把路由器暴露为‼️**公共解析器**‼️
 > ```
 > iifname { __WAN_EXCLUDES__ } return
 > ```
