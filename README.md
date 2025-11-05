@@ -9,6 +9,7 @@
 - 修订 init 脚本 `START` `STOP` 顺序，以完全适配 Openwrt 的 dnsmasq 和 networking
 - 修订 init 脚本，动态获取 ***WAN*** 接口传递给 nft 规则
 - 修订 init 脚本 `service_triggers()` 函数，等待 interface 启动后再真正启动 AdGuardHome，删除 `waitnet.sh` 及相关逻辑块。防止相关问题 https://github.com/openwrt/packages/issues/21868 发生
+- 添加 `50-adguardhome.conf` 以增加 QUIC 协议需要大缓存的需求
 
 ## 模板与默认行为
 > [!CAUTION]
