@@ -24,7 +24,7 @@
 > ```
 
 > [!TIP]
-> 仅支持 `nftables`，旧版 Openwrt 以及仍在使用 `iptables` 的新版 Openwrt 无法使用
+> *仅支持 `nftables`，旧版 Openwrt 以及仍在使用 `iptables` 的新版 Openwrt 无法使用*
 > 
 > *设备名可通过 `ip a` / `ifconfig` 查看*
 
