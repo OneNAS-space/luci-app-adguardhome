@@ -19,6 +19,9 @@ m.description = translate("Free and open source, powerful network-wide ads & tra
         display: inline-flex;
         align-items: center;
     }
+    #cbi-AdGuardHome-AdGuardHome .cbi-value-field > br {
+    display: none;
+    }
     </style>]]
 m:section(SimpleSection).template = "AdGuardHome/AdGuardHome_status"
 
