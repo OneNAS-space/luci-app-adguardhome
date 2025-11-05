@@ -343,14 +343,14 @@ testbackup() {
 
 restore() {
     config_get workdir $CONFIGURATION workdir "/var/AdGuardHome"
-    config_get backupwdpath $CONFIGURATION backupwdpath "/etc/AdGuardHome"
+    config_get backupwdpath $CONFIGURATION backupwdpath "/etc/AdGuardHome/backup"
     if [ "$backupwdpath" != "$workdir" ]; then
         cp -u -r -f "$backupwdpath/data" "$workdir"
     fi
 }
 
 backup() {
-    config_get backupwdpath $CONFIGURATION backupwdpath "/etc/AdGuardHome"
+    config_get backupwdpath $CONFIGURATION backupwdpath "/etc/AdGuardHome/backup"
     mkdir -p "$backupwdpath/data"
     config_get workdir $CONFIGURATION workdir "/var/AdGuardHome"
     config_get backupfile $CONFIGURATION backupfile ""
@@ -370,7 +370,7 @@ backup() {
                 cpret=$(cp -u -r -f "$src" "$dst" 2>&1)
             fi
 
-            echo "$cpret"
+            [ -n "$cpret" ] && echo "$cpret"
             echo "$cpret" | grep -q "no space left on device" || break
             echo "Disk full, deleting log and retrying"
             del_querylog && continue
