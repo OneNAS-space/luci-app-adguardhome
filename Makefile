@@ -51,8 +51,8 @@ endef
 
 define Package/luci-app-adguardhome/postinst
 #!/bin/sh
-	rm -f /tmp/luci-indexcache
-	rm -f /tmp/luci-modulecache/*
+rm -f /tmp/luci-indexcache
+rm -f /tmp/luci-modulecache/*
 exit 0
 endef
 

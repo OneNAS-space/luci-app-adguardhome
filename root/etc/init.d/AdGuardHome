@@ -332,7 +332,6 @@ boot_service() {
     rm -f /var/run/AdGserverdis 2>/dev/null
     config_load "${CONFIGURATION}"
     config_get_bool enabled $CONFIGURATION enabled 0
-
     [ -f "$PROG" ] && start_service
 }
 
@@ -373,7 +372,6 @@ backup() {
 
             echo "$cpret"
             echo "$cpret" | grep -q "no space left on device" || break
-
             echo "Disk full, deleting log and retrying"
             del_querylog && continue
             rm -rf "$dst_dir/filters"
