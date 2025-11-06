@@ -11,8 +11,8 @@ msgstr "手动设置"
 msgid "Free and open source, powerful network-wide ads & trackers blocking DNS server."
 msgstr "免费开源，功能强大的全网络广告和跟踪程序拦截DNS服务器"
 
-msgid "Running"
-msgstr "运行中"
+msgid "Core Running"
+msgstr "核心运行中"
 
 msgid "NOT Running"
 msgstr "未运行"
