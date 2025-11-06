@@ -42,7 +42,7 @@ msgid "Update"
 msgstr "更新"
 
 #button change
-msgid "Update core version"
+msgid "Update core-bin"
 msgstr "更新核心版本"
 
 msgid "Check..."
@@ -86,10 +86,10 @@ msgstr "使用53端口替换dnsmasq"
 msgid "AdGuardHome redirect mode"
 msgstr "AdGuardHome重定向模式"
 
-msgid "Core Bin Path"
+msgid "Core-bin Path"
 msgstr "核心文件路径"
 
-msgid "AdGuardHome Core Bin Path. Auto-download if binary is not found."
+msgid "AdGuardHome Core-bin Path. Auto-download if binary is not found."
 msgstr "AdGuardHome 核心文件路径 如果没有核心文件将自动下载"
 
 msgid "UPX compress downloaded bin"
@@ -99,10 +99,10 @@ msgid "Fast compression"
 msgstr "快速压缩"
 
 msgid "Better compression"
-msgstr "更好的压缩"
+msgstr "中等压缩"
 
 msgid "The best compression (large files may be slow)"
-msgstr "最好的压缩(大文件可能慢)"
+msgstr "最强压缩(大文件可能慢)"
 
 msgid "Try all possible compression methods and filters [slow]"
 msgstr "尝试所有可能的压缩方法和过滤器[慢]"
@@ -113,7 +113,7 @@ msgstr "尝试更多变体压缩手段[很慢]"
 msgid "Space Saving Option, but may lead to compatibility issues on some systems."
 msgstr "减少空间占用选项，但某些系统可能有兼容性问题"
 #
-msgid "Config Path"
+msgid "Configuration File Path"
 msgstr "配置文件路径"
 
 msgid "AdGuardHome Configuration File Path"
@@ -159,7 +159,7 @@ msgid "Gfwlist domain upstream dns service"
 msgstr "gfw列表域名上游服务器"
 #hide div
 msgid "Change Web page management password"
-msgstr "改变网页登录密码"
+msgstr "改变管理界面密码"
 
 msgid "Calculate"
 msgstr "计算"
@@ -266,7 +266,7 @@ msgid "Warning!!! The core bin is not found, and the submitted configuration wil
 msgstr "警告！！！未找到核心文件，提交配置将不会进行校验"
 #unused
 msgid "Change Web page management username"
-msgstr "改变网页登录用户名"
+msgstr "改变管理界面用户名"
 
 msgid "Username"
 msgstr "用户名"
@@ -283,14 +283,14 @@ msgstr "系统升级需保留的文件"
 msgid "Boot delay until network ok"
 msgstr "开机时直到网络准备好再启动"
 
-msgid "Core Version"
+msgid "Core Branch"
 msgstr "核心分支"
 
-msgid "Upgrade Core"
+msgid "Update Core-bin"
 msgstr "更新核心"
 
 msgid "Current core version:"
-msgstr "当前核心版本"
+msgstr "当前核心版本："
 
 msgid "Latest Version"
 msgstr "最新版本"
@@ -298,5 +298,5 @@ msgstr "最新版本"
 msgid "Beta Version"
 msgstr "测试版本"
 
-msgid "Core Update URL"
-msgstr "核心更新网址"
+msgid "Core-bin Update URL"
+msgstr "核心更新URL"
