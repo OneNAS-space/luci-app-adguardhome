@@ -152,7 +152,7 @@ msgstr "gfw列表上游服务器"
 msgid "Gfwlist domain upstream dns service"
 msgstr "gfw列表域名上游服务器"
 #hide div
-msgid "Change browser management password"
+msgid "Change Web page management password"
 msgstr "改变网页登录密码"
 
 msgid "Calculate"
@@ -173,7 +173,7 @@ msgstr "为空"
 msgid "Press load calculate model and calculate finally save/apply"
 msgstr "按载入计算模块 然后计算 最后保存/提交"
 #
-msgid "Keep files when system upgrade"
+msgid "File retention during upgrade"
 msgstr "系统升级时保留文件"
 #checkbox
 msgid "core bin"
@@ -185,8 +185,17 @@ msgstr "配置文件"
 msgid "log file"
 msgstr "日志文件"
 
+msgid "sessions.db"
+msgstr "会话"
+
+msgid "stats.db"
+msgstr "统计"
+
 msgid "querylog.json"
-msgstr "审计日志.json"
+msgstr "查询日志"
+
+msgid "filters"
+msgstr "过滤规则"
 #
 msgid "On boot when network ok restart"
 msgstr "开机后网络准备好时重启"
@@ -250,7 +259,7 @@ msgstr "重新载入配置"
 msgid "Warning!!! The core bin is not found, and the submitted configuration will not be verified."
 msgstr "警告！！！未找到核心文件，提交配置将不会进行校验"
 #unused
-msgid "Change browser management username"
+msgid "Change Web page management username"
 msgstr "改变网页登录用户名"
 
 msgid "Username"
@@ -263,7 +272,7 @@ msgid "unknown"
 msgstr "未知"
 
 msgid "File retention during upgrade"
-msgstr "系统升级需保留的数据"
+msgstr "系统升级需保留的文件"
 
 msgid "Boot delay until network ok"
 msgstr "开机时直到网络准备好再启动"
