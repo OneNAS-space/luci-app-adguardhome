@@ -68,7 +68,7 @@ o = s:option(Button, "restart", translate("Upgrade Core"))
 o.inputtitle = translate("Update core version")
 o.template = "AdGuardHome/AdGuardHome_check"
 o.showfastconfig = (not fs.access(configpath))
-o.description = string.format(translate("Current core version:") .. "<strong><font id='updateversion' style='color:green'>%s </font></strong>", e)
+o.description = string.format(translate("Current core version: ") .. "<strong><font id='updateversion' style='color:green'>%s </font></strong>", e)
 local portcommand = "awk '/port:/ && ++count == 2 {sub(/[^0-9]+/, \"\", $2); printf(\"%s\\n\", $2); exit}' " .. configpath .. " 2>nul"
 local port = luci.util.exec(portcommand)
 if (port == "") then port = "?" end
@@ -80,14 +80,14 @@ o:value("redirect", translate("Redirect 53 port to AdGuardHome"))
 o:value("exchange", translate("Use port 53 replace dnsmasq"))
 o.default = "none"
 o.optional = true
-o = s:option(Value, "binpath", translate("Bin Path"), translate("AdGuardHome Bin path if no bin will auto download"))
+o = s:option(Value, "binpath", translate("Bin Path"), translate("AdGuardHome Bin Path. Auto-download if binary is not found."))
 o.default = "/usr/bin/AdGuardHome"
 o.datatype = "string"
 o.optional = false
 o.rmempty = false
 o.readonly = true
 
-o = s:option(ListValue, "upxflag", translate("use upx to compress bin after download"))
+o = s:option(ListValue, "upxflag", translate("UPX compress downloaded bin"))
 o:value("", translate("none"))
 o:value("-1", translate("compress faster"))
 o:value("-9", translate("compress better"))
@@ -95,9 +95,9 @@ o:value("--best", translate("compress best(can be slow for big files)"))
 o:value("--brute", translate("try all available compression methods & filters [slow]"))
 o:value("--ultra-brute", translate("try even more compression variants [very slow]"))
 o.default = ""
-o.description = translate("bin use less space,but may have compatibility issues")
+o.description = translate("Space Saving Option, but may lead to compatibility issues on some systems.")
 o.rmempty = true
-o = s:option(Value, "configpath", translate("Config Path"), translate("AdGuardHome config path"))
+o = s:option(Value, "configpath", translate("Config Path"), translate("AdGuardHome Configuration File Path"))
 o.default = "/etc/AdGuardHome.yaml"
 o.datatype = "string"
 o.optional = false
@@ -117,7 +117,7 @@ if fs.stat(value,"type") == "dir" then
 end
 return value
 end
-o = s:option(Value, "workdir", translate("Work dir"), translate("AdGuardHome work dir include rules,audit log and database"))
+o = s:option(Value, "workdir", translate("Working Directory"), translate("This directory contains rules, audit logs, and the database."))
 o.default = "/var/AdGuardHome"
 o.datatype = "string"
 o.optional = false
@@ -138,7 +138,7 @@ else
     return value
 end
 end
-o = s:option(Value, "logfile", translate("Runtime log file"), translate("AdGuardHome runtime Log file if 'syslog': write to system log;if empty no log"))
+o = s:option(Value, "logfile", translate("Runtime Log File Path"), translate("Specify the path for runtime logs. Enter 'syslog' to write to the system log, or leave blank to disable logging."))
 o.datatype = "string"
 o.rmempty = true
 o.validate = function(self, value)
@@ -188,7 +188,7 @@ o.default = ""
 o.datatype = "string"
 o.template = "AdGuardHome/AdGuardHome_chpass"
 o.optional = true
-o = s:option(MultiValue, "upprotect", translate("Keep files when system upgrade"))
+o = s:option(MultiValue, "upprotect", translate("File retention during upgrade"))
 o:value("$binpath",translate("core bin"))
 o:value("$configpath",translate("config file"))
 o:value("$logfile",translate("log file"))
@@ -200,7 +200,7 @@ o.widget = "checkbox"
 o.default = nil
 o.optional = true
 local workdir = uci:get("AdGuardHome", "AdGuardHome", "workdir") or "/usr/bin/AdGuardHome"
-o = s:option(MultiValue, "backupfile", translate("Backup files when shutdown"))
+o = s:option(MultiValue, "backupfile", translate("Automatic backup on shutdown"))
 o1 = s:option(Value, "backupwdpath", translate("Backup workdir path"))
 local name
 o:value("filters", "filters")
@@ -222,7 +222,7 @@ end
 o.widget = "checkbox"
 o.default = nil
 o.optional = false
-o.description = translate("Will be restore when workdir/data is empty")
+o.description = translate("Data will be automatically restored if the workdir/data directory is empty.")
 
 o1.default = "/usr/bin/AdGuardHome"
 o1.datatype = "string"
