@@ -30,5 +30,5 @@
 > *设备名可通过 `ip a` / `ifconfig` 查看*
 
 ## 声明
-基于 <a href="https://github.com/w9315273/luci-app-adguardhome" target="_blank">@w9315273 的nft版</a> 修改。
+基于 [@w9315273 的nft版](https://github.com/w9315273/luci-app-adguardhome){:target="_blank"} 修改。
 如原作者有任何异议，请联系我处理。
