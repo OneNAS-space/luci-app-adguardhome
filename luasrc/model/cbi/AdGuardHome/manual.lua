@@ -66,7 +66,7 @@ o = s:option(DummyValue, "")
 o.anonymous = true
 o.template = "AdGuardHome/yamleditor"
 if not fs.access(binpath) then
-	o.description = translate("WARNING!!! no bin found apply config will not be test")
+	o.description = translate("Warning!!! The core-bin is not found, and the submitted configuration will not be verified.")
 end
 if (fs.access("/tmp/AdGuardHometmpconfig.yaml")) then
 local c = fs.readfile("/tmp/AdGuardHometest.log")
