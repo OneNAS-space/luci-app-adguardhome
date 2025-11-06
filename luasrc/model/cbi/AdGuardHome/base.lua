@@ -68,7 +68,7 @@ o = s:option(Button, "restart", translate("Upgrade Core"))
 o.inputtitle = translate("Update core version")
 o.template = "AdGuardHome/AdGuardHome_check"
 o.showfastconfig = (not fs.access(configpath))
-o.description = string.format(translate("Current core version:") .. "<strong><font id='updateversion' style='color:green'>%s </font></strong>", e)
+o.description = string.format(translate("Current core version: ") .. "<strong><font id='updateversion' style='color:green'>%s </font></strong>", e)
 local portcommand = "awk '/port:/ && ++count == 2 {sub(/[^0-9]+/, \"\", $2); printf(\"%s\\n\", $2); exit}' " .. configpath .. " 2>nul"
 local port = luci.util.exec(portcommand)
 if (port == "") then port = "?" end
