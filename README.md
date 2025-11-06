@@ -3,6 +3,7 @@
 将 **DNS** 重定向从 `iptables` 迁移到 `nftables`, 核心语义不变。
 
 ## 变更概览
+- 修订 Makefile 对 adguardhome 的依赖，因为那会去安装 Openwrt 的 adguardhome 包，导致 `procd` 注册两个 `adguardhome` 服务
 - 修订 Makefile 中 postinst 和 prerm 冗余的 `stop` `reload`，全部交给 Openwrt `rc.common` 执行，以解决 `opkg upgrade` 时报错：`command failed: not found` 的问题
 - nft 应用/清理规则模板路径：`/usr/share/AdGuardHome/adguardhome.nft.tpl`
 - 修订 init 脚本，固化bin路径 `PROG=/usr/bin/AdGuardHome`，删除了冗余代码
@@ -10,6 +11,7 @@
 - 修订 init 脚本，动态获取 ***WAN*** 接口传递给 nft 规则
 - 修订 init 脚本 `service_triggers()` 函数，等待 interface 启动后再真正启动 AdGuardHome，删除 `waitnet.sh` 及相关逻辑块。防止相关问题 https://github.com/openwrt/packages/issues/21868 发生
 - 添加 `50-adguardhome.conf` 以增加 QUIC 协议需要大缓存的需求
+- 修订 `AdGuardHome.lua` `base.lua` `AdGuardHome_status.htm` `update_core.sh` 部分代码
 
 ## 模板与默认行为
 > [!CAUTION]
