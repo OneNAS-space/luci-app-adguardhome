@@ -64,8 +64,8 @@ o = s:option(ListValue, "core_version", translate("Core Version"))
 o:value("latest", translate("Latest Version"))
 o:value("beta", translate("Beta Version"))
 o.default = "latest"
-o = s:option(Button, "restart", translate("Upgrade Core"))
-o.inputtitle = translate("Update core version")
+o = s:option(Button, "restart", translate("Update Core-bin"))
+o.inputtitle = translate("Update core-bin")
 o.template = "AdGuardHome/AdGuardHome_check"
 o.showfastconfig = (not fs.access(configpath))
 o.description = string.format(translate("Current core version: ") .. "<strong><font id='updateversion' style='color:green'>%s </font></strong>", e)
@@ -80,7 +80,7 @@ o:value("redirect", translate("Redirect port 53 to AdGuardHome"))
 o:value("exchange", translate("Use port 53 to replace dnsmasq"))
 o.default = "none"
 o.optional = true
-o = s:option(Value, "binpath", translate("Core Bin Path"), translate("AdGuardHome Core Bin Path. Auto-download if binary is not found."))
+o = s:option(Value, "binpath", translate("Core-Bin Path"), translate("AdGuardHome Core-Bin Path. Auto-download if binary is not found."))
 o.default = "/usr/bin/AdGuardHome"
 o.datatype = "string"
 o.optional = false
@@ -189,7 +189,7 @@ o.datatype = "string"
 o.template = "AdGuardHome/AdGuardHome_chpass"
 o.optional = true
 o = s:option(MultiValue, "upprotect", translate("File retention during upgrade"))
-o:value("$binpath",translate("core bin"))
+o:value("$binpath",translate("core-bin"))
 o:value("$configpath",translate("config file"))
 o:value("$logfile",translate("log file"))
 o:value("$workdir/data/sessions.db",translate("sessions.db"))
@@ -244,7 +244,7 @@ end
 end
 
 o = s:option(MultiValue, "crontab", translate("Crontab task"),translate("Please change time and args in crontab"))
-o:value("autoupdate",translate("Auto update core bin"))
+o:value("autoupdate",translate("Auto update core-bin"))
 o:value("cutquerylog",translate("Auto tail querylog"))
 o:value("cutruntimelog",translate("Auto tail runtime log"))
 o:value("autohost",translate("Auto update ipv6 hosts and restart adh"))
