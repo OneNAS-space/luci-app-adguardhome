@@ -6,20 +6,20 @@ XHR.poll(3, '<%=url([[admin]], [[services]], [[AdGuardHome]], [[status]])%>', nu
 			var statusText = "";
 
             if (data.running) {
-                statusText = '🟢 <b><%:running%></b>';
+                statusText = '<span style="padding-left: 5px;">🟢</span> <em style=color:green>Core <%:Running%></em>';
             } else {
-                statusText = '🔴 <b><%:NOT running%></b>';
+                statusText = '<span style="padding-left: 5px;">🔴</span> <em style=color:red>Core <%:NOT running%></em>';
             }
 
             if (data.redirect) {
-                statusText += ' 🟢 <b><%:Redirected%></b>';
+                statusText += '<span style="padding-left: 10px;">🟢</span> <em style=color:green><%:Redirected%></em>';
             } else {
-                statusText += ' 🔴 <b><%:Not redirect%></b>';
+                statusText += '<span style="padding-left: 10px;">🔴</span> <em style=color:red><%:NOT redirected%></em>';
             }
 
             tb.innerHTML = `
               <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span>AdGuardHome ${statusText}</span>
+                <span><b>Service status:</b> ${statusText}</span>
                 <span>📦 ${data.version}</span>
               </div>`;
         }
