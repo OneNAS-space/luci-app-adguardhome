@@ -182,14 +182,14 @@ msgstr "按载入计算模块 然后计算 最后保存/提交"
 msgid "File retention during upgrade"
 msgstr "系统升级时保留文件"
 #checkbox
-msgid "core bin"
+msgid "core-bin"
 msgstr "核心文件"
 
 msgid "config file"
 msgstr "配置文件"
 
 msgid "log file"
-msgstr "日志文件"
+msgstr "运行日志"
 
 msgid "sessions.db"
 msgstr "会话"
@@ -209,6 +209,18 @@ msgstr "开机后网络准备好时重启"
 msgid "Automatic backup on shutdown"
 msgstr "关机时自动备份"
 
+msgid "filters"
+msgstr "过滤规则"
+
+msgid "stats.db"
+msgstr "统计"
+
+msgid "querylog.json"
+msgstr "查询日志"
+
+msgid "sessions.db"
+msgstr "会话"
+
 msgid "Data will be automatically restored if the workdir/data directory is empty."
 msgstr "工作目录/数据 为空时数据将自动恢复"
 
@@ -218,7 +230,7 @@ msgstr "工作目录备份路径"
 msgid "Crontab task"
 msgstr "计划任务"
 
-msgid "Auto update core bin"
+msgid "Auto update core-bin"
 msgstr "自动升级核心"
 
 msgid "Auto tail querylog"
@@ -262,7 +274,7 @@ msgstr "使用模板"
 msgid "Reload Config"
 msgstr "重新载入配置"
 
-msgid "Warning!!! The core bin is not found, and the submitted configuration will not be verified."
+msgid "Warning!!! The core-bin is not found, and the submitted configuration will not be verified."
 msgstr "警告！！！未找到核心文件，提交配置将不会进行校验"
 #unused
 msgid "Change Web page management username"
