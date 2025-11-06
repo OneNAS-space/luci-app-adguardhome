@@ -89,11 +89,11 @@ o.readonly = true
 
 o = s:option(ListValue, "upxflag", translate("UPX compress downloaded bin"))
 o:value("", translate("none"))
-o:value("-1", translate("compress faster"))
-o:value("-9", translate("compress better"))
-o:value("--best", translate("compress best(can be slow for big files)"))
-o:value("--brute", translate("try all available compression methods & filters [slow]"))
-o:value("--ultra-brute", translate("try even more compression variants [very slow]"))
+o:value("-1", translate("Fast compression"))
+o:value("-9", translate("Better compression"))
+o:value("--best", translate("The best compression (large files may be slow)"))
+o:value("--brute", translate("Try all possible compression methods and filters [slow]"))
+o:value("--ultra-brute", translate("Try more variant compression methods [very slow]"))
 o.default = ""
 o.description = translate("Space Saving Option, but may lead to compatibility issues on some systems.")
 o.rmempty = true
@@ -183,7 +183,7 @@ o = s:option(Value, "gfwupstream", translate("Gfwlist upstream dns server"), tra
 o.default = "tcp://208.67.220.220:5353"
 o.datatype = "string"
 o.optional = true
-o = s:option(Value, "hashpass", translate("Change browser management password"), translate("Press load calculate model and calculate finally save/apply"))
+o = s:option(Value, "hashpass", translate("Change Web page management password"), translate("Press load calculate model and calculate finally save/apply"))
 o.default = ""
 o.datatype = "string"
 o.template = "AdGuardHome/AdGuardHome_chpass"
