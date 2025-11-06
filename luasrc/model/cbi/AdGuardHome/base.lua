@@ -60,7 +60,7 @@ else
     e = version .. e
 end
 
-o = s:option(ListValue, "core_version", translate("Core Version"))
+o = s:option(ListValue, "core_version", translate("Core Branch"))
 o:value("latest", translate("Latest Version"))
 o:value("beta", translate("Beta Version"))
 o.default = "latest"
@@ -80,7 +80,7 @@ o:value("redirect", translate("Redirect port 53 to AdGuardHome"))
 o:value("exchange", translate("Use port 53 to replace dnsmasq"))
 o.default = "none"
 o.optional = true
-o = s:option(Value, "binpath", translate("Core-Bin Path"), translate("AdGuardHome Core-Bin Path. Auto-download if binary is not found."))
+o = s:option(Value, "binpath", translate("Core-bin Path"), translate("AdGuardHome Core-bin Path. Auto-download if binary is not found."))
 o.default = "/usr/bin/AdGuardHome"
 o.datatype = "string"
 o.optional = false
@@ -253,7 +253,7 @@ o.widget = "checkbox"
 o.default = nil
 o.optional = true
 
-o = s:option(Value, "update_url", translate("Core Update URL"))
+o = s:option(Value, "update_url", translate("Core-bin Update URL"))
 o.default = "https://github.com/AdguardTeam/AdGuardHome/releases/download/${Cloud_Version}/AdGuardHome_linux_${Arch}.tar.gz"
 o.placeholder = "https://github.com/AdguardTeam/AdGuardHome/releases/download/${Cloud_Version}/AdGuardHome_linux_${Arch}.tar.gz"
 o.rmempty = false
