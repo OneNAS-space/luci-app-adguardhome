@@ -11,16 +11,16 @@ msgstr "手动设置"
 msgid "Free and open source, powerful network-wide ads & trackers blocking DNS server."
 msgstr "免费开源，功能强大的全网络广告和跟踪程序拦截DNS服务器"
 
-msgid "RUNNING"
+msgid "Running"
 msgstr "运行中"
 
-msgid "NOT RUNNING"
+msgid "NOT Running"
 msgstr "未运行"
 
 msgid "Redirected"
 msgstr "已重定向"
 
-msgid "Not redirect"
+msgid "Not redirected"
 msgstr "未重定向"
 
 msgid "Collecting data..."
@@ -29,11 +29,12 @@ msgstr "获取数据中..."
 msgid "Enable"
 msgstr "启用"
 
-msgid "Browser management port"
+msgid "Web page management port"
 msgstr "网页管理端口"
 
 msgid "Update"
 msgstr "更新"
+
 #button change
 msgid "Update core version"
 msgstr "更新核心版本"
@@ -53,9 +54,11 @@ msgstr "快速配置"
 #
 msgid "core version:"
 msgstr "核心版本:"
+
 #description change
 msgid "no config"
 msgstr "没有配置文件"
+
 msgid "no core"
 msgstr "没有核心"
 #
@@ -65,13 +68,13 @@ msgstr "重定向"
 msgid "none"
 msgstr "无"
 
-msgid "Run as dnsmasq upstream server"
+msgid "As the upstream server of dnsmasq"
 msgstr "作为dnsmasq的上游服务器"
 
-msgid "Redirect 53 port to AdGuardHome"
+msgid "Redirect port 53 to AdGuardHome"
 msgstr "重定向53端口到AdGuardHome"
 
-msgid "Use port 53 replace dnsmasq"
+msgid "Use port 53 to replace dnsmasq"
 msgstr "使用53端口替换dnsmasq"
 #
 msgid "AdGuardHome redirect mode"
@@ -80,47 +83,47 @@ msgstr "AdGuardHome重定向模式"
 msgid "Bin Path"
 msgstr "执行文件路径"
 
-msgid "AdGuardHome Bin path if no bin will auto download"
+msgid "AdGuardHome Bin Path. Auto-download if binary is not found."
 msgstr "AdGuardHome 执行文件路径 如果没有执行文件将自动下载"
 
-msgid "use upx to compress bin after download"
-msgstr "下载后使用upx压缩执行文件"
+msgid "UPX compress downloaded bin"
+msgstr "用upx压缩下载的执行文件"
 #inlist
-msgid "compress faster"
+msgid "Fast compression"
 msgstr "快速压缩"
 
-msgid "compress better"
+msgid "Better compression"
 msgstr "更好的压缩"
 
-msgid "compress best(can be slow for big files)"
+msgid "The best compression (large files may be slow)"
 msgstr "最好的压缩(大文件可能慢)"
 
-msgid "try all available compression methods & filters [slow]"
+msgid "Try all possible compression methods and filters [slow]"
 msgstr "尝试所有可能的压缩方法和过滤器[慢]"
 
-msgid "try even more compression variants [very slow]"
+msgid "Try more variant compression methods [very slow]"
 msgstr "尝试更多变体压缩手段[很慢]"
 
-msgid "bin use less space,but may have compatibility issues"
-msgstr "减小执行文件空间占用，但是可能压缩后有兼容性问题"
+msgid "Space Saving Option, but may lead to compatibility issues on some systems."
+msgstr "减少空间占用选项，但某些系统可能有兼容性问题"
 #
 msgid "Config Path"
 msgstr "配置文件路径"
 
-msgid "AdGuardHome config path"
+msgid "AdGuardHome Configuration File Path"
 msgstr "AdGuardHome 配置文件路径"
 
-msgid "Work dir"
+msgid "Working Directory"
 msgstr "工作目录"
 
-msgid "AdGuardHome work dir include rules,audit log and database"
-msgstr "AdGuardHome 工作目录包含规则，审计日志和数据库"
+msgid "This directory contains rules, audit logs, and the database."
+msgstr "工作目录包含规则，审计日志和数据库"
 
-msgid "Runtime log file"
+msgid "Runtime Log File Path"
 msgstr "运行日志"
 
-msgid "AdGuardHome runtime Log file if 'syslog': write to system log;if empty no log"
-msgstr "AdGuardHome 运行日志 如果填syslog将写入系统日志；如果空则不记录日志"
+msgid "Specify the path for runtime logs. Enter 'syslog' to write to the system log, or leave blank to disable logging."
+msgstr "指定运行日志路径 填 syslog 将写入系统日志；留空则不记录日志"
 
 msgid "Verbose log"
 msgstr "详细日志"
@@ -152,10 +155,10 @@ msgstr "gfw列表域名上游服务器"
 msgid "Change browser management password"
 msgstr "改变网页登录密码"
 
-msgid "Culculate"
+msgid "Calculate"
 msgstr "计算"
 ##button change
-msgid "Load culculate model"
+msgid "Load calculate model"
 msgstr "载入计算模块"
 
 msgid "loading..."
@@ -167,7 +170,7 @@ msgstr "请提交"
 msgid "is empty"
 msgstr "为空"
 
-msgid "Press load culculate model and culculate finally save/apply"
+msgid "Press load calculate model and calculate finally save/apply"
 msgstr "按载入计算模块 然后计算 最后保存/提交"
 #
 msgid "Keep files when system upgrade"
@@ -188,11 +191,11 @@ msgstr "审计日志.json"
 msgid "On boot when network ok restart"
 msgstr "开机后网络准备好时重启"
 
-msgid "Backup workdir files when shutdown"
-msgstr "在关机时备份工作目录文件"
+msgid "Automatic backup on shutdown"
+msgstr "关机时自动备份"
 
-msgid "Will be restore when workdir/data is empty"
-msgstr "在工作目录/data为空的时候恢复"
+msgid "Data will be automatically restored if the workdir/data directory is empty."
+msgstr "工作目录/数据 为空时数据将自动恢复"
 
 msgid "Backup workdir path"
 msgstr "工作目录备份路径"
@@ -244,7 +247,7 @@ msgstr "使用模板"
 msgid "Reload Config"
 msgstr "重新载入配置"
 
-msgid "WARNING!!! no bin found apply config will not be test"
+msgid "Warning!!! The executable file is not found, and the submitted configuration will not be verified."
 msgstr "警告！！！未找到执行文件，提交配置将不会进行校验"
 #unused
 msgid "Change browser management username"
@@ -259,8 +262,8 @@ msgstr "检查配置"
 msgid "unknown"
 msgstr "未知"
 
-msgid "Keep database when system upgrade"
-msgstr "系统升级时保留数据"
+msgid "File retention during upgrade"
+msgstr "系统升级需保留的数据"
 
 msgid "Boot delay until network ok"
 msgstr "开机时直到网络准备好再启动"
