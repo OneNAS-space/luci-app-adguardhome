@@ -3,7 +3,7 @@
 将 **DNS** 重定向从 `iptables` 迁移到 `nftables`, 核心语义不变。
 
 ## 变更概览
-- 修订 Makefile 中 postinst 和 prerm 冗余的 `enable` `disable` `reload`，全部交给 Openwrt `rc.common` 执行，以解决 `opkg upgrade` 时报错：`command failed: not found` 的问题
+- 修订 Makefile 中 postinst 和 prerm 冗余的 `stop` `reload`，全部交给 Openwrt `rc.common` 执行，以解决 `opkg upgrade` 时报错：`command failed: not found` 的问题
 - nft 应用/清理规则模板路径：`/usr/share/AdGuardHome/adguardhome.nft.tpl`
 - 修订 init 脚本，固化bin路径 `PROG=/usr/bin/AdGuardHome`，删除了冗余代码
 - 修订 init 脚本 `START` `STOP` 顺序，以完全适配 Openwrt 的 dnsmasq 和 networking
