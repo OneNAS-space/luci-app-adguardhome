@@ -203,18 +203,18 @@ local workdir = uci:get("AdGuardHome", "AdGuardHome", "workdir") or "/usr/bin/Ad
 o = s:option(MultiValue, "backupfile", translate("Automatic backup on shutdown"))
 o1 = s:option(Value, "backupwdpath", translate("Backup workdir path"))
 local name
-o:value("filters", "filters")
-o:value("stats.db", "stats.db")
-o:value("querylog.json", "querylog.json")
-o:value("sessions.db", "sessions.db")
-o1:depends ("backupfile", "filters")
+o:value("sessions.db", translate("sessions.db"))
+o:value("stats.db", translate("stats.db"))
+o:value("querylog.json", translate("querylog.json"))
+o:value("filters", translate("filters"))
+o1:depends ("backupfile", "sessions.db")
 o1:depends ("backupfile", "stats.db")
 o1:depends ("backupfile", "querylog.json")
-o1:depends ("backupfile", "sessions.db")
+o1:depends ("backupfile", "filters")
 for name in fs.glob(workdir.."/data/*")
 do
     name = fs.basename (name)
-    if name ~= "filters" and name ~= "stats.db" and name ~= "querylog.json" and name ~= "sessions.db" then
+    if name ~= "sessions.db" and name ~= "stats.db" and name ~= "querylog.json" and name ~= "filters" then
         o:value(name, name)
         o1:depends ("backupfile", name)
     end
