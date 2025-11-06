@@ -31,7 +31,7 @@ s.addremove = false
 o = s:option(Flag, "enabled", translate("Enable"))
 o.default = 0
 o.optional = false
-o = s:option(Value,"httpport",translate("Browser management port"))
+o = s:option(Value,"httpport",translate("Web page management port"))
 o.placeholder = 3008
 o.default = 3008
 o.datatype = "port"
@@ -75,9 +75,9 @@ if (port == "") then port = "?" end
 o = s:option(ListValue, "redirect", port .. translate("Redirect"), translate("AdGuardHome redirect mode"))
 o.placeholder = "none"
 o:value("none", translate("none"))
-o:value("dnsmasq-upstream", translate("Run as dnsmasq upstream server"))
-o:value("redirect", translate("Redirect 53 port to AdGuardHome"))
-o:value("exchange", translate("Use port 53 replace dnsmasq"))
+o:value("dnsmasq-upstream", translate("As the upstream server of dnsmasq"))
+o:value("redirect", translate("Redirect port 53 to AdGuardHome"))
+o:value("exchange", translate("Use port 53 to replace dnsmasq"))
 o.default = "none"
 o.optional = true
 o = s:option(Value, "binpath", translate("Bin Path"), translate("AdGuardHome Bin Path. Auto-download if binary is not found."))
