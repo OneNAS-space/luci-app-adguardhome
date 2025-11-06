@@ -11,8 +11,8 @@ msgstr "手动设置"
 msgid "Free and open source, powerful network-wide ads & trackers blocking DNS server."
 msgstr "免费开源，功能强大的全网络广告和跟踪程序拦截DNS服务器"
 
-msgid "Running"
-msgstr "运行中"
+msgid "Core Running"
+msgstr "核心运行中"
 
 msgid "NOT Running"
 msgstr "未运行"
@@ -80,14 +80,14 @@ msgstr "使用53端口替换dnsmasq"
 msgid "AdGuardHome redirect mode"
 msgstr "AdGuardHome重定向模式"
 
-msgid "Bin Path"
-msgstr "执行文件路径"
+msgid "Core Bin Path"
+msgstr "核心文件路径"
 
-msgid "AdGuardHome Bin Path. Auto-download if binary is not found."
-msgstr "AdGuardHome 执行文件路径 如果没有执行文件将自动下载"
+msgid "AdGuardHome Core Bin Path. Auto-download if binary is not found."
+msgstr "AdGuardHome 核心文件路径 如果没有核心文件将自动下载"
 
 msgid "UPX compress downloaded bin"
-msgstr "用upx压缩下载的执行文件"
+msgstr "用upx压缩下载的核心文件"
 #inlist
 msgid "Fast compression"
 msgstr "快速压缩"
@@ -177,7 +177,7 @@ msgid "Keep files when system upgrade"
 msgstr "系统升级时保留文件"
 #checkbox
 msgid "core bin"
-msgstr "核心执行文件"
+msgstr "核心文件"
 
 msgid "config file"
 msgstr "配置文件"
@@ -203,7 +203,7 @@ msgstr "工作目录备份路径"
 msgid "Crontab task"
 msgstr "计划任务"
 
-msgid "Auto update core"
+msgid "Auto update core bin"
 msgstr "自动升级核心"
 
 msgid "Auto tail querylog"
@@ -247,8 +247,8 @@ msgstr "使用模板"
 msgid "Reload Config"
 msgstr "重新载入配置"
 
-msgid "Warning!!! The executable file is not found, and the submitted configuration will not be verified."
-msgstr "警告！！！未找到执行文件，提交配置将不会进行校验"
+msgid "Warning!!! The core bin is not found, and the submitted configuration will not be verified."
+msgstr "警告！！！未找到核心文件，提交配置将不会进行校验"
 #unused
 msgid "Change browser management username"
 msgstr "改变网页登录用户名"

@@ -80,7 +80,7 @@ o:value("redirect", translate("Redirect port 53 to AdGuardHome"))
 o:value("exchange", translate("Use port 53 to replace dnsmasq"))
 o.default = "none"
 o.optional = true
-o = s:option(Value, "binpath", translate("Bin Path"), translate("AdGuardHome Bin Path. Auto-download if binary is not found."))
+o = s:option(Value, "binpath", translate("Core Bin Path"), translate("AdGuardHome Core Bin Path. Auto-download if binary is not found."))
 o.default = "/usr/bin/AdGuardHome"
 o.datatype = "string"
 o.optional = false
@@ -244,7 +244,7 @@ end
 end
 
 o = s:option(MultiValue, "crontab", translate("Crontab task"),translate("Please change time and args in crontab"))
-o:value("autoupdate",translate("Auto update core"))
+o:value("autoupdate",translate("Auto update core bin"))
 o:value("cutquerylog",translate("Auto tail querylog"))
 o:value("cutruntimelog",translate("Auto tail runtime log"))
 o:value("autohost",translate("Auto update ipv6 hosts and restart adh"))
