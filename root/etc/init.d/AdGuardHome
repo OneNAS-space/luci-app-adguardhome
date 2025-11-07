@@ -471,6 +471,8 @@ start_service() {
     else
         _do_redirect 0
         config_get "redirect" "AdGuardHome" "redirect" "none"
+        [ -z "$redirect" ] && redirect="none"
+        logger -t AdGuardHome "start_service: redirect='$redirect'"
         if [ "$redirect" != "none" ]; then
             procd_open_instance "waitconfig"
             procd_set_param command "/usr/share/AdGuardHome/watchconfig.sh"
