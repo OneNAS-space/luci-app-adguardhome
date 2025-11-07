@@ -73,8 +73,8 @@ local portcommand = "awk '/port:/ && ++count == 2 {sub(/[^0-9]+/, \"\", $2); pri
 local port = luci.util.exec(portcommand)
 if (port == "") then port = "?" end
 o = s:option(ListValue, "redirect", port .. translate("Redirect"), translate("AdGuardHome redirect mode"))
-o.placeholder = "none"
-o:value("none", translate("none"))
+-- o.placeholder = "none"
+o:value("none", "No redirect")
 o:value("dnsmasq-upstream", translate("As the upstream server of dnsmasq"))
 o:value("redirect", translate("Redirect port 53 to AdGuardHome"))
 o:value("exchange", translate("Use port 53 to replace dnsmasq"))
