@@ -51,6 +51,9 @@ msgstr "检查中..."
 msgid "Updated"
 msgstr "已更新"
 
+msgid "Already up-to-date"
+msgstr "已是最新"
+
 #button hide
 msgid "Force update"
 msgstr "强制更新"
