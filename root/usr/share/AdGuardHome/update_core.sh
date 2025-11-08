@@ -4,12 +4,6 @@ PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 binpath="/usr/bin/AdGuardHome"
 update_mode=$1
 
-EXIT(){
-	rm -f /var/run/update_core $LOCKU 2>/dev/null
-	[ "$1" != 0 ] && touch /var/run/update_core_error
-	exit $1
-}
-
 upxflag=$(uci get AdGuardHome.AdGuardHome.upxflag 2>/dev/null || true)
 [ -z ${upxflag} ] && upxflag=off
 enabled=$(uci get AdGuardHome.AdGuardHome.enabled 2>/dev/null || true)
@@ -34,7 +28,7 @@ Check_Task(){
 		ps w | grep -v grep | grep -v $$ | grep 'AdGuardHome' | grep 'update_core' | awk '{print $1}' | xargs kill -9 2>/dev/null
 		;;
 	*)
-		[[ ${running_tasks} -gt 2 ]] && echo -e "There are ${running_tasks} update tasks already running. Please wait or stop them manually." && EXIT 2
+		[ ${running_tasks} -gt 2 ] && echo -e "There are ${running_tasks} update tasks already running. Please wait or stop them manually." && EXIT 2
 		;;
 	esac
 }
@@ -42,16 +36,12 @@ Check_Task(){
 Check_Downloader() {
 	if command -v curl >/dev/null 2>&1; then
 		PKG="curl"
-		_Downloader="curl -s"
-		Downloader="curl -L -k -o"
-		return 0
+		return
 	fi
 
 	if command -v wget >/dev/null 2>&1; then
 		PKG="wget"
-		_Downloader="wget -q -O -"
-		Downloader="wget --no-check-certificate -T 5 -O"
-		return 0
+		return
 	fi
 
 	echo "Neither curl nor wget is installed, cannot check updates!" >&2
@@ -60,7 +50,16 @@ Check_Downloader() {
 
 Check_Updates(){
 	Check_Downloader
-
+	case "${PKG}" in
+	curl)
+		Downloader="curl -L -k -o"
+		_Downloader="curl -s"
+	;;
+	wget)
+		Downloader="wget --no-check-certificate -T 5 -O"
+		_Downloader="wget -q -O -"
+	;;
+	esac
 	echo "[${PKG}] Checking for updates ..."
 	Cloud_Version="$(${_Downloader} ${core_api_url} 2>/dev/null | grep 'tag_name' | egrep -o "v[0-9].+[0-9.]" | awk 'NR==1')"
 	if [ -z "${Cloud_Version}" ]; then
@@ -85,6 +84,7 @@ Check_Updates(){
 		echo "Already up to date."
 		EXIT 0
 	fi
+	EXIT 0
 }
 
 UPX_Compress(){
@@ -92,7 +92,7 @@ UPX_Compress(){
 	upx_name="upx-${upx_latest_ver}-${Arch_upx}_linux.tar.xz"
 	echo -e "开始下载 ${upx_name} ...\n"
 	$Downloader /tmp/upx-${upx_latest_ver}-${Arch_upx}_linux.tar.xz "https://github.com/upx/upx/releases/download/v${upx_latest_ver}/${upx_name}"
-	if [[ ! -e /tmp/upx-${upx_latest_ver}-${Arch_upx}_linux.tar.xz ]]; then
+	if [ ! -e /tmp/upx-${upx_latest_ver}-${Arch_upx}_linux.tar.xz ]; then
 		echo -e "\n${upx_name} 下载失败!\n" 
 		EXIT 1
 	else
@@ -106,7 +106,7 @@ UPX_Compress(){
 	mkdir -p /tmp/upx-${upx_latest_ver}-${Arch_upx}_linux
 	echo -e "正在解压 ${upx_name} ...\n" 
 	xz -d -c /tmp/upx-${upx_latest_ver}-${Arch_upx}_linux.tar.xz | tar -x -C "/tmp"
-	[[ ! -f /tmp/upx-${upx_latest_ver}-${Arch_upx}_linux/upx ]] && echo -e "\n${upx_name} 解压失败!" && EXIT 1
+	[ ! -f /tmp/upx-${upx_latest_ver}-${Arch_upx}_linux/upx ] && echo -e "\n${upx_name} 解压失败!" && EXIT 1
 }
 
 Update_Core(){
@@ -145,7 +145,7 @@ Update_Core(){
 	chmod +x "${downloadbin}" 2>/dev/null || true
 	echo "Core size: $(awk 'BEGIN{printf "%.2fMB\n",'$((`ls -l $downloadbin | awk '{print $5}'`))'/1000000}')"
 
-	if [[ "${upxflag}" != "off" ]]; then
+	if [ "${upxflag}" != "off" ]; then
 		UPX_Compress
 		echo "UPX compression enabled, this may take a while ..."
 		/tmp/upx-${upx_latest_ver}-${Arch_upx}_linux/upx $upxflag $downloadbin > /dev/null 2>&1
@@ -173,7 +173,6 @@ Update_Core(){
 	fi
 
 	echo "AdGuardHome core updated successfully!"
-	return 0
 }
 
 GET_Arch() {
@@ -227,6 +226,12 @@ GET_Arch() {
 
 	esac
     echo "Detected architecture: ${Arch}"
+}
+
+EXIT(){
+	rm -rf /var/run/update_core $LOCKU 2>/dev/null
+	[ "$1" != 0 ] && touch /var/run/update_core_error
+	exit $1
 }
 
 main(){
