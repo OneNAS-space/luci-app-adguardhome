@@ -115,14 +115,14 @@ function check_update()
 	end
 	if fs.access("/var/run/update_core_done") then
 		fs.remove("/var/run/update_core_done")
-		http.write(a .. "\0")
+		http.write(a .. "\0SUCCESS")
 		return
 	end
 	if fs.access("/var/run/update_core_error") then
-		http.write(a .. "\0")
+		http.write(a .. "\0ERROR")
 		return
 	end
-	http.write(a .. "\0")
+	http.write(a .. "\0NOUPDATE")
 end
 function act_status()
     local sys  = require "luci.sys"
