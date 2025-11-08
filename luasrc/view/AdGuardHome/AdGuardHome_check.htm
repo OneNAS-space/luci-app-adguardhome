@@ -51,7 +51,9 @@ function poll_check() {
 		var ended = resp.indexOf("\u0000") !== -1;
 
 		if (ended) {
-			var visible = resp.replace(/\u0000/g, "");
+			var visible = resp.replace(/\u0000SUCCESS/g, "")
+			                  .replace(/\u0000ERROR/g, "")
+			                  .replace(/\u0000NOUPDATE/g, "");
 			if (visible.length) {
 				if (islogreverse) {
 					lv.innerHTML = visible.split('\n').reverse().join('\n') + lv.innerHTML;
@@ -59,9 +61,17 @@ function poll_check() {
 					lv.innerHTML += visible;
 				}
 			}
-			updatebtn.disabled = false;
-			updatebtn.value = '<%:Updated%>';
-			location.reload();
+			if (resp.indexOf("\u0000SUCCESS") !== -1) {
+				updatebtn.disabled = false;
+				updatebtn.value = '<%:Updated%>';
+				location.reload();
+			} else if (resp.indexOf("\u0000ERROR") !== -1) {
+				updatebtn.disabled = false;
+				updatebtn.value = '<%:Failed%>';
+			} else if (resp.indexOf("\u0000NOUPDATE") !== -1) {
+				updatebtn.disabled = false;
+				updatebtn.value = '<%:Already up-to-date%>';
+			}
 			return;
 		}
 
