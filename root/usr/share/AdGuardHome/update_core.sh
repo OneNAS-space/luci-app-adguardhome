@@ -5,7 +5,7 @@ binpath="/usr/bin/AdGuardHome"
 update_mode=$1
 
 upxflag=$(uci get AdGuardHome.AdGuardHome.upxflag 2>/dev/null || true)
-[ -z ${upxflag} ] && upxflag=off
+[ -z "${upxflag}" ] && upxflag=off
 enabled=$(uci get AdGuardHome.AdGuardHome.enabled 2>/dev/null || true)
 core_version=$(uci get AdGuardHome.AdGuardHome.core_version 2>/dev/null || true)
 update_url=$(uci get AdGuardHome.AdGuardHome.update_url 2>/dev/null || true)
@@ -28,7 +28,7 @@ Check_Task(){
 		ps w | grep -v grep | grep -v $$ | grep 'AdGuardHome' | grep 'update_core' | awk '{print $1}' | xargs kill -9 2>/dev/null
 		;;
 	*)
-		[ ${running_tasks} -gt 2 ] && echo -e "There are ${running_tasks} update tasks already running. Please wait or stop them manually." && EXIT 2
+		[ "${running_tasks}" -gt 2 ] && echo -e "There are ${running_tasks} update tasks already running. Please wait or stop them manually." && EXIT 2
 		;;
 	esac
 }
@@ -92,7 +92,7 @@ UPX_Compress(){
 	upx_name="upx-${upx_latest_ver}-${Arch_upx}_linux.tar.xz"
 	echo -e "开始下载 ${upx_name} ...\n"
 	$Downloader /tmp/upx-${upx_latest_ver}-${Arch_upx}_linux.tar.xz "https://github.com/upx/upx/releases/download/v${upx_latest_ver}/${upx_name}"
-	if [ ! -e /tmp/upx-${upx_latest_ver}-${Arch_upx}_linux.tar.xz ]; then
+	if [ ! -e "/tmp/upx-${upx_latest_ver}-${Arch_upx}_linux.tar.xz" ]; then
 		echo -e "\n${upx_name} 下载失败!\n" 
 		EXIT 1
 	else
@@ -106,7 +106,7 @@ UPX_Compress(){
 	mkdir -p /tmp/upx-${upx_latest_ver}-${Arch_upx}_linux
 	echo -e "正在解压 ${upx_name} ...\n" 
 	xz -d -c /tmp/upx-${upx_latest_ver}-${Arch_upx}_linux.tar.xz | tar -x -C "/tmp"
-	[ ! -f /tmp/upx-${upx_latest_ver}-${Arch_upx}_linux/upx ] && echo -e "\n${upx_name} 解压失败!" && EXIT 1
+	[ ! -f "/tmp/upx-${upx_latest_ver}-${Arch_upx}_linux/upx" ] && echo -e "\n${upx_name} 解压失败!" && EXIT 1
 }
 
 Update_Core(){
