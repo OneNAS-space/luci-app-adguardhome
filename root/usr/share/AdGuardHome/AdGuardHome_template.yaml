@@ -1,15 +1,15 @@
-#模板用户名为 admin 密码为 adminadmin
-#The username is admin and the password is adminadmin.
+#模板用户名为 root 密码为 adminadmin
+#The username is root and the password is adminadmin.
 #提交就可以直接用的配置模板文件
 #a template config can be use with a apply
 http:
   pprof:
     port: 6060
     enabled: false
-  address: 0.0.0.0:3000
+  address: 0.0.0.0:3008
   session_ttl: 720h
 users:
-  - name: admin
+  - name: root
     password: $2a$10$8N3dd0jJBowVDAHDtFyqkeeUznGmrlp37S3R/KR6e/KDfUuY1aIRe
 auth_attempts: 5
 block_auth_min: 15
