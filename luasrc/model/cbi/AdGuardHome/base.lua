@@ -224,7 +224,7 @@ o.default = nil
 o.optional = false
 o.description = translate("Data will be automatically restored if the workdir/data directory is empty.")
 
-o1.default = "/usr/bin/AdGuardHome"
+o1.default = "/etc/AdGuardHome/backup"
 o1.datatype = "string"
 o1.optional = false
 o1.validate = function(self, value)
