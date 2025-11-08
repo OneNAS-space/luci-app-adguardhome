@@ -5,7 +5,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-adguardhome
-PKG_VERSION:=2.4.9
+PKG_VERSION:=2.4.10
 PKG_RELEASE:=20251108
 
 PKG_LICENSE:=MIT
@@ -59,13 +59,10 @@ endef
 
 define Package/luci-app-adguardhome/prerm
 #!/bin/sh
-if [ -z "$${IPKG_INSTROOT}" ]; then
-	/etc/init.d/AdGuardHome disable
 uci -q batch <<-EOF >/dev/null 2>&1
 	delete ucitrack.@AdGuardHome[-1]
 	commit ucitrack
 EOF
-fi
 exit 0
 endef
 
