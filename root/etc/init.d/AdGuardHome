@@ -436,8 +436,24 @@ start_service() {
     ADDITIONAL_ARGS="$ADDITIONAL_ARGS -p $httpport"
 
     config_get upprotect $CONFIGURATION upprotect ""
+    case "$upprotect" in
+      \'*\' ) upprotect="${upprotect#\'}"; upprotect="${upprotect%\'}"; ;;
+    esac
+
+    config_get binpath    "$CONFIGURATION" binpath    ""
+    config_get configpath "$CONFIGURATION" configpath ""
+    config_get workdir    "$CONFIGURATION" workdir    ""
+    config_get logfile    "$CONFIGURATION" logfile    ""
+
+    expanded="$upprotect"
+    [ -n "$workdir"    ] && expanded="${expanded//\$workdir/$workdir}"
+    [ -n "$binpath"    ] && expanded="${expanded//\$binpath/$binpath}"
+    [ -n "$configpath" ] && expanded="${expanded//\$configpath/$configpath}"
+    [ -n "$logfile"    ] && expanded="${expanded//\$logfile/$logfile}"
+
     mkdir -p /lib/upgrade/keep.d
-    printf '%s\n' "$upprotect" | tr ' ' '\n' > /lib/upgrade/keep.d/luci-app-adguardhome
+    printf '%s' "$expanded" | awk 'BEGIN{FS="[[:space:]]+"} {for(i=1;i<=NF;i++) if($i!="") print $i}' \
+      > /lib/upgrade/keep.d/luci-app-adguardhome
 
     config_get logfile $CONFIGURATION logfile ""
     if [ -n "$logfile" ]; then
