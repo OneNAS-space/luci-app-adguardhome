@@ -520,15 +520,27 @@ del_querylog() {
 }
 
 stop_service() {
-    config_load "${CONFIGURATION}"
-    ( _do_redirect 0 ) >/dev/null 2>&1
-    ( do_crontab ) >/dev/null 2>&1
-    if [ "$1" != "nobackup" ]; then
-        config_get backupfile $CONFIGURATION backupfile "0"
-        [ -n "$backupfile" ] && [ "$backupfile" != "0" ] && backup
-    fi
-    echo "AdGuardHome service disabled"
-    touch /var/run/AdGserverdis
+	config_load "${CONFIGURATION}" 2>/dev/null || true
+
+	if type _do_redirect >/dev/null 2>&1; then
+		_do_redirect 0 >/dev/null 2>&1
+	fi
+
+	if type do_crontab >/dev/null 2>&1; then
+		do_crontab >/dev/null 2>&1
+	fi
+
+	if [ "$1" != "nobackup" ]; then
+		config_get backupfile $CONFIGURATION backupfile "0"
+		if [ -n "$backupfile" ] && [ "$backupfile" != "0" ]; then
+			if type backup >/dev/null 2>&1; then
+				backup
+			fi
+		fi
+	fi
+
+	echo "AdGuardHome service disabled"
+	touch /var/run/AdGserverdis
 }
 
 boot() {
