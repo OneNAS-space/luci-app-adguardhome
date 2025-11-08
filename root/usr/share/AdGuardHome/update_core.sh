@@ -173,6 +173,7 @@ Update_Core(){
 	fi
 
 	echo "AdGuardHome core updated successfully!"
+	touch /var/run/update_core_done
 }
 
 GET_Arch() {
