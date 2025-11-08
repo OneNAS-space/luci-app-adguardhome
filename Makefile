@@ -23,7 +23,7 @@ define Package/luci-app-adguardhome
 	TITLE:=LuCI app for adguardhome
 	PKG_MAINTAINER:=https://github.com/OneNAS-space/luci-app-adguardhome
 	PKGARCH:=all
-	DEPENDS:=+wget-ssl +tar +xz
+	DEPENDS:=+wget-ssl +tar +xz +luci-lua-runtime +luci-compat
 endef
 
 define Package/luci-app-adguardhome/description
