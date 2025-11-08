@@ -432,12 +432,28 @@ start_service() {
 
     ADDITIONAL_ARGS="$ADDITIONAL_ARGS -c $configpath"
     ADDITIONAL_ARGS="$ADDITIONAL_ARGS -w $workdir"
-    config_get httpport $CONFIGURATION httpport 3000
+    config_get httpport $CONFIGURATION httpport 3008
     ADDITIONAL_ARGS="$ADDITIONAL_ARGS -p $httpport"
 
     config_get upprotect $CONFIGURATION upprotect ""
-    eval upprotect=${upprotect// /\\\\n}
-    echo -e "$upprotect" > /lib/upgrade/keep.d/luci-app-adguardhome
+    case "$upprotect" in
+      \'*\' ) upprotect="${upprotect#\'}"; upprotect="${upprotect%\'}"; ;;
+    esac
+
+    config_get binpath    "$CONFIGURATION" binpath    ""
+    config_get configpath "$CONFIGURATION" configpath ""
+    config_get workdir    "$CONFIGURATION" workdir    ""
+    config_get logfile    "$CONFIGURATION" logfile    ""
+
+    expanded="$upprotect"
+    [ -n "$workdir"    ] && expanded="${expanded//\$workdir/$workdir}"
+    [ -n "$binpath"    ] && expanded="${expanded//\$binpath/$binpath}"
+    [ -n "$configpath" ] && expanded="${expanded//\$configpath/$configpath}"
+    [ -n "$logfile"    ] && expanded="${expanded//\$logfile/$logfile}"
+
+    mkdir -p /lib/upgrade/keep.d
+    printf '%s' "$expanded" | awk 'BEGIN{FS="[[:space:]]+"} {for(i=1;i<=NF;i++) if($i!="") print $i}' \
+      > /lib/upgrade/keep.d/luci-app-adguardhome
 
     config_get logfile $CONFIGURATION logfile ""
     if [ -n "$logfile" ]; then
@@ -446,8 +462,8 @@ start_service() {
 
     if [ ! -f "$PROG" ]; then
         _do_redirect 0
-        /usr/share/AdGuardHome/update_core.sh 2>&1 >/tmp/AdGuardHome_update.log &
-        exit 0
+        /usr/share/AdGuardHome/update_core.sh >/tmp/AdGuardHome_update.log 2>&1 &
+        return 0
     fi
 
     config_get_bool verbose $CONFIGURATION verbose 0
@@ -457,20 +473,21 @@ start_service() {
 
     procd_open_instance
     get_tz
-    if [ -n "$SET_TZ" ]; then
-        procd_set_param env TZ="$SET_TZ"
-    fi
+    [ -n "$SET_TZ" ] && procd_set_param env TZ="$SET_TZ"
     procd_set_param respawn ${respawn_threshold:-3600} ${respawn_timeout:-5} ${respawn_retry:-5}
     procd_set_param limits core="unlimited" nofile="65535 65535"
     procd_set_param stderr 1
-    procd_set_param command "$PROG" $ADDITIONAL_ARGS
+    set -- "$PROG" $ADDITIONAL_ARGS
+    procd_set_param command "$@"
     procd_set_param file "$configpath" "/etc/hosts" "/etc/config/AdGuardHome"
     procd_close_instance
     if [ -f "$configpath" ]; then
         (_do_redirect 1) &
     else
         _do_redirect 0
-        config_get "redirect" "AdGuardHome" "redirect" "none"
+        config_get redirect "$CONFIGURATION" redirect "none"
+        [ -z "$redirect" ] && redirect="none"
+        logger -t AdGuardHome "start_service: redirect='$redirect'"
         if [ "$redirect" != "none" ]; then
             procd_open_instance "waitconfig"
             procd_set_param command "/usr/share/AdGuardHome/watchconfig.sh"
@@ -519,15 +536,27 @@ del_querylog() {
 }
 
 stop_service() {
-    config_load "${CONFIGURATION}"
-    ( _do_redirect 0 ) >/dev/null 2>&1
-    ( do_crontab ) >/dev/null 2>&1
-    if [ "$1" != "nobackup" ]; then
-        config_get backupfile $CONFIGURATION backupfile "0"
-        [ -n "$backupfile" ] && [ "$backupfile" != "0" ] && backup
-    fi
-    echo "AdGuardHome service disabled"
-    touch /var/run/AdGserverdis
+	config_load "${CONFIGURATION}" 2>/dev/null || true
+
+	if type _do_redirect >/dev/null 2>&1; then
+		_do_redirect 0 >/dev/null 2>&1
+	fi
+
+	if type do_crontab >/dev/null 2>&1; then
+		do_crontab >/dev/null 2>&1
+	fi
+
+	if [ "$1" != "nobackup" ]; then
+		config_get backupfile $CONFIGURATION backupfile "0"
+		if [ -n "$backupfile" ] && [ "$backupfile" != "0" ]; then
+			if type backup >/dev/null 2>&1; then
+				backup
+			fi
+		fi
+	fi
+
+	echo "AdGuardHome service disabled"
+	touch /var/run/AdGserverdis
 }
 
 boot() {

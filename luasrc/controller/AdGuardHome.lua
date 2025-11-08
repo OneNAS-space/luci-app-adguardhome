@@ -99,18 +99,30 @@ function do_dellog()
 end
 function check_update()
 	http.prepare_content("text/plain; charset=utf-8")
-	local fdp=tonumber(fs.readfile("/var/run/lucilogpos")) or 0
-	local f=io.open("/tmp/AdGuardHome_update.log", "r+")
-	f:seek("set",fdp)
-	local a=f:read(2048000) or ""
-	fdp=f:seek()
-	fs.writefile("/var/run/lucilogpos",tostring(fdp))
-	f:close()
-    if fs.access("/var/run/update_core") then
-	    http.write(a)
-    else
-	    http.write(a.."\0")
-    end
+	local fdp = tonumber(fs.readfile("/var/run/lucilogpos")) or 0
+	local f = io.open("/tmp/AdGuardHome_update.log", "r+")
+	local a = ""
+	if f then
+		f:seek("set", fdp)
+		a = f:read(2048000) or ""
+		fdp = f:seek()
+		fs.writefile("/var/run/lucilogpos", tostring(fdp))
+		f:close()
+	end
+	if fs.access("/var/run/update_core") then
+		http.write(a)
+		return
+	end
+	if fs.access("/var/run/update_core_done") then
+		fs.remove("/var/run/update_core_done")
+		http.write(a .. "\0SUCCESS")
+		return
+	end
+	if fs.access("/var/run/update_core_error") then
+		http.write(a .. "\0ERROR")
+		return
+	end
+	http.write(a .. "\0NOUPDATE")
 end
 function act_status()
     local sys  = require "luci.sys"
