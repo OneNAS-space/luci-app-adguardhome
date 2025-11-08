@@ -5,7 +5,7 @@ binpath="/usr/bin/AdGuardHome"
 update_mode=$1
 
 EXIT(){
-	rm -rf /var/run/update_core $LOCKU 2>/dev/null
+	rm -f /var/run/update_core $LOCKU 2>/dev/null
 	[ "$1" != 0 ] && touch /var/run/update_core_error
 	exit $1
 }
@@ -68,23 +68,23 @@ Check_Updates(){
 		EXIT 1
 	fi
 
-    if [ -f "${binpath}" ]; then
+	if [ -f "${binpath}" ]; then
 		Current_Version="$(${binpath} --version 2>/dev/null | egrep -o "v[0-9].+[0-9]" | sed -r 's/(.*), c(.*)/\1/')"
-    else
-        Current_Version="unknown"
-    fi
-    [ -z "${Current_Version}" ] && Current_Version="unknown"
+	else
+		Current_Version="unknown"
+	fi
+	[ -z "${Current_Version}" ] && Current_Version="unknown"
 
-    echo "Binary path: ${binpath%/*}"
-    echo "Current version: ${Current_Version}"
-    echo "Latest version: ${Cloud_Version}"
+	echo "Binary path: ${binpath%/*}"
+	echo "Current version: ${Current_Version}"
+	echo "Latest version: ${Cloud_Version}"
 
-    if [ ! "${Cloud_Version}" = "${Current_Version}" ] || [ "$1" = force ]; then
-        Update_Core || EXIT 1
-    else
-        echo "Already up to date."
-        EXIT 0
-    fi
+	if [ ! "${Cloud_Version}" = "${Current_Version}" ] || [ "$1" = force ]; then
+		Update_Core || EXIT 1
+	else
+		echo "Already up to date."
+		EXIT 0
+	fi
 }
 
 UPX_Compress(){
