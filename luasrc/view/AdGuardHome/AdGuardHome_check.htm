@@ -39,32 +39,41 @@ function apply_update(){
 	poll_check();
 	return
 }
-function poll_check(){
-var tag = document.getElementById('logview');
-	tag.style.display="block"
-XHR.poll(3, '<%=url([[admin]], [[services]], [[AdGuardHome]], [[check]])%>', null,
-	function(x, data) {
+function poll_check() {
+	var tag = document.getElementById('logview');
+	tag.style.display = "block";
+
+	XHR.poll(3, '<%=url([[admin]], [[services]], [[AdGuardHome]], [[check]])%>', null, function(x, data) {
 		var lv = document.getElementById('cbid.logview.1.conf');
-		if (x.responseText && lv) {
-			if (x.responseText=="\u0000"){
-				for(j = 0,len=this.XHR._q.length; j < len; j++) {
-					if (this.XHR._q[j].url == '<%=url([[admin]], [[services]], [[AdGuardHome]], [[check]])%>'){
-						this.XHR._q.splice(j,1);
-						updatebtn.disabled = false;
-						updatebtn.value    = '<%:Updated%>';
-						break;
-					}
+		if (!lv) return;
+
+		var resp = x.responseText || "";
+		var ended = resp.indexOf("\u0000") !== -1;
+
+		if (ended) {
+			var visible = resp.replace(/\u0000/g, "");
+			if (visible.length) {
+				if (islogreverse) {
+					lv.innerHTML = visible.split('\n').reverse().join('\n') + lv.innerHTML;
+				} else {
+					lv.innerHTML += visible;
 				}
-				return	
 			}
-			if (islogreverse){
-				lv.innerHTML = x.responseText.split('\n').reverse().join('\n')+lv.innerHTML;
-			}else{
-				lv.innerHTML += x.responseText;
+			updatebtn.disabled = false;
+			updatebtn.value = '<%:Updated%>';
+			location.reload();
+			return;
+		}
+
+		if (resp.length) {
+			if (islogreverse) {
+				lv.innerHTML = resp.split('\n').reverse().join('\n') + lv.innerHTML;
+			} else {
+				lv.innerHTML += resp;
 			}
 		}
-	}
-);}
+	});
+}
 <% if fs.access("/var/run/update_core") then %>
 	updatebtn.disabled = true;
 	updatebtn.value    = '<%:Check...%>';
