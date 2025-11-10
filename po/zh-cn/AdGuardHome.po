@@ -43,9 +43,12 @@ msgstr "更新"
 
 #button change
 msgid "Update core-bin"
+msgstr "更新核心执行文件"
+
+msgid "Update core version"
 msgstr "更新核心版本"
 
-msgid "Check..."
+msgid "Checking..."
 msgstr "检查中..."
 
 msgid "Updated"
