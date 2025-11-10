@@ -403,14 +403,14 @@ start_service() {
         return
     fi
     config_get workdir $CONFIGURATION workdir "/var/AdGuardHome"
+    config_get backupfile $CONFIGURATION backupfile ""
     mkdir -p "$workdir"
     chmod 0700 "$workdir"
-    mkdir -p "$workdir/data"
-    chmod 0700 "$workdir/data"
-    config_get backupfile $CONFIGURATION backupfile ""
     if [ -n "$backupfile" ] && [ ! -d "$workdir/data" ]; then
         restore
     fi
+    mkdir -p "$workdir/data"
+    chmod 0700 "$workdir/data"
     local cwdfs
     cwdfs=$(get_filesystem "$workdir")
     echo "workdir is a $cwdfs filesystem"
