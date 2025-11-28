@@ -165,7 +165,7 @@ msgid "Gfwlist domain upstream dns service"
 msgstr "gfw列表域名上游服务器"
 #hide div
 msgid "Change Web page management password"
-msgstr "改变管理界面密码"
+msgstr "修改管理界面密码"
 
 msgid "Calculate"
 msgstr "计算"
@@ -236,20 +236,20 @@ msgstr "工作目录备份路径"
 msgid "Crontab task"
 msgstr "计划任务"
 
-msgid "Auto update core-bin"
-msgstr "自动升级核心"
+msgid "Update core-bin"
+msgstr "升级核心"
 
-msgid "Auto tail querylog"
-msgstr "自动截短查询日志"
+msgid "Tail querylog"
+msgstr "截短查询日志"
 
-msgid "Auto tail runtime log"
-msgstr "自动截短运行日志"
+msgid "Tail runtime log"
+msgstr "截短运行日志"
 
-msgid "Auto update ipv6 hosts and restart adh"
-msgstr "自动更新ipv6主机并重启adh"
+msgid "Update ipv6 hosts and restart"
+msgstr "更新ipv6主机并重启AGH"
 
-msgid "Auto update gfwlist and restart adh"
-msgstr "自动更新gfw列表并重启adh"
+msgid "Update gfwlist and restart"
+msgstr "更新gfw列表并重启AGH"
 
 msgid "Please change time and args in crontab"
 msgstr "请在计划任务中修改时间和参数"
@@ -284,7 +284,7 @@ msgid "Warning!!! The core-bin is not found, and the submitted configuration wil
 msgstr "警告！！！未找到核心文件，提交配置将不会进行校验"
 #unused
 msgid "Change Web page management username"
-msgstr "改变管理界面用户名"
+msgstr "修改管理界面用户名"
 
 msgid "Username"
 msgstr "用户名"
