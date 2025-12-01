@@ -11,7 +11,7 @@ msgstr "手动设置"
 msgid "Free and open source, powerful network-wide ads & trackers blocking DNS server."
 msgstr "免费开源，功能强大的全网络广告和跟踪程序拦截DNS服务器"
 
-msgid "Service status:"
+msgid "Status:"
 msgstr "服务状态："
 
 msgid "Core"
@@ -35,7 +35,7 @@ msgstr "获取数据中..."
 msgid "Enable"
 msgstr "启用"
 
-msgid "Web page management port"
+msgid "WebUI management port"
 msgstr "网页管理端口"
 
 msgid "Update"
@@ -164,7 +164,7 @@ msgstr "gfw列表上游服务器"
 msgid "Gfwlist domain upstream dns service"
 msgstr "gfw列表域名上游服务器"
 #hide div
-msgid "Change Web page management password"
+msgid "Change WebUI management password"
 msgstr "修改管理界面密码"
 
 msgid "Calculate"
@@ -283,7 +283,7 @@ msgstr "重新载入配置"
 msgid "Warning!!! The core-bin is not found, and the submitted configuration will not be verified."
 msgstr "警告！！！未找到核心文件，提交配置将不会进行校验"
 #unused
-msgid "Change Web page management username"
+msgid "Change WebUI management username"
 msgstr "修改管理界面用户名"
 
 msgid "Username"
