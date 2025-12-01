@@ -19,7 +19,7 @@ XHR.poll(3, '<%=url([[admin]], [[services]], [[AdGuardHome]], [[status]])%>', nu
 
             tb.innerHTML = `
               <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span><b><%:Service status:%></b> ${statusText}</span>
+                <span><b><%:Status:%></b> ${statusText}</span>
                 <span>${data.version}</span>
               </div>`;
         }
