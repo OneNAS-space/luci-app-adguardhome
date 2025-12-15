@@ -81,7 +81,7 @@ jobs:
             python3-setuptools rsync swig unzip zlib1g-dev file wget zstd gh
 
       - name: Cache SDK tarball
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: _sdk/sdk.tar.zst
           key: sdk-${{ env.RELEASE }}-${{ env.TARGET }}-${{ env.SUBTARGET }}
