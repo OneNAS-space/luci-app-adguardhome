@@ -131,7 +131,7 @@ jobs:
           cd "$GITHUB_WORKSPACE/out" && sha256sum *.ipk > SHA256SUMS.txt || true && ls -l
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ipks-${{ env.RESOLVED_TAG != '' && env.RESOLVED_TAG || github.ref_name }}-x86_64
           path: out/
