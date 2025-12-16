@@ -411,6 +411,8 @@ start_service() {
     fi
     mkdir -p "$workdir/data"
     chmod 0700 "$workdir/data"
+    mkdir -p "$workdir/data/filters"
+    chmod 0700 "$workdir/data/filters"
     local cwdfs
     cwdfs=$(get_filesystem "$workdir")
     echo "workdir is a $cwdfs filesystem"
