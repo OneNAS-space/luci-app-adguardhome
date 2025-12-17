@@ -227,10 +227,10 @@ msgstr "查询日志"
 msgid "sessions.db"
 msgstr "会话"
 
-msgid "Data will be automatically restored if the workdir/data directory is empty."
+msgid "Data will be automatically restored if the work_dir/data directory is empty."
 msgstr "工作目录/数据 为空时数据将自动恢复"
 
-msgid "Backup workdir path"
+msgid "Backup work_dir path"
 msgstr "工作目录备份路径"
 
 msgid "Crontab task"
