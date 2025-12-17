@@ -5,8 +5,8 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-adguardhome
-PKG_VERSION:=2.4.20
-PKG_RELEASE:=20251201
+PKG_VERSION:=2.5.0
+PKG_RELEASE:=1
 
 PKG_LICENSE:=MIT
 PKG_LICENSE_FILES:=LICENSE
@@ -37,7 +37,7 @@ define Build/Compile
 endef
 
 define Package/luci-app-adguardhome/conffiles
-/etc/config/AdGuardHome
+/etc/config/adguardhome
 endef
 
 define Package/luci-app-adguardhome/install
@@ -46,12 +46,12 @@ define Package/luci-app-adguardhome/install
 	$(INSTALL_DIR) $(1)/
 	cp -pR ./root/* $(1)/
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
-	po2lmo ./po/zh-cn/AdGuardHome.po $(1)/usr/lib/lua/luci/i18n/AdGuardHome.zh-cn.lmo
+	po2lmo ./po/zh-cn/adguardhome.po $(1)/usr/lib/lua/luci/i18n/adguardhome.zh-cn.lmo
 endef
 
 define Package/luci-app-adguardhome/postinst
 #!/bin/sh
-[ -n "$$IPKG_INSTROOT" ] || /etc/init.d/AdGuardHome enable
+[ -n "$$IPKG_INSTROOT" ] || /etc/init.d/adguardhome enable
 rm -f /tmp/luci-indexcache
 rm -f /tmp/luci-modulecache/*
 exit 0
@@ -60,9 +60,9 @@ endef
 define Package/luci-app-adguardhome/prerm
 #!/bin/sh
 if [ -z "$${IPKG_INSTROOT}" ]; then
-	/etc/init.d/AdGuardHome disable
+	/etc/init.d/adguardhome disable
 uci -q batch <<-EOF >/dev/null 2>&1
-	delete ucitrack.@AdGuardHome[-1]
+	delete ucitrack.@adguardhome[-1]
 	commit ucitrack
 EOF
 fi
