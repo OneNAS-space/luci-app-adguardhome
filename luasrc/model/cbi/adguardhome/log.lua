@@ -9,8 +9,5 @@ t.rmempty = true
 t.rows = 20
 t.template = "adguardhome/log"
 t.readonly = "readonly"
-local logfile = uci:get("adguardhome","adguardhome","logfile") or ""
-t.timereplace = (logfile ~= "syslog" and logfile ~= "" )
-t.pollcheck = logfile ~= ""
-fs.writefile("/var/run/lucilogpos", "0")
+
 return f
