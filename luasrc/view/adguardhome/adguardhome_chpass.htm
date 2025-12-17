@@ -16,7 +16,7 @@ function chpass(btn)
 		btn.disabled = false;
 		return
 		}
-		var lv = document.getElementById('cbid.AdGuardHome.AdGuardHome.hashpass');
+		var lv = document.getElementById('cbid.adguardhome.adguardhome.hashpass');
 		if (lv.value != ""){
 		var hash = TwinBcrypt.hashSync(lv.value);
 		lv.value=hash;
@@ -43,5 +43,5 @@ function chpass(btn)
 		ifattr(#self.keylist > 0, "data-choices", { self.keylist, self.vallist })
 	%> />
 	<% if self.password then %><img src="<%=resource%>/cbi/reload.gif" style="vertical-align:middle" title="<%:Reveal/hide password%>" onclick="var e = document.getElementById('<%=cbid%>'); e.type = (e.type=='password') ? 'text' : 'password';" /><% end %>
-	<input type="button" class="btn cbi-button cbi-button-apply" id="cbid.AdGuardHome.AdGuardHome.applychpass" value="<%:Load culculate model%>" onclick="return chpass(this)"/>
+	<input type="button" class="btn cbi-button cbi-button-apply" id="cbid.adguardhome.adguardhome.applychpass" value="<%:Load culculate model%>" onclick="return chpass(this)"/>
 <%+cbi/valuefooter%>
