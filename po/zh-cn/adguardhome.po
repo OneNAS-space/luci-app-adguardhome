@@ -257,7 +257,7 @@ msgstr "请在计划任务中修改时间和参数"
 msgid "Download links for update"
 msgstr "升级用的下载链接"
 
-#/cgi-bin/luci/admin/services/AdGuardHome/log/
+#/cgi-bin/luci/admin/services/adguardhome/log/
 msgid "reverse"
 msgstr "逆序"
 
@@ -273,7 +273,7 @@ msgstr "删除日志"
 msgid "download log"
 msgstr "下载日志"
 
-#/cgi-bin/luci//admin/services/AdGuardHome/manual/
+#/cgi-bin/luci//admin/services/adguardhome/manual/
 msgid "Use template"
 msgstr "使用模板"
 #hide button
