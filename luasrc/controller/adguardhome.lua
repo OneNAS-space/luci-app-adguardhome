@@ -128,8 +128,8 @@ function act_status()
     local sys  = require "luci.sys"
     local util = require "luci.util"
     local e = {}
-    local binpath = uci:get("adguardhome", "adguardhome", "binpath") or "AdGuardHome"
-    e.running = (sys.call("pgrep " .. binpath .. " >/dev/null") == 0)
+    local bin_path = uci:get("adguardhome", "adguardhome", "bin_path") or "AdGuardHome"
+    e.running = (sys.call("pgrep " .. bin_path .. " >/dev/null") == 0)
     e.redirect = (fs.readfile("/var/run/AdGredir") == "1")
     local full = util.trim(sys.exec("opkg list-installed | grep luci-app-adguardhome | awk '{print $3}'"))
     e.version = full:match("([0-9%.]+)") or full
