@@ -3,11 +3,11 @@
 checkmd5(){
 local nowmd5=$(md5sum /etc/hosts)
 nowmd5=${nowmd5%% *}
-local lastmd5=$(uci get AdGuardHome.AdGuardHome.hostsmd5 2>/dev/null)
+local lastmd5=$(uci get adguardhome.adguardhome.hostsmd5 2>/dev/null)
 if [ "$nowmd5" != "$lastmd5" ]; then
-	uci set AdGuardHome.AdGuardHome.hostsmd5="$nowmd5"
-	uci commit AdGuardHome
-	[ "$1" == "noreload" ] || /etc/init.d/AdGuardHome reload
+	uci set adguardhome.adguardhome.hostsmd5="$nowmd5"
+	uci commit adguardhome
+	[ "$1" == "noreload" ] || /etc/init.d/adguardhome reload
 fi
 }
 
