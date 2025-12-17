@@ -36,7 +36,7 @@ end
 m = Map("adguardhome")
 local configpath = uci:get("adguardhome","adguardhome","configpath")
 local binpath = "/usr/bin/AdGuardHome"
-s = m:section(TypedSection, "AdGuardHome")
+s = m:section(TypedSection, "adguardhome")
 s.anonymous = true
 s.addremove = false
 --- config
@@ -45,20 +45,20 @@ o.rows = 66
 o.wrap = "off"
 o.rmempty = true
 o.cfgvalue = function(self, section)
-	return fs.readfile("/tmp/AdGuardHometmpconfig.yaml") or fs.readfile(configpath) or gen_template_config() or ""
+	return fs.readfile("/tmp/adguardhometmpconfig.yaml") or fs.readfile(configpath) or gen_template_config() or ""
 end
 o.validate = function(self, value)
-    fs.writefile("/tmp/AdGuardHometmpconfig.yaml", value:gsub("\r\n", "\n"))
+    fs.writefile("/tmp/adguardhometmpconfig.yaml", value:gsub("\r\n", "\n"))
 	if fs.access(binpath) then
-        if (sys.call(binpath .. " -c /tmp/AdGuardHometmpconfig.yaml --check-config 2> /tmp/AdGuardHometest.log") == 0) then return value end
+        if (sys.call(binpath .. " -c /tmp/adguardhometmpconfig.yaml --check-config 2> /tmp/adguardhometest.log") == 0) then return value end
 	else
 		return value
 	end
-	luci.http.redirect(luci.dispatcher.build_url("admin","services","AdGuardHome","manual"))
+	luci.http.redirect(luci.dispatcher.build_url("admin","services","adguardhome","manual"))
 	return nil
 end
 o.write = function(self, section, value)
-	fs.move("/tmp/AdGuardHometmpconfig.yaml",configpath)
+	fs.move("/tmp/adguardhometmpconfig.yaml",configpath)
 end
 o.remove = function(self, section, value) fs.writefile(configpath, "") end
 
@@ -68,8 +68,8 @@ o.template = "adguardhome/yamleditor"
 if not fs.access(binpath) then
 	o.description = translate("Warning!!! The core-bin is not found, and the submitted configuration will not be verified.")
 end
-if (fs.access("/tmp/AdGuardHometmpconfig.yaml")) then
-local c = fs.readfile("/tmp/AdGuardHometest.log")
+if (fs.access("/tmp/adguardhometmpconfig.yaml")) then
+local c = fs.readfile("/tmp/adguardhometest.log")
 if (c ~= "") then
 o = s:option(TextValue, "")
 o.readonly = true
@@ -77,7 +77,7 @@ o.rows = 5
 o.rmempty = true
 o.name = ""
 o.cfgvalue = function(self, section)
-	return fs.readfile("/tmp/AdGuardHometest.log")
+	return fs.readfile("/tmp/adguardhometest.log")
 end
 end
 end
