@@ -1,11 +1,97 @@
 #!/bin/sh
-chmod +x /etc/init.d/AdGuardHome
+
+chmod +x /etc/init.d/adguardhome
+
+start_service() {
+	if ! /etc/init.d/adguardhome running; then
+		/etc/init.d/adguardhome start
+	fi
+}
+
+stop_service() {
+	if /etc/init.d/adguardhome running; then
+		/etc/init.d/adguardhome stop
+	fi
+}
+
+NEW_CONFIG_DIR=/etc/adguardhome
+NEW_CONFIG_FILE="$NEW_CONFIG_DIR/adguardhome.yaml"
+
+CUR_CONFIG_FILE=$(uci -q get adguardhome.config.config_file)
+if [ -z "$CUR_CONFIG_FILE" ]; then
+    if [ -f "/etc/AdGuardHome.yaml" ]; then
+        CUR_CONFIG_FILE="/etc/AdGuardHome.yaml"
+    else
+        CUR_CONFIG_FILE="$NEW_CONFIG_FILE"
+    fi
+fi
+
+if [ -f "$CUR_CONFIG_FILE" ] && [ "$CUR_CONFIG_FILE" != "$NEW_CONFIG_FILE" ]; then
+	echo "AdGuard Home config found in non-standard path '$CUR_CONFIG_FILE'. Attempting migration..."
+	OLD_CONFIG_DIR=$(dirname "$CUR_CONFIG_FILE")
+
+	USER=$(uci -q get adguardhome.config.user)
+	USER=${USER:-adguardhome}
+	GROUP=$(uci -q get adguardhome.config.group)
+	GROUP=${GROUP:-adguardhome}
+
+	if [ "$OLD_CONFIG_DIR" = "/etc" ] || [ "$CUR_CONFIG_FILE" = "/etc/AdGuardHome.yaml" ]; then
+		echo "Migrating config file to '$NEW_CONFIG_FILE' and setting ownership to $USER:$GROUP..."
+		stop_service
+
+		[ -d "$NEW_CONFIG_DIR" ] || mkdir -m 0700 -p "$NEW_CONFIG_DIR"
+		mv "$CUR_CONFIG_FILE" "$NEW_CONFIG_FILE"
+		chown -R "$USER":"$GROUP" "$NEW_CONFIG_DIR"
+		CUR_CONFIG_FILE="$NEW_CONFIG_FILE"
+
+		echo "Config migrated to '$NEW_CONFIG_FILE'"
+	else
+		echo "Config is in a non-default directory. Ensure service user '$USER' can access it."
+	fi
+
+	uci set adguardhome.config.config_file="$CUR_CONFIG_FILE"
+
+	cert_path=$(grep certificate_path: "$CUR_CONFIG_FILE" \
+		| awk -F':' '{gsub(/"/, "", $2); gsub(/^ +| +$/, "", $2); print $2}')
+	if [ -n "$cert_path" ]; then
+		echo "Found custom 'certificate_path' pointing to '$cert_path'. Adding to jail_mount list."
+		stop_service
+		if ! uci -q show adguardhome.config.jail_mount | grep -q "$cert_path"; then
+			uci add_list adguardhome.config.jail_mount="$cert_path"
+		fi
+	fi
+
+	private_key_path=$(grep private_key_path: "$CUR_CONFIG_FILE" \
+		| awk -F':' '{gsub(/"/, "", $2); gsub(/^ +| +$/, "", $2); print $2}')
+	if [ -n "$private_key_path" ]; then
+		echo "Found custom 'private_key_path' pointing to '$private_key_path'. Adding to jail_mount list."
+		stop_service
+		if ! uci -q show adguardhome.config.jail_mount | grep -q "$private_key_path"; then
+			uci add_list adguardhome.config.jail_mount="$private_key_path"
+		fi
+	fi
+
+	uci commit adguardhome
+	start_service
+
+elif [ ! -f "$CUR_CONFIG_FILE" ]; then
+	echo "No existing AdGuard Home config found. Setting default path to '$NEW_CONFIG_FILE'."
+	stop_service
+
+	uci set adguardhome.config.config_file="$NEW_CONFIG_FILE"
+	uci commit adguardhome
+	start_service
+
+else
+	echo "AdGuard Home config is already in its default path '$NEW_CONFIG_FILE'. No migration needed."
+fi
+
 uci -q batch <<-EOF >/dev/null 2>&1
-	delete ucitrack.@AdGuardHome[-1]
-	add ucitrack AdGuardHome
-	set ucitrack.@AdGuardHome[-1].init=AdGuardHome
+	delete ucitrack.@adguardhome[-1]
+	add ucitrack adguardhome
+	set ucitrack.@adguardhome[-1].init=adguardhome
 	commit ucitrack
-	delete AdGuardHome.AdGuardHome.ucitracktest
+	delete adguardhome.config.ucitracktest
 EOF
 
 rm -f /tmp/luci-indexcache
