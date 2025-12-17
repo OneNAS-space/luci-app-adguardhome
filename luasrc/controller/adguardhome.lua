@@ -1,22 +1,22 @@
-module("luci.controller.AdGuardHome", package.seeall)
+module("luci.controller.adguardhome", package.seeall)
 local fs = require "nixio.fs"
 local http = require "luci.http"
 local uci = require"luci.model.uci".cursor()
 function index()
-    local page = entry({"admin", "services", "AdGuardHome"},alias("admin", "services", "AdGuardHome", "base"),_("AdGuard Home"))
+    local page = entry({"admin", "services", "adguardhome"},alias("admin", "services", "adguardhome", "base"),_("AdGuard Home"))
     page.order = 11
     page.dependent = true
     page.acl_depends = { "luci-app-adguardhome" }
-    entry({"admin", "services", "AdGuardHome", "base"}, cbi("AdGuardHome/base"),  _("Base Setting"), 1).leaf = true
-    entry({"admin", "services", "AdGuardHome", "log"}, form("AdGuardHome/log"), _("Log"), 2).leaf = true
-    entry({"admin", "services", "AdGuardHome", "manual"}, cbi("AdGuardHome/manual"), _("Manual Config"), 3).leaf = true
-    entry({"admin", "services", "AdGuardHome", "status"}, call("act_status")).leaf = true
-    entry({"admin", "services", "AdGuardHome", "check"}, call("check_update"))
-    entry({"admin", "services", "AdGuardHome", "doupdate"}, call("do_update"))
-    entry({"admin", "services", "AdGuardHome", "getlog"}, call("get_log"))
-    entry({"admin", "services", "AdGuardHome", "dodellog"}, call("do_dellog"))
-    entry({"admin", "services", "AdGuardHome", "reloadconfig"}, call("reload_config"))
-    entry({"admin", "services", "AdGuardHome", "gettemplateconfig"}, call("get_template_config"))
+    entry({"admin", "services", "adguardhome", "base"}, cbi("adguardhome/base"),  _("Base Setting"), 1).leaf = true
+    entry({"admin", "services", "adguardhome", "log"}, form("adguardhome/log"), _("Log"), 2).leaf = true
+    entry({"admin", "services", "adguardhome", "manual"}, cbi("adguardhome/manual"), _("Manual Config"), 3).leaf = true
+    entry({"admin", "services", "adguardhome", "status"}, call("act_status")).leaf = true
+    entry({"admin", "services", "adguardhome", "check"}, call("check_update"))
+    entry({"admin", "services", "adguardhome", "doupdate"}, call("do_update"))
+    entry({"admin", "services", "adguardhome", "getlog"}, call("get_log"))
+    entry({"admin", "services", "adguardhome", "dodellog"}, call("do_dellog"))
+    entry({"admin", "services", "adguardhome", "reloadconfig"}, call("reload_config"))
+    entry({"admin", "services", "adguardhome", "gettemplateconfig"}, call("get_template_config"))
 end
 function get_template_config()
 	local b
@@ -46,7 +46,7 @@ function get_template_config()
 	http.write(table.concat(tbl, "\n"))
 end
 function reload_config()
-	fs.remove("/tmp/AdGuardHometmpconfig.yaml")
+	fs.remove("/tmp/adguardhometmpconfig.yaml")
 	http.prepare_content("application/json")
 	http.write('')
 end
@@ -61,9 +61,9 @@ function do_update()
 		arg=""
 	end
 	if arg=="force" then
-		luci.sys.exec("kill $(pgrep /usr/share/adguardhome/update_core.sh) ; sh /usr/share/adguardhome/update_core.sh "..arg.." >/tmp/AdGuardHome_update.log 2>&1 &")
+		luci.sys.exec("kill $(pgrep /usr/share/adguardhome/update_core.sh) ; sh /usr/share/adguardhome/update_core.sh "..arg.." >/tmp/adguardhome_update.log 2>&1 &")
 	else
-		luci.sys.exec("sh /usr/share/adguardhome/update_core.sh "..arg.." >/tmp/AdGuardHome_update.log 2>&1 &")
+		luci.sys.exec("sh /usr/share/adguardhome/update_core.sh "..arg.." >/tmp/adguardhome_update.log 2>&1 &")
 	end
 end
 function get_log()
@@ -72,11 +72,11 @@ function get_log()
 		http.write("no log available\n")
 		return
 	elseif (logfile=="syslog") then
-		if not fs.access("/var/run/AdGuardHomesyslog") then
+		if not fs.access("/var/run/adguardhomesyslog") then
 			luci.sys.exec("(/usr/share/adguardhome/getsyslog.sh &); sleep 1;")
 		end
-		logfile="/tmp/AdGuardHometmp.log"
-		fs.writefile("/var/run/AdGuardHomesyslog","1")
+		logfile="/tmp/adguardhometmp.log"
+		fs.writefile("/var/run/adguardhomesyslog","1")
 	elseif not fs.access(logfile) then
 		http.write("")
 		return
@@ -100,7 +100,7 @@ end
 function check_update()
 	http.prepare_content("text/plain; charset=utf-8")
 	local fdp = tonumber(fs.readfile("/var/run/lucilogpos")) or 0
-	local f = io.open("/tmp/AdGuardHome_update.log", "r+")
+	local f = io.open("/tmp/adguardhome_update.log", "r+")
 	local a = ""
 	if f then
 		f:seek("set", fdp)
