@@ -110,8 +110,8 @@ UPX_Compress(){
 }
 
 Update_Core(){
-	rm -rf "/tmp/AdGuardHome_Update" > /dev/null 2>&1
-	mkdir -p "/tmp/AdGuardHome_Update" || { echo "无法创建临时目录"; EXIT 1; }
+	rm -rf "/tmp/adguardhome_Update" > /dev/null 2>&1
+	mkdir -p "/tmp/adguardhome_Update" || { echo "无法创建临时目录"; EXIT 1; }
 
 	GET_Arch
 	eval link="${update_url}"
@@ -119,27 +119,27 @@ Update_Core(){
 	echo "File name: ${link##*/}"
 	echo "Downloading AdGuardHome core ..."
 
-	if ! $Downloader "/tmp/AdGuardHome_Update/${link##*/}" "${link}"; then
+	if ! $Downloader "/tmp/adguardhome_Update/${link##*/}" "${link}"; then
 		echo "Download failed."
-		rm -rf "/tmp/AdGuardHome_Update"
+		rm -rf "/tmp/adguardhome_Update"
 		EXIT 1
 	fi
 
 	if [ "${link##*.}" = "gz" ]; then
 		echo "Extracting AdGuardHome ..."
-		if ! tar -zxf "/tmp/AdGuardHome_Update/${link##*/}" -C "/tmp/AdGuardHome_Update/"; then
+		if ! tar -zxf "/tmp/adguardhome_Update/${link##*/}" -C "/tmp/adguardhome_Update/"; then
 			echo "Extraction failed!"
-			rm -rf "/tmp/AdGuardHome_Update"
+			rm -rf "/tmp/adguardhome_Update"
 			EXIT 1
 		fi
-		if [ ! -e "/tmp/AdGuardHome_Update/AdGuardHome/AdGuardHome" ]; then
+		if [ ! -e "/tmp/adguardhome_Update/AdGuardHome/AdGuardHome" ]; then
 			echo "Extraction failed: binary not found!"
-			rm -rf "/tmp/AdGuardHome_Update"
+			rm -rf "/tmp/adguardhome_Update"
 			EXIT 1
 		fi
-		downloadbin="/tmp/AdGuardHome_Update/AdGuardHome/AdGuardHome"
+		downloadbin="/tmp/adguardhome_Update/AdGuardHome/AdGuardHome"
 	else
-		downloadbin="/tmp/AdGuardHome_Update/${link##*/}"
+		downloadbin="/tmp/adguardhome_Update/${link##*/}"
 	fi
 
 	chmod +x "${downloadbin}" 2>/dev/null || true
@@ -159,12 +159,12 @@ Update_Core(){
 
 	if ! mv -f "${downloadbin}" "${binpath}"; then
 		echo -e "AdGuardHome 核心移动失败!\n可能是设备空间不足导致, 请尝试开启 UPX 压缩。"
-		rm -rf "/tmp/AdGuardHome_Update"
+		rm -rf "/tmp/adguardhome_Update"
 		EXIT 1
 	fi
 
 	rm -f /tmp/upx*.tar.xz
-	rm -rf /tmp/upx* /tmp/AdGuardHome_Update
+	rm -rf /tmp/upx* /tmp/adguardhome_Update
 	chmod +x ${binpath}
 
 	if [ "${enabled}" = 1 ]; then
