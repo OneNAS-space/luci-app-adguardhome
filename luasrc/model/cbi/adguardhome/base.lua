@@ -25,7 +25,7 @@ m.description = translate("Free and open source, powerful network-wide ads & tra
     </style>]]
 m:section(SimpleSection).template = "adguardhome/adguardhome_status"
 
-s = m:section(TypedSection, "AdGuardHome")
+s = m:section(TypedSection, "adguardhome")
 s.anonymous = true
 s.addremove = false
 o = s:option(Flag, "enabled", translate("Enable"))
@@ -169,14 +169,14 @@ o.optional = true
 o.inputtitle = translate("Del")
 o.write = function()
     luci.sys.exec("sh /usr/share/adguardhome/gfw2adg.sh del 2>&1")
-    luci.http.redirect(luci.dispatcher.build_url("admin", "services", "AdGuardHome"))
+    luci.http.redirect(luci.dispatcher.build_url("admin", "services", "adguardhome"))
 end
 o = s:option(Button,"gfwadd",translate("Add gfwlist"),translate(a))
 o.optional = true
 o.inputtitle = translate("Add")
 o.write = function()
     luci.sys.exec("sh /usr/share/adguardhome/gfw2adg.sh 2>&1")
-    luci.http.redirect(luci.dispatcher.build_url("admin", "services", "AdGuardHome"))
+    luci.http.redirect(luci.dispatcher.build_url("admin", "services", "adguardhome"))
 end
 o = s:option(Value, "gfwupstream", translate("Gfwlist upstream dns server"), translate("Gfwlist domain upstream dns service")
 .. translate(a))
