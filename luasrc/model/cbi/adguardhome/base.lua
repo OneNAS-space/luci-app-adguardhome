@@ -4,8 +4,8 @@ require("io")
 local m, s, o, o1
 local fs = require "nixio.fs"
 local uci = require "luci.model.uci".cursor()
-local configpath = uci:get("adguardhome", "adguardhome", "configpath") or "/etc/adguardhome/adguardhome.yaml"
-local binpath = uci:get("adguardhome", "adguardhome", "binpath") or "/usr/bin/AdGuardHome"
+local config_file = uci:get("adguardhome", "adguardhome", "config_file") or "/etc/adguardhome/adguardhome.yaml"
+local bin_path = uci:get("adguardhome", "adguardhome", "bin_path") or "/usr/bin/AdGuardHome"
 httpport = uci:get("adguardhome", "adguardhome", "httpport") or "3008"
 m = Map("adguardhome", "AdGuard Home")
 m.description = translate("Free and open source, powerful network-wide ads & trackers blocking DNS server.")
@@ -44,14 +44,14 @@ o.description = translate(
 )
 local binmtime = uci:get("adguardhome", "adguardhome", "binmtime") or "0"
 local e = ""
-if not fs.access(configpath) then e = e .. " " .. translate("no config") end
-if not fs.access(binpath) then
+if not fs.access(config_file) then e = e .. " " .. translate("no config") end
+if not fs.access(bin_path) then
     e = e .. " " .. translate("no core")
 else
     local version = uci:get("adguardhome", "adguardhome", "version")
-    local testtime = fs.stat(binpath, "mtime")
+    local testtime = fs.stat(bin_path, "mtime")
     if testtime ~= tonumber(binmtime) or version == nil then
-        version = luci.sys.exec(string.format("echo -n $(%s --version 2>&1 | awk -F 'version ' '{print $2}' | awk -F ',' '{print $1}')", binpath))
+        version = luci.sys.exec(string.format("echo -n $(%s --version 2>&1 | awk -F 'version ' '{print $2}' | awk -F ',' '{print $1}')", bin_path))
         if version == "" then version = "core error" end
         uci:set("adguardhome", "adguardhome", "version", version)
         uci:set("adguardhome", "adguardhome", "binmtime", testtime)
@@ -67,9 +67,9 @@ o.default = "latest"
 o = s:option(Button, "restart", translate("Update Core-bin"))
 o.inputtitle = translate("Update core-bin")
 o.template = "adguardhome/adguardhome_check"
-o.showfastconfig = (not fs.access(configpath))
+o.showfastconfig = (not fs.access(config_file))
 o.description = string.format(translate("Current core version: ") .. "<strong><font id='updateversion' style='color:green'>%s </font></strong>", e)
-local portcommand = "awk '/port:/ && ++count == 2 {sub(/[^0-9]+/, \"\", $2); printf(\"%s\\n\", $2); exit}' " .. configpath .. " 2>nul"
+local portcommand = "awk '/port:/ && ++count == 2 {sub(/[^0-9]+/, \"\", $2); printf(\"%s\\n\", $2); exit}' " .. config_file .. " 2>nul"
 local port = luci.util.exec(portcommand)
 if (port == "") then port = "?" end
 o = s:option(ListValue, "redirect", port .. translate("Redirect"), translate("AdGuardHome redirect mode"))
@@ -80,7 +80,7 @@ o:value("redirect", translate("Redirect port 53 to AdGuardHome"))
 o:value("exchange", translate("Use port 53 to replace dnsmasq"))
 o.default = "none"
 o.optional = true
-o = s:option(Value, "binpath", translate("Core-bin Path"), translate("AdGuardHome Core-bin Path. Auto-download if binary is not found."))
+o = s:option(Value, "bin_path", translate("Core-bin Path"), translate("AdGuardHome Core-bin Path. Auto-download if binary is not found."))
 o.default = "/usr/bin/AdGuardHome"
 o.datatype = "string"
 o.optional = false
@@ -97,7 +97,7 @@ o:value("--ultra-brute", translate("Try more variant compression methods [very s
 o.default = ""
 o.description = translate("Space Saving Option, but may lead to compatibility issues on some systems.")
 o.rmempty = true
-o = s:option(Value, "configpath", translate("Configuration File Path"), translate("AdGuardHome Configuration File Path"))
+o = s:option(Value, "config_file", translate("Configuration File Path"), translate("AdGuardHome Configuration File Path"))
 o.default = "/etc/adguardhome/adguardhome.yaml"
 o.datatype = "string"
 o.optional = false
@@ -117,7 +117,7 @@ if fs.stat(value,"type") == "dir" then
 end
 return value
 end
-o = s:option(Value, "workdir", translate("Working Directory"), translate("This directory contains rules, audit logs, and the database."))
+o = s:option(Value, "work_dir", translate("Working Directory"), translate("This directory contains rules, audit logs, and the database."))
 o.default = "/var/lib/adguardhome"
 o.datatype = "string"
 o.optional = false
@@ -126,9 +126,9 @@ o.validate = function(self, value)
 if value == "" then return nil end
 if fs.stat(value,"type") == "reg" then
     if m.message then
-    m.message = m.message .. "\nerror!work dir is a file"
+    m.message = m.message .. "\nerror!work_dir is a file"
     else
-    m.message = "error!work dir is a file"
+    m.message = "error!work_dir is a file"
     end
     return nil
 end
@@ -158,7 +158,7 @@ end
 o = s:option(Flag, "verbose", translate("Verbose log"))
 o.default = 0
 o.optional = true
-local a = luci.sys.call("grep -m 1 -q programadd " .. configpath)
+local a = luci.sys.call("grep -m 1 -q programadd " .. config_file)
 if (a == 0) then
 a = "Added"
 else
@@ -189,19 +189,19 @@ o.datatype = "string"
 o.template = "adguardhome/adguardhome_chpass"
 o.optional = true
 o = s:option(MultiValue, "upprotect", translate("File retention during upgrade"))
-o:value("$binpath",translate("core-bin"))
-o:value("$configpath",translate("config file"))
+o:value("$bin_path",translate("core-bin"))
+o:value("$config_file",translate("config file"))
 o:value("$logfile",translate("log file"))
-o:value("$workdir/data/sessions.db",translate("sessions.db"))
-o:value("$workdir/data/stats.db",translate("stats.db"))
-o:value("$workdir/data/querylog.json",translate("querylog.json"))
-o:value("$workdir/data/filters",translate("filters"))
+o:value("$work_dir/data/sessions.db",translate("sessions.db"))
+o:value("$work_dir/data/stats.db",translate("stats.db"))
+o:value("$work_dir/data/querylog.json",translate("querylog.json"))
+o:value("$work_dir/data/filters",translate("filters"))
 o.widget = "checkbox"
 o.default = nil
 o.optional = true
-local workdir = uci:get("adguardhome", "adguardhome", "workdir") or "/usr/bin/AdGuardHome"
+local work_dir = uci:get("adguardhome", "adguardhome", "work_dir") or "/usr/bin/AdGuardHome"
 o = s:option(MultiValue, "backupfile", translate("Automatic backup on shutdown"))
-o1 = s:option(Value, "backupwdpath", translate("Backup workdir path"))
+o1 = s:option(Value, "backupwdpath", translate("Backup work_dir path"))
 local name
 o:value("sessions.db", translate("sessions.db"))
 o:value("stats.db", translate("stats.db"))
@@ -211,7 +211,7 @@ o1:depends ("backupfile", "sessions.db")
 o1:depends ("backupfile", "stats.db")
 o1:depends ("backupfile", "querylog.json")
 o1:depends ("backupfile", "filters")
-for name in fs.glob(workdir.."/data/*")
+for name in fs.glob(work_dir.."/data/*")
 do
     name = fs.basename (name)
     if name ~= "sessions.db" and name ~= "stats.db" and name ~= "querylog.json" and name ~= "filters" then
@@ -222,7 +222,7 @@ end
 o.widget = "checkbox"
 o.default = nil
 o.optional = false
-o.description = translate("Data will be automatically restored if the workdir/data directory is empty.")
+o.description = translate("Data will be automatically restored if the work_dir/data directory is empty.")
 
 o1.default = "/etc/adguardhome/backup"
 o1.datatype = "string"
