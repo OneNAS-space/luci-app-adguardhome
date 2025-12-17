@@ -21,11 +21,11 @@ function download_log(){
 	var lv = document.getElementById('cbid.logview.1.conf');
 	var dt = new Date();
 	var timestamp = (dt.getMonth()+1)+"-"+dt.getDate()+"-"+dt.getHours()+"_"+dt.getMinutes();
-	createAndDownloadFile("AdGuardHome"+timestamp+".log",lv.innerHTML)
+	createAndDownloadFile("adguardhome"+timestamp+".log",lv.innerHTML)
 	return
 }
 function apply_del_log(){
-	XHR.get('<%=url([[admin]], [[services]], [[AdGuardHome]], [[dodellog]])%>',null,function(x, data){
+	XHR.get('<%=url([[admin]], [[services]], [[adguardhome]], [[dodellog]])%>',null,function(x, data){
 	var lv = document.getElementById('cbid.logview.1.conf');
 		lv.innerHTML="";
 	}
@@ -77,7 +77,7 @@ if (dt != "Invalid Date"){
 return strt
 }
 function poll_check(){
-XHR.poll(3, '<%=url([[admin]], [[services]], [[AdGuardHome]], [[getlog]])%>', null,
+XHR.poll(3, '<%=url([[admin]], [[services]], [[adguardhome]], [[getlog]])%>', null,
 	function(x, data) {
 		var lv = document.getElementById('cbid.logview.1.conf');
 		if (x.responseText && lv) {
