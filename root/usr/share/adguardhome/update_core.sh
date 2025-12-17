@@ -4,11 +4,11 @@ PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 binpath="/usr/bin/AdGuardHome"
 update_mode=$1
 
-upxflag=$(uci get AdGuardHome.AdGuardHome.upxflag 2>/dev/null || true)
+upxflag=$(uci get adguardhome.adguardhome.upxflag 2>/dev/null || true)
 [ -z "${upxflag}" ] && upxflag=off
-enabled=$(uci get AdGuardHome.AdGuardHome.enabled 2>/dev/null || true)
-core_version=$(uci get AdGuardHome.AdGuardHome.core_version 2>/dev/null || true)
-update_url=$(uci get AdGuardHome.AdGuardHome.update_url 2>/dev/null || true)
+enabled=$(uci get adguardhome.adguardhome.enabled 2>/dev/null || true)
+core_version=$(uci get adguardhome.adguardhome.core_version 2>/dev/null || true)
+update_url=$(uci get adguardhome.adguardhome.update_url 2>/dev/null || true)
 
 case "${core_version}" in
 beta)
@@ -154,7 +154,7 @@ Update_Core(){
 		echo "UPX compression disabled, skipping ..."
 	fi
 
-	/etc/init.d/AdGuardHome stop > /dev/null 2>&1
+	/etc/init.d/adguardhome stop > /dev/null 2>&1
 	echo "Moving AdGuardHome binary to ${binpath%/*} ..."
 
 	if ! mv -f "${downloadbin}" "${binpath}"; then
@@ -169,7 +169,7 @@ Update_Core(){
 
 	if [ "${enabled}" = 1 ]; then
 		echo "Restarting AdGuardHome service ..."
-		/etc/init.d/AdGuardHome restart
+		/etc/init.d/adguardhome restart
 	fi
 
 	echo "AdGuardHome core updated successfully!"
