@@ -16,7 +16,7 @@ function gen_template_config()
         b = string.match(cnt, "^[^#]*nameserver%s+([^%s]+)$")
         if (b ~= nil) then d = d .. "  - " .. b .. "\n" end
 	end
-	local f = io.open("/usr/share/AdGuardHome/AdGuardHome_template.yaml", "r+")
+	local f = io.open("/usr/share/adguardhome/adguardhome_template.yaml", "r+")
 	local tbl = {}
 	local a = ""
 	while (1) do
@@ -33,8 +33,8 @@ function gen_template_config()
 	f:close()
 	return table.concat(tbl, "\n")
 end
-m = Map("AdGuardHome")
-local configpath = uci:get("AdGuardHome","AdGuardHome","configpath")
+m = Map("adguardhome")
+local configpath = uci:get("adguardhome","adguardhome","configpath")
 local binpath = "/usr/bin/AdGuardHome"
 s = m:section(TypedSection, "AdGuardHome")
 s.anonymous = true
@@ -64,7 +64,7 @@ o.remove = function(self, section, value) fs.writefile(configpath, "") end
 
 o = s:option(DummyValue, "")
 o.anonymous = true
-o.template = "AdGuardHome/yamleditor"
+o.template = "adguardhome/yamleditor"
 if not fs.access(binpath) then
 	o.description = translate("Warning!!! The core-bin is not found, and the submitted configuration will not be verified.")
 end
@@ -82,11 +82,11 @@ end
 end
 end
 function m.on_commit(map)
-	local ucitracktest = uci:get("AdGuardHome","AdGuardHome","ucitracktest")
+	local ucitracktest = uci:get("adguardhome","adguardhome","ucitracktest")
 	if ucitracktest == "1" then
 		return
 	elseif ucitracktest == "0" then
-		io.popen("/etc/init.d/AdGuardHome reload &")
+		io.popen("/etc/init.d/adguardhome reload &")
 	else
 		fs.writefile("/var/run/AdGlucitest","")
 	end
