@@ -8,11 +8,11 @@ require("table")
 function gen_template_config()
 	local b
 	local d = ""
-	local file = "/tmp/resolv.conf.d/resolv.conf.auto"
-	if not fs.access(file) then
-		file = "/tmp/resolv.conf.auto"
+	local dns_file = "/tmp/resolv.conf.d/resolv.conf.auto"
+	if not fs.access(dns_file) then
+		dns_file = "/tmp/resolv.conf.auto"
 	end
-    for cnt in io.lines(file) do
+    for cnt in io.lines(dns_file) do
         b = string.match(cnt, "^[^#]*nameserver%s+([^%s]+)$")
         if (b ~= nil) then d = d .. "  - " .. b .. "\n" end
 	end
@@ -34,23 +34,23 @@ function gen_template_config()
 	return table.concat(tbl, "\n")
 end
 m = Map("adguardhome")
-local configpath = uci:get("adguardhome","adguardhome","configpath")
-local binpath = "/usr/bin/AdGuardHome"
+local config_file = uci:get("adguardhome","adguardhome","config_file")
+local bin_path = "/usr/bin/AdGuardHome"
 s = m:section(TypedSection, "adguardhome")
 s.anonymous = true
 s.addremove = false
---- config
+
 o = s:option(TextValue, "escconf")
 o.rows = 66
 o.wrap = "off"
 o.rmempty = true
 o.cfgvalue = function(self, section)
-	return fs.readfile("/tmp/adguardhometmpconfig.yaml") or fs.readfile(configpath) or gen_template_config() or ""
+	return fs.readfile("/tmp/adguardhometmpconfig.yaml") or fs.readfile(config_file) or gen_template_config() or ""
 end
 o.validate = function(self, value)
     fs.writefile("/tmp/adguardhometmpconfig.yaml", value:gsub("\r\n", "\n"))
-	if fs.access(binpath) then
-        if (sys.call(binpath .. " -c /tmp/adguardhometmpconfig.yaml --check-config 2> /tmp/adguardhometest.log") == 0) then return value end
+	if fs.access(bin_path) then
+        if (sys.call(bin_path .. " -c /tmp/adguardhometmpconfig.yaml --check-config 2> /tmp/adguardhometest.log") == 0) then return value end
 	else
 		return value
 	end
@@ -58,27 +58,27 @@ o.validate = function(self, value)
 	return nil
 end
 o.write = function(self, section, value)
-	fs.move("/tmp/adguardhometmpconfig.yaml",configpath)
+	fs.move("/tmp/adguardhometmpconfig.yaml",config_file)
 end
-o.remove = function(self, section, value) fs.writefile(configpath, "") end
+o.remove = function(self, section, value) fs.writefile(config_file, "") end
 
 o = s:option(DummyValue, "")
 o.anonymous = true
 o.template = "adguardhome/yamleditor"
-if not fs.access(binpath) then
+if not fs.access(bin_path) then
 	o.description = translate("Warning!!! The core-bin is not found, and the submitted configuration will not be verified.")
 end
 if (fs.access("/tmp/adguardhometmpconfig.yaml")) then
-local c = fs.readfile("/tmp/adguardhometest.log")
-if (c ~= "") then
-o = s:option(TextValue, "")
-o.readonly = true
-o.rows = 5
-o.rmempty = true
-o.name = ""
-o.cfgvalue = function(self, section)
-	return fs.readfile("/tmp/adguardhometest.log")
-end
+	local c = fs.readfile("/tmp/adguardhometest.log")
+	if (c ~= "") then
+		o = s:option(TextValue, "")
+		o.readonly = true
+		o.rows = 5
+		o.rmempty = true
+		o.name = ""
+		o.cfgvalue = function(self, section)
+		return fs.readfile("/tmp/adguardhometest.log")
+	end
 end
 end
 function m.on_commit(map)
