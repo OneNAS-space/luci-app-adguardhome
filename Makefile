@@ -37,6 +37,7 @@ define Build/Compile
 endef
 
 define Package/luci-app-adguardhome/conffiles
+/etc/adguardhome/adguardhome.yaml
 /etc/config/adguardhome
 endef
 
