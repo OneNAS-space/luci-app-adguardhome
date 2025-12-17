@@ -8,7 +8,7 @@
 <script src="/luci-static/resources/codemirror/addon/fold/foldgutter.js"></script>
 <script src="/luci-static/resources/codemirror/addon/fold/indent-fold.js"></script>
 <script type="text/javascript">
-var editor = CodeMirror.fromTextArea(document.getElementById("cbid.AdGuardHome.AdGuardHome.escconf"), {
+var editor = CodeMirror.fromTextArea(document.getElementById("cbid.adguardhome.adguardhome.escconf"), {
 mode: "text/yaml",
 styleActiveLine: true,
 lineNumbers: true,
@@ -20,18 +20,18 @@ matchBrackets: true
 }
 );
 function reload_config(){
-	XHR.get('<%=url([[admin]], [[services]], [[AdGuardHome]], [[reloadconfig]])%>', null,
+	XHR.get('<%=url([[admin]], [[services]], [[adguardhome]], [[reloadconfig]])%>', null,
 	function(x, data) {
 	location.reload();
 	});}
 function use_template(){
-	XHR.get('<%=url([[admin]], [[services]], [[AdGuardHome]], [[gettemplateconfig]])%>', null,
+	XHR.get('<%=url([[admin]], [[services]], [[adguardhome]], [[gettemplateconfig]])%>', null,
 	function(x, data) {
 	editor.setValue(x.responseText)
 	});}
 </script> 
 <%fs=require"nixio.fs"%>
-<%if fs.access("/tmp/AdGuardHometmpconfig.yaml") then%>
+<%if fs.access("/tmp/adguardhometmpconfig.yaml") then%>
 <input type="button" id="btn apply_update_button" value="<%:Reload Config%>" onclick=" return reload_config() "/>
 <%end%>
 <input type="button" id="btn template_button" value="<%:Use template%>" onclick=" return use_template() "/>
