@@ -27,7 +27,7 @@ function get_template_config()
 			d=d.."  - "..b.."\n"
 		end
 	end
-	local f=io.open("/usr/share/AdGuardHome/AdGuardHome_template.yaml", "r+")
+	local f=io.open("/usr/share/adguardhome/adguardhome_template.yaml", "r+")
 	local tbl = {}
 	local a=""
 	while (1) do
@@ -61,19 +61,19 @@ function do_update()
 		arg=""
 	end
 	if arg=="force" then
-		luci.sys.exec("kill $(pgrep /usr/share/AdGuardHome/update_core.sh) ; sh /usr/share/AdGuardHome/update_core.sh "..arg.." >/tmp/AdGuardHome_update.log 2>&1 &")
+		luci.sys.exec("kill $(pgrep /usr/share/adguardhome/update_core.sh) ; sh /usr/share/adguardhome/update_core.sh "..arg.." >/tmp/AdGuardHome_update.log 2>&1 &")
 	else
-		luci.sys.exec("sh /usr/share/AdGuardHome/update_core.sh "..arg.." >/tmp/AdGuardHome_update.log 2>&1 &")
+		luci.sys.exec("sh /usr/share/adguardhome/update_core.sh "..arg.." >/tmp/AdGuardHome_update.log 2>&1 &")
 	end
 end
 function get_log()
-	local logfile=uci:get("AdGuardHome","AdGuardHome","logfile")
+	local logfile=uci:get("adguardhome","adguardhome","logfile")
 	if (logfile==nil) then
 		http.write("no log available\n")
 		return
 	elseif (logfile=="syslog") then
 		if not fs.access("/var/run/AdGuardHomesyslog") then
-			luci.sys.exec("(/usr/share/AdGuardHome/getsyslog.sh &); sleep 1;")
+			luci.sys.exec("(/usr/share/adguardhome/getsyslog.sh &); sleep 1;")
 		end
 		logfile="/tmp/AdGuardHometmp.log"
 		fs.writefile("/var/run/AdGuardHomesyslog","1")
@@ -92,7 +92,7 @@ function get_log()
 	http.write(a)
 end
 function do_dellog()
-	local logfile=uci:get("AdGuardHome","AdGuardHome","logfile")
+	local logfile=uci:get("adguardhome","adguardhome","logfile")
 	fs.writefile(logfile,"")
 	http.prepare_content("application/json")
 	http.write('')
@@ -128,7 +128,7 @@ function act_status()
     local sys  = require "luci.sys"
     local util = require "luci.util"
     local e = {}
-    local binpath = uci:get("AdGuardHome", "AdGuardHome", "binpath") or "AdGuardHome"
+    local binpath = uci:get("adguardhome", "adguardhome", "binpath") or "AdGuardHome"
     e.running = (sys.call("pgrep " .. binpath .. " >/dev/null") == 0)
     e.redirect = (fs.readfile("/var/run/AdGredir") == "1")
     local full = util.trim(sys.exec("opkg list-installed | grep luci-app-adguardhome | awk '{print $3}'"))
