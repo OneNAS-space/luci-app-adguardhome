@@ -5,17 +5,17 @@ PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 checkmd5(){
 local nowmd5=$(md5sum /tmp/adguard.list 2>/dev/null)
 nowmd5=${nowmd5%% *}
-local lastmd5=$(uci get AdGuardHome.AdGuardHome.gfwlistmd5 2>/dev/null)
+local lastmd5=$(uci get adguardhome.adguardhome.gfwlistmd5 2>/dev/null)
 if [ "$nowmd5" != "$lastmd5" ]; then
-	uci set AdGuardHome.AdGuardHome.gfwlistmd5="$nowmd5"
-	uci commit AdGuardHome
-	[ "$1" == "noreload" ] || /etc/init.d/AdGuardHome reload
+	uci set adguardhome.adguardhome.gfwlistmd5="$nowmd5"
+	uci commit adguardhome
+	[ "$1" == "noreload" ] || /etc/init.d/adguardhome reload
 fi
 }
 
-configpath=$(uci get AdGuardHome.AdGuardHome.configpath 2>/dev/null)
+configpath=$(uci get adguardhome.adguardhome.configpath 2>/dev/null)
 [ "$1" == "del" ] && sed -i '/programaddstart/,/programaddend/d' $configpath && checkmd5 "$2" && exit 0
-gfwupstream=$(uci get AdGuardHome.AdGuardHome.gfwupstream 2>/dev/null)
+gfwupstream=$(uci get adguardhome.adguardhome.gfwupstream 2>/dev/null)
 if [ -z $gfwupstream ]; then
 gfwupstream="tcp://208.67.220.220:5353"
 fi
