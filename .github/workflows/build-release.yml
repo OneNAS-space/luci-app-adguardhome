@@ -59,7 +59,7 @@ jobs:
           fi
 
   build:
-    name: Build for ${{ matrix.version }} / ${{ matrix.target }}
+    name: 2. Build for ${{ matrix.version }} / ${{ matrix.target }}
     needs: check
     if: needs.check.outputs.should_build == 'true'
     runs-on: ubuntu-latest
