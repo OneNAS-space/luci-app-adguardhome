@@ -32,7 +32,7 @@ jobs:
         run: |
           PKG_VERSION=$(grep -E '^PKG_VERSION *:?=' Makefile | head -n1 | cut -d= -f2 | tr -d '[:space:]')
           PKG_RELEASE=$(grep -E '^PKG_RELEASE *:?=' Makefile | head -n1 | cut -d= -f2 | tr -d '[:space:]')
-          COMBINED_VERSION="${PKG_VERSION}-r${PKG_RELEASE}"
+          COMBINED_VERSION="v${PKG_VERSION}-r${PKG_RELEASE}"
           
           echo "tag_name=v${COMBINED_VERSION}" >> "$GITHUB_OUTPUT"
           echo "main_version=$PKG_VERSION" >> "$GITHUB_OUTPUT"
@@ -155,7 +155,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.check.outputs.main_full_version }}
-          name: Build -v${{ needs.check.outputs.main_full_version }}
+          name: Build -${{ needs.check.outputs.main_full_version }}
           files: |
             ./release-assets/**/*.ipk
             ./release-assets/**/*.apk
