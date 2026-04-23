@@ -1,0 +1,165 @@
+permissions:
+  contents: write
+name: Build OpenWrt Package
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'Makefile'
+      - 'luasrc/**'
+      - 'root/**'
+      - '!**/.github/**'
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: 1. Check if build is required
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.check_release.outputs.should_build }}
+      tag_name: ${{ steps.version.outputs.tag_name }}
+      main_version: ${{ steps.version.outputs.main_version }}
+      main_full_version: ${{ steps.version.outputs.main_full_version }}
+
+    steps:
+      - name: 🧾 Checkout repo
+        uses: actions/checkout@v6
+
+      - name: 🏷️ Extract version info from Makefile
+        id: version
+        run: |
+          PKG_VERSION=$(grep -E '^PKG_VERSION *:?=' Makefile | head -n1 | cut -d= -f2 | tr -d '[:space:]')
+          PKG_RELEASE=$(grep -E '^PKG_RELEASE *:?=' Makefile | head -n1 | cut -d= -f2 | tr -d '[:space:]')
+          COMBINED_VERSION="v${PKG_VERSION}-r${PKG_RELEASE}"
+          
+          echo "tag_name=${COMBINED_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "main_version=$PKG_VERSION" >> "$GITHUB_OUTPUT"
+          echo "main_full_version=$COMBINED_VERSION" >> "$GITHUB_OUTPUT"
+          echo "📦 Detected Version: $COMBINED_VERSION"
+
+      - name: 🧐 Check if release exists
+        id: check_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag_name }}
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "Manual run detected. Forcing build."
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "Release $TAG already exists. Skipping build."
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Release $TAG does not exist. Proceeding with build."
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: 2. Build for ${{ matrix.version }} / ${{ matrix.target }}
+    needs: check
+    if: needs.check.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - version: openwrt-24.10
+            target: x86_64
+            suffix: all
+          - version: openwrt-25.12
+            target: x86_64
+            suffix: noarch
+
+    steps:
+      - name: 🧾 Checkout repo
+        uses: actions/checkout@v6
+
+      - name: 📛 Set Environment
+        run: |
+          echo "PKG_NAME=${{ github.event.repository.name }}" >> "$GITHUB_ENV"
+          echo "ARCH=${{ matrix.target }}-${{ matrix.version }}" >> "$GITHUB_ENV"
+
+      - name: 🧰 Set up Feed structure
+        run: |
+          set -e
+          # Also add a shim so ../../luci.mk from package/feeds/jackie264/<pkg> works:
+          mkdir -p package
+          printf 'include $(TOPDIR)/feeds/luci/luci.mk\n' > package/luci.mk
+
+          # LuCI-style layout so ../../luci.mk resolves from applications/<pkg>
+          mkdir -p feed/luci/applications/${PKG_NAME}
+
+          # Add shim luci/luci.mk pointing to the official LuCI feed
+          mkdir -p feed/luci
+          printf 'include $(TOPDIR)/feeds/luci/luci.mk\n' > feed/luci/luci.mk
+
+          # Copy the package sources into the feed subdir (exclude CI and feed itself)
+          rsync -av \
+            --exclude='.git' \
+            --exclude='feed' \
+            --exclude='.github' \
+            ./ feed/luci/applications/${PKG_NAME}/
+
+      - name: 🏗️ Build with OpenWrt SDK
+        uses: openwrt/gh-action-sdk@v10
+        env:
+          ARCH: ${{ env.ARCH }}
+          FEEDNAME: jackie264
+          PACKAGES: ${{ env.PKG_NAME }}
+          INDEX: 0
+          FEED_DIR: ${{ github.workspace }}/feed
+          NO_SHFMT_CHECK: 1
+          NO_REFRESH_CHECK: 1
+
+      - name: 🔍 Debug build output
+        run: |
+          echo "=== Build directory structure ==="
+          find . -name "*.ipk" -type f 2>/dev/null || echo "No .ipk files found"
+          echo "=== bin directory structure ==="
+          ls -la bin/ 2>/dev/null || echo "No bin directory found"
+          if [ -d "bin/packages" ]; then
+            echo "=== packages directory structure ==="
+            find bin/packages/ -type f -name "*.ipk" 2>/dev/null || echo "No .ipk files in packages directory"
+            echo "=== Full packages directory tree ==="
+            ls -laR bin/packages/ 2>/dev/null || echo "No packages directory"
+          fi
+
+      - name: 📦 Upload artifact for ${{ matrix.target }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.PKG_NAME }}-${{ matrix.target }}-${{ matrix.version }}
+          path: |
+            bin/packages/*/jackie264/${{ env.PKG_NAME }}*.ipk
+            bin/packages/*/jackie264/${{ env.PKG_NAME }}*.apk
+          if-no-files-found: ignore
+
+  release:
+    name: 3. Release ${{ github.repository }}
+    needs: [check, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🧾 Checkout repo
+        uses: actions/checkout@v6
+
+      - name: ⬇️ Download all artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: ./release-assets
+
+      - name: 🗃️ Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.check.outputs.main_full_version }}
+          name: Build -${{ needs.check.outputs.main_full_version }}
+          files: |
+            ./release-assets/**/*.ipk
+            ./release-assets/**/*.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
