@@ -106,7 +106,7 @@ jobs:
             ./ feed/luci/applications/${PKG_NAME}/
 
       - name: 🏗️ Build with OpenWrt SDK
-        uses: openwrt/gh-action-sdk@v10
+        uses: openwrt/gh-action-sdk@v11
         env:
           ARCH: ${{ env.ARCH }}
           FEEDNAME: jackie264
