@@ -17,40 +17,47 @@ jobs:
   sync-luci-app-adguardhome:
     runs-on: ubuntu-latest
     steps:
+      # 1. 使用官方 Action 检出当前仓库，并自动配置好具有写权限的本地 Git 环境
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT }} # 注入你的个人访问令牌
+          fetch-depth: 0            # 获取所有历史记录，方便后续操作
+
+      # 2. 配置 Git 机器人信息
       - name: Set up Git
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Clone target repo
-        run: |
-          git clone https://x-access-token:${{ secrets.PAT }}@github.com/Jackie264/luci-app-adguardhome.git /tmp/luci-app-adguardhome
-          cd /tmp/luci-app-adguardhome
-          git checkout main
-
+      # 3. 添加上游仓库并获取
       - name: Add upstream and fetch
         run: |
-          cd /tmp/luci-app-adguardhome
           git remote add upstream https://github.com/openwrt/luci.git || true
           git fetch upstream master
 
+      # 4. 更新特定目录（保持你原有的清理逻辑，但移除了 cd /tmp）
       - name: Update luci-app-adguardhome from upstream
         run: |
-          cd /tmp/luci-app-adguardhome
           find . -mindepth 1 -maxdepth 1 \
             ! -name '.git' \
             ! -name '.github' \
             ! -name 'LICENSE' \
             ! -name 'SECURITY.md' \
             -exec rm -rf {} +
-        
+          
           git checkout upstream/master -- applications/luci-app-adguardhome
           mv applications/luci-app-adguardhome/* .
-          rm -rf net
+          rm -rf applications # 顺便清理掉捡出来的空壳父目录
 
+      # 5. 提交并推送
       - name: Commit and push
         run: |
-          cd /tmp/luci-app-adguardhome
           git add -A
-          git commit -m "Sync from openwrt/luci/applications/luci-app-adguardhome" || echo "No changes"
+          # 如果没有变化，直接退出，不执行 push，避免报错
+          if git diff-index --quiet HEAD --; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "Sync from openwrt/luci/applications/luci-app-adguardhome"
           git push origin main --force
