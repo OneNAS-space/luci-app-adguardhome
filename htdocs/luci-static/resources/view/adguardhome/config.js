@@ -251,101 +251,113 @@ return view.extend({
 		memLimitOpt.placeholder = DEFAULT_GOMEMLIMIT;
 		memLimitOpt.retain = true;
 
-		
 		// --- Injected Core Update Tab & Fields ---
 		mainSect.tab('update', _('Core Update'));
-		
+
 		const coreVerOpt = mainSect.taboption('update', form.ListValue, 'core_version', _('Core Branch'));
 		coreVerOpt.value('latest', _('Latest Version'));
 		coreVerOpt.value('beta', _('Beta Version'));
 		coreVerOpt.default = 'latest';
-		
+
+		// 完美迁移你原来的设计：允许用户自定义核心下载 URL
+		const updateUrlOpt = mainSect.taboption('update', form.Value, 'update_url', _('Core-bin Update URL'));
+		updateUrlOpt.default = 'https://github.com/AdguardTeam/AdGuardHome/releases/download/${Cloud_Version}/AdGuardHome_linux_${Arch}.tar.gz';
+		updateUrlOpt.placeholder = 'https://github.com/AdguardTeam/AdGuardHome/releases/download/${Cloud_Version}/AdGuardHome_linux_${Arch}.tar.gz';
+		updateUrlOpt.rmempty = false;
+
 		const updatePanelOpt = mainSect.taboption('update', form.DummyValue, '_update_panel', _('Core Maintenance'));
 		updatePanelOpt.rawhtml = true;
 		updatePanelOpt.cfgvalue = () => {
-		    return `
-		        <button id="btn_core_update" class="btn cbi-button cbi-button-apply">${_('Update Core Version')}</button>
-		        <button id="btn_core_force" class="btn cbi-button cbi-button-reset" style="display:none; margin-left:10px;">${_('Force Update')}</button>
-		        <textarea id="core_update_log" class="cbi-input-textarea" style="width:100%; display:none; font-family:monospace; margin-top:10px; font-size:12px; background:#1e1e1e; color:#d4d4d4; line-height:1.4;" rows="8" readonly></textarea>
-		    `;
+			return `
+				<button id="btn_core_update" class="btn cbi-button cbi-button-apply">${_('Update Core Version')}</button>
+				<button id="btn_core_force" class="btn cbi-button cbi-button-reset" style="display:none; margin-left:10px;">${_('Force Update')}</button>
+				<textarea id="core_update_log" class="cbi-input-textarea" style="width:100%; display:none; font-family:monospace; margin-top:10px; font-size:12px; background:#1e1e1e; color:#d4d4d4; line-height:1.4;" rows="8" readonly></textarea>
+			`;
 		};
 
 		const rendered = await map.render();
 
 		const statusNode = map.findElement('data-field', statusOpt.cbid('status_section'));
 		poll.add(updateStatus(statusNode), POLL_INTERVAL);
-		// --- Injected Core Update DOM Logic ---
-		const btnUpdate = document.getElementById('btn_core_update');
-		const btnForce = document.getElementById('btn_core_force');
-		const logTextarea = document.getElementById('core_update_log');
-		let intervalId = null;
-		
-		const startLogPolling = () => {
-		    if (intervalId) clearInterval(intervalId);
-		    intervalId = setInterval(() => {
-		        // 异步倾倒实时运行日志
-		        fs.read('/tmp/AdGuardHome_update.log').then((txt) => {
-		            if (txt && logTextarea) {
-		                logTextarea.value = txt;
-		                logTextarea.scrollTop = logTextarea.scrollHeight;
-		            }
-		        }).catch(() => {});
-		
-		        // 根据标志锁文件的存亡判定任务状态
-		        fs.stat('/var/run/update_core').then(() => {
-		            # 锁文件存在 -> 还在运行中
-		        }).catch(() => {
-		            # 锁文件失联 -> 运行结束，释放控制器
-		            clearInterval(intervalId);
-		            if (btnUpdate) btnUpdate.disabled = false;
-		            if (btnForce) btnForce.disabled = false;
-		
-		            fs.stat('/var/run/update_core_error').then(() => {
-		                if (btnUpdate) btnUpdate.textContent = _('Failed');
-		            }).catch(() => {
-		                if (btnUpdate) btnUpdate.textContent = _('Updated');
-		                setTimeout(() => { location.reload(); }, 1000);
-		            });
-		        });
-		    }, 1500);
-		};
-		
-		if (btnUpdate && btnForce && logTextarea) {
-		    btnUpdate.addEventListener('click', (ev) => {
-		        ev.preventDefault();
-		        btnUpdate.disabled = true;
-		        btnUpdate.textContent = _('Checking...');
-		        btnForce.style.display = 'inline-block';
-		        logTextarea.style.display = 'block';
-		
-		        fs.exec('/bin/sh', ['-c', '/usr/share/AdGuardHome/update_core.sh >/tmp/AdGuardHome_update.log 2>&1 &']).then(() => {
-		            startLogPolling();
-		        });
-		    });
-		
-		    btnForce.addEventListener('click', (ev) => {
-		        ev.preventDefault();
-		        btnUpdate.disabled = true;
-		        btnForce.disabled = true;
-		        btnUpdate.textContent = _('Checking...');
-		        logTextarea.style.display = 'block';
-		
-		        fs.exec('/bin/sh', ['-c', '/usr/share/AdGuardHome/update_core.sh force >/tmp/AdGuardHome_update.log 2>&1 &']).then(() => {
-		            startLogPolling();
-		        });
-		    });
-		}
-		
-		fs.stat('/var/run/update_core').then(() => {
-		    if (btnUpdate && btnForce && logTextarea) {
-		        btnUpdate.disabled = true;
-		        btnUpdate.textContent = _('Checking...');
-		        btnForce.style.display = 'inline-block';
-		        logTextarea.style.display = 'block';
-		        startLogPolling();
-		    }
-		}).catch(() => {});
 
+		// --- Injected Core Update DOM Logic ---
+		const btnUpdate = rendered.querySelector('#btn_core_update');
+		const btnForce = rendered.querySelector('#btn_core_force');
+		const logTextarea = rendered.querySelector('#core_update_log');
+		let intervalId = null;
+
+		const startLogPolling = () => {
+			if (intervalId) clearInterval(intervalId);
+			intervalId = setInterval(() => {
+				fs.read('/tmp/AdGuardHome_update.log').then((txt) => {
+					if (txt && logTextarea) {
+						logTextarea.value = txt;
+						logTextarea.scrollTop = logTextarea.scrollHeight;
+					}
+				}).catch((err) => { console.warn("Log read suppressed:", err); });
+
+				fs.stat('/var/run/update_core').then(() => {
+					// Running
+				}).catch(() => {
+					clearInterval(intervalId);
+					if (btnUpdate) btnUpdate.disabled = false;
+					if (btnForce) btnForce.disabled = false;
+
+					fs.stat('/var/run/update_core_error').then(() => {
+						if (btnUpdate) btnUpdate.textContent = _('Failed');
+					}).catch(() => {
+						if (btnUpdate) btnUpdate.textContent = _('Updated');
+						setTimeout(() => { location.reload(); }, 1000);
+					});
+				});
+			}, 1500);
+		};
+
+		if (btnUpdate && btnForce && logTextarea) {
+			btnUpdate.addEventListener('click', (ev) => {
+				ev.preventDefault();
+				btnUpdate.disabled = true;
+				btnUpdate.textContent = _('Checking...');
+				btnForce.style.display = 'inline-block';
+				logTextarea.style.display = 'block';
+				
+				fs.exec('/bin/sh', ['-c', 'setsid /usr/share/AdGuardHome/update_core.sh >/tmp/AdGuardHome_update.log 2>&1 &']).then(() => {
+					startLogPolling();
+				}).catch((err) => {
+					console.error("Exec failed:", err);
+					btnUpdate.disabled = false;
+					btnUpdate.textContent = _('Execution Failed');
+					logTextarea.value = `[Error] ${err.message || err}\n\nPlease check system logs.`;
+				});
+			});
+
+			btnForce.addEventListener('click', (ev) => {
+				ev.preventDefault();
+				btnUpdate.disabled = true;
+				btnForce.disabled = true;
+				btnUpdate.textContent = _('Checking...');
+				logTextarea.style.display = 'block';
+				
+				fs.exec('/bin/sh', ['-c', 'setsid /usr/share/AdGuardHome/update_core.sh force >/tmp/AdGuardHome_update.log 2>&1 &']).then(() => {
+					startLogPolling();
+				}).catch((err) => {
+					console.error("Force exec failed:", err);
+					btnUpdate.disabled = false;
+					btnForce.disabled = false;
+					btnUpdate.textContent = _('Execution Failed');
+				});
+			});
+		}
+
+		fs.stat('/var/run/update_core').then(() => {
+			if (btnUpdate && btnForce && logTextarea) {
+				btnUpdate.disabled = true;
+				btnUpdate.textContent = _('Checking...');
+				btnForce.style.display = 'inline-block';
+				logTextarea.style.display = 'block';
+				startLogPolling();
+			}
+		}).catch(() => {});
 
 		return rendered;
 	},
