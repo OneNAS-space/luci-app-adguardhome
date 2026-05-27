@@ -251,101 +251,108 @@ return view.extend({
 		memLimitOpt.placeholder = DEFAULT_GOMEMLIMIT;
 		memLimitOpt.retain = true;
 
-		
-		// --- Injected Core Update Tab & Fields ---
+		// --- Core Update Tab ---
 		mainSect.tab('update', _('Core Update'));
 		
 		const coreVerOpt = mainSect.taboption('update', form.ListValue, 'core_version', _('Core Branch'));
 		coreVerOpt.value('latest', _('Latest Version'));
 		coreVerOpt.value('beta', _('Beta Version'));
 		coreVerOpt.default = 'latest';
+
+		const updateUrlOpt = mainSect.taboption('update', form.Value, 'update_url', _('Custom Update URL'));
+		updateUrlOpt.description = _('Leave empty to use official GitHub Releases. Support variables like <code>\${Cloud_Version}</code> and <code>\${Arch}</code>.');
+		updateUrlOpt.rmempty = true;
 		
 		const updatePanelOpt = mainSect.taboption('update', form.DummyValue, '_update_panel', _('Core Maintenance'));
 		updatePanelOpt.rawhtml = true;
 		updatePanelOpt.cfgvalue = () => {
-		    return `
-		        <button id="btn_core_update" class="btn cbi-button cbi-button-apply">${_('Update Core Version')}</button>
-		        <button id="btn_core_force" class="btn cbi-button cbi-button-reset" style="display:none; margin-left:10px;">${_('Force Update')}</button>
-		        <textarea id="core_update_log" class="cbi-input-textarea" style="width:100%; display:none; font-family:monospace; margin-top:10px; font-size:12px; background:#1e1e1e; color:#d4d4d4; line-height:1.4;" rows="8" readonly></textarea>
-		    `;
+			return `
+				<button id="btn_core_update" class="btn cbi-button cbi-button-apply">${_('Update Core Version')}</button>
+				<button id="btn_core_force" class="btn cbi-button cbi-button-reset" style="display:none; margin-left:10px;">${_('Force Update')}</button>
+				<textarea id="core_update_log" class="cbi-input-textarea" style="width:100%; display:none; font-family:monospace; margin-top:10px; font-size:12px; background:#1e1e1e; color:#d4d4d4; line-height:1.4;" rows="8" readonly></textarea>
+			`;
 		};
 
 		const rendered = await map.render();
 
 		const statusNode = map.findElement('data-field', statusOpt.cbid('status_section'));
 		poll.add(updateStatus(statusNode), POLL_INTERVAL);
-		// --- Injected Core Update DOM Logic ---
-		const btnUpdate = document.getElementById('btn_core_update');
-		const btnForce = document.getElementById('btn_core_force');
-		const logTextarea = document.getElementById('core_update_log');
+
+		// --- DOM 树检索控制项 ---
+		const btnUpdate = rendered.querySelector('#btn_core_update');
+		const btnForce = rendered.querySelector('#btn_core_force');
+		const logTextarea = rendered.querySelector('#core_update_log');
 		let intervalId = null;
 		
 		const startLogPolling = () => {
-		    if (intervalId) clearInterval(intervalId);
-		    intervalId = setInterval(() => {
-		        // 异步倾倒实时运行日志
-		        fs.read('/tmp/AdGuardHome_update.log').then((txt) => {
-		            if (txt && logTextarea) {
-		                logTextarea.value = txt;
-		                logTextarea.scrollTop = logTextarea.scrollHeight;
-		            }
-		        }).catch(() => {});
+			if (intervalId) clearInterval(intervalId);
+			intervalId = setInterval(() => {
+				// 轮询读取日志
+				fs.read('/tmp/AdGuardHome_update.log').then((txt) => {
+					if (txt && logTextarea) {
+						logTextarea.value = txt;
+						logTextarea.scrollTop = logTextarea.scrollHeight;
+					}
+				}).catch(() => {});
 		
-		        // 根据标志锁文件的存亡判定任务状态
-		        fs.stat('/var/run/update_core').then(() => {
-		            # 锁文件存在 -> 还在运行中
-		        }).catch(() => {
-		            # 锁文件失联 -> 运行结束，释放控制器
-		            clearInterval(intervalId);
-		            if (btnUpdate) btnUpdate.disabled = false;
-		            if (btnForce) btnForce.disabled = false;
+				// 【对齐运行锁】检查 /var/run/update_core_running
+				fs.stat('/var/run/update_core_running').then(() => {
+					// 锁存在，正在运行中
+				}).catch(() => {
+					// 锁不存存在，说明执行完毕
+					clearInterval(intervalId);
+					if (btnUpdate) btnUpdate.disabled = false;
+					if (btnForce) btnForce.disabled = false;
 		
-		            fs.stat('/var/run/update_core_error').then(() => {
-		                if (btnUpdate) btnUpdate.textContent = _('Failed');
-		            }).catch(() => {
-		                if (btnUpdate) btnUpdate.textContent = _('Updated');
-		                setTimeout(() => { location.reload(); }, 1000);
-		            });
-		        });
-		    }, 1500);
+					// 检查错误指示文件
+					fs.stat('/var/run/update_core_error').then(() => {
+						if (btnUpdate) btnUpdate.textContent = _('Failed');
+					}).catch(() => {
+						if (btnUpdate) btnUpdate.textContent = _('Updated');
+						setTimeout(() => { location.reload(); }, 1000);
+					});
+				});
+			}, 1500);
 		};
 		
 		if (btnUpdate && btnForce && logTextarea) {
-		    btnUpdate.addEventListener('click', (ev) => {
-		        ev.preventDefault();
-		        btnUpdate.disabled = true;
-		        btnUpdate.textContent = _('Checking...');
-		        btnForce.style.display = 'inline-block';
-		        logTextarea.style.display = 'block';
+			btnUpdate.addEventListener('click', (ev) => {
+				ev.preventDefault();
+				btnUpdate.disabled = true;
+				btnUpdate.textContent = _('Checking...');
+				btnForce.style.display = 'inline-block';
+				logTextarea.style.display = 'block';
 		
-		        fs.exec('/bin/sh', ['-c', '/usr/share/AdGuardHome/update_core.sh >/tmp/AdGuardHome_update.log 2>&1 &']).then(() => {
-		            startLogPolling();
-		        });
-		    });
+				// 【核心修正】注入 setsid 且最后加 &。实现完全会话脱离，杜绝 rpcd 挂起导致 LuCI 前端发生 Timeout 错误
+				fs.exec('/bin/sh', ['-c', 'setsid /usr/share/AdGuardHome/update_core.sh >/tmp/AdGuardHome_update.log 2>&1 &']).then(() => {
+					startLogPolling();
+				});
+			});
 		
-		    btnForce.addEventListener('click', (ev) => {
-		        ev.preventDefault();
-		        btnUpdate.disabled = true;
-		        btnForce.disabled = true;
-		        btnUpdate.textContent = _('Checking...');
-		        logTextarea.style.display = 'block';
+			btnForce.addEventListener('click', (ev) => {
+				ev.preventDefault();
+				btnUpdate.disabled = true;
+				btnForce.disabled = true;
+				btnUpdate.textContent = _('Checking...');
+				logTextarea.style.display = 'block';
 		
-		        fs.exec('/bin/sh', ['-c', '/usr/share/AdGuardHome/update_core.sh force >/tmp/AdGuardHome_update.log 2>&1 &']).then(() => {
-		            startLogPolling();
-		        });
-		    });
+				// 【核心修正】同理，强制更新也必须采用 setsid ... & 脱离会话结构
+				fs.exec('/bin/sh', ['-c', 'setsid /usr/share/AdGuardHome/update_core.sh force >/tmp/AdGuardHome_update.log 2>&1 &']).then(() => {
+					startLogPolling();
+				});
+			});
 		}
 		
-		fs.stat('/var/run/update_core').then(() => {
-		    if (btnUpdate && btnForce && logTextarea) {
-		        btnUpdate.disabled = true;
-		        btnUpdate.textContent = _('Checking...');
-		        btnForce.style.display = 'inline-block';
-		        logTextarea.style.display = 'block';
-		        startLogPolling();
-		    }
+		// 进入页面时接管未完成的异步轮询状态
+		fs.stat('/var/run/update_core_running').then(() => {
+			if (btnUpdate && btnForce && logTextarea) {
+				btnUpdate.disabled = true;
+				btnUpdate.textContent = _('Checking...');
+				btnForce.style.display = 'inline-block';
+				logTextarea.style.display = 'block';
+				startLogPolling();
+			}
 		}).catch(() => {});
-
 
 		return rendered;
 	},
