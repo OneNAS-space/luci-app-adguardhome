@@ -5,9 +5,10 @@ on:
   push:
     paths:
       - '**/Makefile'
-  pull_request:
-    paths:
-      - '**/Makefile'
+  workflow_run:
+    workflows: ["Auto sync original upstream repos"]
+    types:
+      - completed
 
 permissions:
   contents: write
@@ -15,6 +16,7 @@ permissions:
 jobs:
   sanitize:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@main
 
