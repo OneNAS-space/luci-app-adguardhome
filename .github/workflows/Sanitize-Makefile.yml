@@ -1,0 +1,69 @@
+name: Sanitize Makefile
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '**/Makefile'
+  pull_request:
+    paths:
+      - '**/Makefile'
+
+permissions:
+  contents: write
+
+jobs:
+  sanitize:
+    runs-on: ubuntu-latest
+    steps:
+      # 推荐使用明确的 v4 版本，避免 main 分支潜在的 breaking changes
+      - uses: actions/checkout@main
+
+      - name: Remove unwanted deps from Makefile
+        run: |
+          changed=0
+          # 使用 git ls-files 确保只处理追踪的文件
+          for f in $(git ls-files '**/Makefile'); do
+            if grep -q -E "adguardhome" "$f"; then
+              echo "Processing $f"
+              before=$(md5sum "$f")
+
+              # 1. 清理 LUCI_DEPENDS 中可能处于任意位置的 +adguardhome
+              # 场景 A: 处于中间或末尾（前面有空格） -> 替换为空
+              sed -i -E 's/[[:space:]]+\+adguardhome//g' "$f"
+              # 场景 B: 处于开头（紧跟 := 后面，且后面还有别的内容） -> 删掉自身和后面的空格
+              sed -i -E 's/\+adguardhome[[:space:]]+//g' "$f"
+              # 场景 C: 它是唯一的依赖 -> 直接干掉
+              sed -i -E 's/\+adguardhome//g' "$f"
+
+              # 2. 彻底整行删除 LUCI_EXTRA_DEPENDS 依赖限制
+              sed -i '/LUCI_EXTRA_DEPENDS.*adguardhome/d' "$f"
+
+              after=$(md5sum "$f")
+              if [ "$before" != "$after" ]; then
+                echo "Successfully sanitized $f"
+                changed=1
+              fi
+            fi
+          done
+          
+          if [ $changed -eq 0 ]; then
+            echo "No changes made to any Makefile"
+          fi
+
+      - name: Show diff
+        run: git diff --color
+
+      - name: Commit changes
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # 检查是否有文件真正被修改，防止 git commit 报错
+          if ! git diff --exit-code; then
+            git add '**/Makefile'
+            git commit -m "ci: sanitize adguardhome deps in Makefile"
+            git push
+          else
+            echo "Nothing to commit"
+          fi
