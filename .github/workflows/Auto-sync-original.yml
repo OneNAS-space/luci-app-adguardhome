@@ -307,11 +307,12 @@ jobs:
           
           chmod +x "$SCRIPT_DIR/update_core.sh"
 
-      # 8.5 精准刺杀与改写：在官方 mainSect 中追加独立的 Update 标签页
+      # 8.5 纯空格环境安全注入：通过 Python 动态生成 Tab 规避 YAML 语法审查
       - name: Patch LuCI JS View (Inject Independent Core Update Tab)
         shell: python
         run: |
           import os
+          import textwrap
 
           target_path = "htdocs/luci-static/resources/view/adguardhome/config.js"
           if not os.path.exists(target_path):
@@ -321,8 +322,8 @@ jobs:
           with open(target_path, "r", encoding="utf-8") as f:
               content = f.read()
 
-          # ---- 1. 定义全新 Tab 及其内部组件的声明 (插在 const rendered = await map.render(); 之前) ----
-          fields_injection = """
+          # 1. 用纯空格定义 JS 字段声明，规避 YAML 的 Tab 审查
+          fields_raw = textwrap.dedent("""
               // --- Injected Core Update Tab & Fields ---
               mainSect.tab('update', _('Core Update'));
 
@@ -335,94 +336,95 @@ jobs:
               updatePanelOpt.rawhtml = true;
               updatePanelOpt.cfgvalue = () => {
                   return `
-                    <button id="btn_core_update" class="btn cbi-button cbi-button-apply">${_('Update Core Version')}</button>
-                    <button id="btn_core_force" class="btn cbi-button cbi-button-reset" style="display:none; margin-left:10px;">${_('Force Update')}</button>
-                    <textarea id="core_update_log" class="cbi-input-textarea" style="width:100%; display:none; font-family:monospace; margin-top:10px; font-size:12px; background:#1e1e1e; color:#d4d4d4; line-height:1.4;" rows="8" readonly></textarea>
+                      <button id="btn_core_update" class="btn cbi-button cbi-button-apply">${_('Update Core Version')}</button>
+                      <button id="btn_core_force" class="btn cbi-button cbi-button-reset" style="display:none; margin-left:10px;">${_('Force Update')}</button>
+                      <textarea id="core_update_log" class="cbi-input-textarea" style="width:100%; display:none; font-family:monospace; margin-top:10px; font-size:12px; background:#1e1e1e; color:#d4d4d4; line-height:1.4;" rows="8" readonly></textarea>
                   `;
               };
+          """).strip()
 
-          """
+          # 在 Python 运行时动态为每一行开头追加 \t\t，融入 JS 原生缩进
+          fields_injection = "\n" + "\n".join(["\t\t" + line for line in fields_raw.splitlines()]) + "\n\n"
 
-          # ---- 2. 定义行为与轮询逻辑 (插在 poll.add(...) 之后) ----
-          logic_injection = """
+          # 2. 同样用纯空格定义核心行为和轮询逻辑
+          logic_raw = textwrap.dedent("""
+              // --- Injected Core Update DOM Logic ---
+              const btnUpdate = document.getElementById('btn_core_update');
+              const btnForce = document.getElementById('btn_core_force');
+              const logTextarea = document.getElementById('core_update_log');
+              let intervalId = null;
 
-          // --- Injected Core Update DOM Logic ---
-          const btnUpdate = document.getElementById('btn_core_update');
-          const btnForce = document.getElementById('btn_core_force');
-          const logTextarea = document.getElementById('core_update_log');
-          let intervalId = null;
+              const startLogPolling = () => {
+                  if (intervalId) clearInterval(intervalId);
+                  intervalId = setInterval(() => {
+                      // 异步倾倒实时运行日志
+                      fs.read('/tmp/AdGuardHome_update.log').then((txt) => {
+                          if (txt && logTextarea) {
+                              logTextarea.value = txt;
+                              logTextarea.scrollTop = logTextarea.scrollHeight;
+                          }
+                      }).catch(() => {});
 
-          const startLogPolling = () => {
-              if (intervalId) clearInterval(intervalId);
-              intervalId = setInterval(() => {
-                  // 异步倾倒实时运行日志
-                  fs.read('/tmp/AdGuardHome_update.log').then((txt) => {
-                      if (txt && logTextarea) {
-                          logTextarea.value = txt;
-                          logTextarea.scrollTop = logTextarea.scrollHeight; // 始终锚定底部滚动
-                      }
-                  }).catch(() => {});
-
-                  // 根据标志锁文件的存亡判定任务状态
-                  fs.stat('/var/run/update_core').then(() => {
-                      // 锁文件存在 -> 脚本还在运行
-                  }).catch(() => {
-                      // 锁文件失联 -> 运行结束，释放控制器
-                      clearInterval(intervalId);
-                      if (btnUpdate) btnUpdate.disabled = false;
-                      if (btnForce) btnForce.disabled = false;
-
-                      fs.stat('/var/run/update_core_error').then(() => {
-                          if (btnUpdate) btnUpdate.textContent = _('Failed');
+                      // 根据标志锁文件的存亡判定任务状态
+                      fs.stat('/var/run/update_core').then(() => {
+                          # 锁文件存在 -> 还在运行中
                       }).catch(() => {
-                          if (btnUpdate) btnUpdate.textContent = _('Updated');
-                          setTimeout(() => { location.reload(); }, 1000); // 丝滑重载
+                          # 锁文件失联 -> 运行结束，释放控制器
+                          clearInterval(intervalId);
+                          if (btnUpdate) btnUpdate.disabled = false;
+                          if (btnForce) btnForce.disabled = false;
+
+                          fs.stat('/var/run/update_core_error').then(() => {
+                              if (btnUpdate) btnUpdate.textContent = _('Failed');
+                          }).catch(() => {
+                              if (btnUpdate) btnUpdate.textContent = _('Updated');
+                              setTimeout(() => { location.reload(); }, 1000);
+                          });
+                      });
+                  }, 1500);
+              };
+
+              if (btnUpdate && btnForce && logTextarea) {
+                  btnUpdate.addEventListener('click', (ev) => {
+                      ev.preventDefault();
+                      btnUpdate.disabled = true;
+                      btnUpdate.textContent = _('Checking...');
+                      btnForce.style.display = 'inline-block';
+                      logTextarea.style.display = 'block';
+                      
+                      fs.exec('/bin/sh', ['-c', '/usr/share/AdGuardHome/update_core.sh >/tmp/AdGuardHome_update.log 2>&1 &']).then(() => {
+                          startLogPolling();
                       });
                   });
-              }, 1500);
-          };
 
-          if (btnUpdate && btnForce && logTextarea) {
-              // 绑定普通更新事件
-              btnUpdate.addEventListener('click', (ev) => {
-                  ev.preventDefault();
-                  btnUpdate.disabled = true;
-                  btnUpdate.textContent = _('Checking...');
-                  btnForce.style.display = 'inline-block';
-                  logTextarea.style.display = 'block';
-
-                  fs.exec('/bin/sh', ['-c', '/usr/share/AdGuardHome/update_core.sh >/tmp/AdGuardHome_update.log 2>&1 &']).then(() => {
-                      startLogPolling();
+                  btnForce.addEventListener('click', (ev) => {
+                      ev.preventDefault();
+                      btnUpdate.disabled = true;
+                      btnForce.disabled = true;
+                      btnUpdate.textContent = _('Checking...');
+                      logTextarea.style.display = 'block';
+                      
+                      fs.exec('/bin/sh', ['-c', '/usr/share/AdGuardHome/update_core.sh force >/tmp/AdGuardHome_update.log 2>&1 &']).then(() => {
+                          startLogPolling();
+                      });
                   });
-              });
-
-              // 绑定强制更新事件
-              btnForce.addEventListener('click', (ev) => {
-                  ev.preventDefault();
-                  btnUpdate.disabled = true;
-                  btnForce.disabled = true;
-                  btnUpdate.textContent = _('Checking...');
-                  logTextarea.style.display = 'block';
-
-                  fs.exec('/bin/sh', ['-c', '/usr/share/AdGuardHome/update_core.sh force >/tmp/AdGuardHome_update.log 2>&1 &']).then(() => {
-                      startLogPolling();
-                  });
-              });
-          }
-
-          // 守护安全逻辑：若用户在更新中途误刷新了网页，检测到状态锁仍能复活轮询
-          fs.stat('/var/run/update_core').then(() => {
-              if (btnUpdate && btnForce && logTextarea) {
-                  btnUpdate.disabled = true;
-                  btnUpdate.textContent = _('Checking...');
-                  btnForce.style.display = 'inline-block';
-                  logTextarea.style.display = 'block';
-                  startLogPolling();
               }
-          }).catch(() => {});
-          """
 
-          # ---- 3. 执行替换 ----
+              fs.stat('/var/run/update_core').then(() => {
+                  if (btnUpdate && btnForce && logTextarea) {
+                      btnUpdate.disabled = true;
+                      btnUpdate.textContent = _('Checking...');
+                      btnForce.style.display = 'inline-block';
+                      logTextarea.style.display = 'block';
+                      startLogPolling();
+                  }
+              }).catch(() => {});
+          """).strip()
+
+          # 在 Python 运行时动态为行为逻辑每一行开头追加 \t\t
+          logic_injection = "\n" + "\n".join(["\t\t" + line for line in logic_raw.splitlines()]) + "\n"
+
+          # 3. 执行锚点精准替换
           anchor_fields = "const rendered = await map.render();"
           anchor_logic = "poll.add(updateStatus(statusNode), POLL_INTERVAL);"
 
@@ -432,7 +434,7 @@ jobs:
               
               with open(target_path, "w", encoding="utf-8") as f:
                   f.write(content)
-              print("🚀 Successfully injected an isolated 'Core Update' Tab into config.js!")
+              print("🚀 Successfully injected an isolated 'Core Update' Tab into config.js without YAML issues!")
           else:
               print("❌ Error: Target code anchors not found inside config.js. Upstream structural change detected.")
               exit(1)
