@@ -19,7 +19,7 @@ jobs:
     steps:
       # 1. 使用官方 Action 检出当前仓库，并自动配置好具有写权限的本地 Git 环境
       - name: Checkout target repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@main
         with:
           token: ${{ secrets.PAT }} # 注入你的个人访问令牌
           fetch-depth: 0            # 获取所有历史记录，方便后续操作
