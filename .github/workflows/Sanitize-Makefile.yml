@@ -59,8 +59,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # 检查是否有文件真正被修改
           if ! git diff --exit-code; then
-            git add '**/Makefile'
+            # -u 参数会自动暂存所有已被追踪且被修改的文件，完美避开通配符路径坑
+            git add -u
             git commit -m "ci: sanitize adguardhome deps in Makefile"
             git push
           else
