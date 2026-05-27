@@ -1,4 +1,4 @@
-name: Sync upstream repos to public forks
+name: Auto sync original upstream repos
 permissions:
   contents: write
 
