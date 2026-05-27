@@ -1,4 +1,4 @@
-name: Auto sync original upstream repos
+name: Auto sync and sanitize upstream repo
 permissions:
   contents: write
 
@@ -14,15 +14,15 @@ env:
   TZ: Asia/Shanghai
 
 jobs:
-  sync-luci-app-adguardhome:
+  sync-and-sanitize:
     runs-on: ubuntu-latest
     steps:
-      # 1. 使用官方 Action 检出当前仓库，并自动配置好具有写权限的本地 Git 环境
+      # 1. 检出当前仓库
       - name: Checkout target repo
-        uses: actions/checkout@main
+        uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PAT }} # 注入你的个人访问令牌
-          fetch-depth: 0            # 获取所有历史记录，方便后续操作
+          token: ${{ secrets.PAT }} # 保持你的个人访问令牌
+          fetch-depth: 0
 
       # 2. 配置 Git 机器人信息
       - name: Set up Git
@@ -36,7 +36,7 @@ jobs:
           git remote add upstream https://github.com/openwrt/luci.git || true
           git fetch upstream master
 
-      # 4. 更新特定目录（保持你原有的清理逻辑，但移除了 cd /tmp）
+      # 4. 更新特定目录（保持你的强力清理逻辑）
       - name: Update luci-app-adguardhome from upstream
         run: |
           find . -mindepth 1 -maxdepth 1 \
@@ -48,16 +48,62 @@ jobs:
           
           git checkout upstream/master -- applications/luci-app-adguardhome
           mv applications/luci-app-adguardhome/* .
-          rm -rf applications # 顺便清理掉捡出来的空壳父目录
+          rm -rf applications
 
-      # 5. 提交并推送
+      # 5. 【合并进来】清洗 Makefile 依赖
+      - name: Sanitize Makefile Dependencies
+        run: |
+          for f in $(find . -type f -name "Makefile"); do
+            if grep -q -i "adguardhome" "$f"; then
+              echo "🩹 Sanitizing dependencies in $f"
+              sed -i -E 's/[[:space:]]+\+adguardhome//gI' "$f"
+              sed -i -E 's/\+adguardhome[[:space:]]+//gI' "$f"
+              sed -i -E 's/\+adguardhome//gI' "$f"
+              sed -i -E '/LUCI_EXTRA_DEPENDS.*adguardhome/Id' "$f"
+            fi
+          done
+
+      # 6. 【合并进来】注入官方后端配置文件到当前的 root 矩阵
+      - name: Inject Upstream Configurations into LuCI Root
+        run: |
+          mkdir -p root/etc/capabilities
+          mkdir -p root/etc/config
+          mkdir -p root/etc/init.d
+          mkdir -p root/etc/sysctl.d
+          mkdir -p root/etc/uci-defaults
+
+          UPSTREAM_RAW="https://raw.githubusercontent.com/openwrt/packages/master/net/adguardhome/files"
+
+          echo "📥 Downloading official configuration files..."
+          curl -sLo root/etc/capabilities/adguardhome.json "${UPSTREAM_RAW}/adguardhome.json"
+          curl -sLo root/etc/config/adguardhome          "${UPSTREAM_RAW}/adguardhome.conf"
+          curl -sLo root/etc/init.d/adguardhome          "${UPSTREAM_RAW}/adguardhome.init"
+          curl -sLo root/etc/sysctl.d/50-adguardhome.conf "${UPSTREAM_RAW}/adguardhome.sysctl"
+          curl -sLo root/etc/uci-defaults/adguardhome    "${UPSTREAM_RAW}/adguardhome.defaults"
+
+          chmod +x root/etc/init.d/adguardhome
+          chmod +x root/etc/uci-defaults/adguardhome
+
+      # 7. 【合并进来】修正启动脚本 (移除 --no-check-update)
+      - name: Patch Init Script
+        run: |
+          TARGET_INIT="root/etc/init.d/adguardhome"
+          if [ -f "$TARGET_INIT" ]; then
+            echo "🔧 Patching --no-check-update inside init script..."
+            sed -i 's/procd_append_param command --no-check-update/# procd_append_param command --no-check-update/g' "$TARGET_INIT"
+          fi
+
+      # 8. 统一检查变动，一次性提交并推送
       - name: Commit and push
         run: |
+          # 暂存所有变更（包括新创建的 root 文件夹）
           git add -A
-          # 如果没有变化，直接退出，不执行 push，避免报错
+          
+          # 如果没有发生任何实质性变化，直接退出
           if git diff-index --quiet HEAD --; then
-            echo "No changes to commit."
+            echo "Genius! No upstream updates or modification changes detected."
             exit 0
           fi
-          git commit -m "Sync from openwrt/luci/applications/luci-app-adguardhome"
+          
+          git commit -m "Sync & Sanitize: automatically decoupled backend and injected official configs"
           git push origin main --force
