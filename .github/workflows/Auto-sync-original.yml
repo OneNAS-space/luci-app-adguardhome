@@ -21,7 +21,7 @@ jobs:
       - name: Checkout target repo
         uses: actions/checkout@main
         with:
-          token: ${{ secrets.PAT }} # 保持你的个人访问令牌
+          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
       # 2. 配置 Git 机器人信息
@@ -106,4 +106,4 @@ jobs:
           fi
           
           git commit -m "Sync & Sanitize: automatically decoupled backend and injected official configs"
-          git push origin main --force
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git main --force
