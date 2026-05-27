@@ -1,0 +1,56 @@
+name: Sync upstream repos to public forks
+permissions:
+  contents: write
+
+on:
+  schedule:
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  sync-luci-app-adguardhome:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Clone target repo
+        run: |
+          git clone https://x-access-token:${{ secrets.PAT }}@github.com/Jackie264/luci-app-adguardhome.git /tmp/luci-app-adguardhome
+          cd /tmp/luci-app-adguardhome
+          git checkout main
+
+      - name: Add upstream and fetch
+        run: |
+          cd /tmp/luci-app-adguardhome
+          git remote add upstream https://github.com/openwrt/luci.git || true
+          git fetch upstream master
+
+      - name: Update luci-app-adguardhome from upstream
+        run: |
+          cd /tmp/luci-app-adguardhome
+          find . -mindepth 1 -maxdepth 1 \
+            ! -name '.git' \
+            ! -name '.github' \
+            ! -name 'LICENSE' \
+            ! -name 'SECURITY.md' \
+            -exec rm -rf {} +
+        
+          git checkout upstream/master -- applications/luci-app-adguardhome
+          mv applications/luci-app-adguardhome/* .
+          rm -rf net
+
+      - name: Commit and push
+        run: |
+          cd /tmp/luci-app-adguardhome
+          git add -A
+          git commit -m "Sync from openwrt/luci/applications/luci-app-adguardhome" || echo "No changes"
+          git push origin main --force
