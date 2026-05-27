@@ -19,7 +19,7 @@ jobs:
     steps:
       # 1. 检出当前仓库
       - name: Checkout target repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@main
         with:
           token: ${{ secrets.PAT }} # 保持你的个人访问令牌
           fetch-depth: 0
