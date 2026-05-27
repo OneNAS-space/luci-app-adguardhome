@@ -4,9 +4,7 @@ PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 binpath="/usr/bin/AdGuardHome"
 update_mode=$1
 
-enabled=$(uci get adguardhome.config.enabled 2>/dev/null || true)
-core_version=$(uci get adguardhome.config.core_version 2>/dev/null || true)
-update_url=$(uci get adguardhome.config.update_url 2>/dev/null || true)
+core_version=$(uci get adguardhome.config.core_version 2>/dev/null || echo "latest")
 
 case "${core_version}" in
 beta)
@@ -48,6 +46,7 @@ Check_Downloader() {
 
 Check_Updates(){
 	Check_Downloader
+	GET_Arch
 	case "${PKG}" in
 	curl)
 		Downloader="curl -L -k -o"
@@ -59,18 +58,30 @@ Check_Updates(){
 	;;
 	esac
 	echo "[${PKG}] Checking for updates ..."
+	
 	Cloud_Version="$(${_Downloader} ${core_api_url} 2>/dev/null | grep 'tag_name' | egrep -o "v[0-9].+[0-9.]" | awk 'NR==1')"
 	if [ -z "${Cloud_Version}" ]; then
 		echo "Failed to check updates, please check network." >&2
 		EXIT 1
 	fi
 
+	update_url=$(uci get adguardhome.config.update_url 2>/dev/null)
+	if [ -z "${update_url}" ]; then
+		update_url='https://github.com/AdguardTeam/AdGuardHome/releases/download/${Cloud_Version}/AdGuardHome_linux_${Arch}.tar.gz'
+	fi
+
+	eval link="${update_url}"
+
 	if [ -f "${binpath}" ]; then
-		Current_Version="$(${binpath} --version 2>/dev/null | egrep -o "v[0-9].+[0-9]" | sed -r 's/(.*), c(.*)/\1/')"
+		Raw_Ver="$(${binpath} --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)"
+		if [ -n "${Raw_Ver}" ]; then
+			Current_Version="v${Raw_Ver}"
+		else
+			Current_Version="unknown"
+		fi
 	else
 		Current_Version="unknown"
 	fi
-	[ -z "${Current_Version}" ] && Current_Version="unknown"
 
 	echo "Binary path: ${binpath%/*}"
 	echo "Current version: ${Current_Version}"
@@ -89,8 +100,6 @@ Update_Core(){
 	rm -rf "/tmp/AdGuardHome_Update" > /dev/null 2>&1
 	mkdir -p "/tmp/AdGuardHome_Update" || { echo "无法创建临时目录"; EXIT 1; }
 
-	GET_Arch
-	eval link="${update_url}"
 	echo "Download link: ${link}"
 	echo "File name: ${link##*/}"
 	echo "Downloading AdGuardHome core ..."
@@ -101,26 +110,24 @@ Update_Core(){
 		EXIT 1
 	fi
 
-	if [ "${link##*.}" = "gz" ]; then
-		echo "Extracting AdGuardHome ..."
-		if ! tar -zxf "/tmp/AdGuardHome_Update/${link##*/}" -C "/tmp/AdGuardHome_Update/"; then
-			echo "Extraction failed!"
-			rm -rf "/tmp/AdGuardHome_Update"
-			EXIT 1
-		fi
-		if [ ! -e "/tmp/AdGuardHome_Update/AdGuardHome/AdGuardHome" ]; then
-			echo "Extraction failed: binary not found!"
-			rm -rf "/tmp/AdGuardHome_Update"
-			EXIT 1
-		fi
-		downloadbin="/tmp/AdGuardHome_Update/AdGuardHome/AdGuardHome"
-	else
-		downloadbin="/tmp/AdGuardHome_Update/${link##*/}"
+	echo "Extracting AdGuardHome ..."
+	if ! tar -zxf "/tmp/AdGuardHome_Update/${link##*/}" -C "/tmp/AdGuardHome_Update/"; then
+		echo "Extraction failed!"
+		rm -rf "/tmp/AdGuardHome_Update"
+		EXIT 1
 	fi
+	
+	if [ ! -e "/tmp/AdGuardHome_Update/AdGuardHome/AdGuardHome" ]; then
+		echo "Extraction failed: binary not found!"
+		rm -rf "/tmp/AdGuardHome_Update"
+		EXIT 1
+	fi
+	downloadbin="/tmp/AdGuardHome_Update/AdGuardHome/AdGuardHome"
 
 	chmod +x "${downloadbin}" 2>/dev/null || true
 	echo "Core size: $(awk 'BEGIN{printf "%.2fMB\n",'$((`ls -l $downloadbin | awk '{print $5}'`))'/1000000}')"
 
+	# 先盲停，静音掉可能存在的 procd 报错
 	/etc/init.d/adguardhome stop > /dev/null 2>&1
 	echo "Moving AdGuardHome binary to ${binpath%/*} ..."
 
@@ -133,10 +140,8 @@ Update_Core(){
 	rm -rf /tmp/AdGuardHome_Update
 	chmod +x ${binpath}
 
-	if [ "${enabled}" = 1 ]; then
-		echo "Restarting AdGuardHome service ..."
-		/etc/init.d/adguardhome restart
-	fi
+	echo "Restarting AdGuardHome service ..."
+	/etc/init.d/adguardhome restart > /dev/null 2>&1
 
 	echo "AdGuardHome core updated successfully!"
 	touch /var/run/update_core_done
