@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - '**/Makefile'
+      - 'Makefile'
   pull_request:
     paths:
-      - '**/Makefile'
+      - 'Makefile'
 
 permissions:
   contents: write
