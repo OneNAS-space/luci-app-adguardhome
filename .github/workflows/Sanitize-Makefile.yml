@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'Makefile'
+      - '**/Makefile'
   pull_request:
     paths:
-      - 'Makefile'
+      - '**/Makefile'
 
 permissions:
   contents: write
@@ -16,39 +16,39 @@ jobs:
   sanitize:
     runs-on: ubuntu-latest
     steps:
-      # 推荐使用明确的 v4 版本，避免 main 分支潜在的 breaking changes
       - uses: actions/checkout@main
 
       - name: Remove unwanted deps from Makefile
         run: |
           changed=0
-          # 使用 git ls-files 确保只处理追踪的文件
-          for f in $(git ls-files '**/Makefile'); do
-            if grep -q -E "adguardhome" "$f"; then
-              echo "Processing $f"
+          
+          # 1. 使用 find 彻底遍历，不受 git 状态限制
+          for f in $(find . -type f -name "Makefile"); do
+            echo "🔍 [Scanning file]: $f"
+            
+            # 2. 引入 -i 忽略大小写，防止 AdGuardHome 等大小写混淆
+            if grep -q -i "adguardhome" "$f"; then
+              echo "🎯 [Found target]: adguardhome dependency detected in $f, patching..."
               before=$(md5sum "$f")
 
-              # 1. 清理 LUCI_DEPENDS 中可能处于任意位置的 +adguardhome
-              # 场景 A: 处于中间或末尾（前面有空格） -> 替换为空
-              sed -i -E 's/[[:space:]]+\+adguardhome//g' "$f"
-              # 场景 B: 处于开头（紧跟 := 后面，且后面还有别的内容） -> 删掉自身和后面的空格
-              sed -i -E 's/\+adguardhome[[:space:]]+//g' "$f"
-              # 场景 C: 它是唯一的依赖 -> 直接干掉
-              sed -i -E 's/\+adguardhome//g' "$f"
+              # 3. 清理 LUCI_DEPENDS 中的 +adguardhome (末尾加 I 忽略大小写)
+              sed -i -E 's/[[:space:]]+\+adguardhome//gI' "$f"
+              sed -i -E 's/\+adguardhome[[:space:]]+//gI' "$f"
+              sed -i -E 's/\+adguardhome//gI' "$f"
 
-              # 2. 彻底整行删除 LUCI_EXTRA_DEPENDS 依赖限制
-              sed -i '/LUCI_EXTRA_DEPENDS.*adguardhome/d' "$f"
+              # 4. 物理擦除包含 LUCI_EXTRA_DEPENDS 且含 adguardhome 的整行 (末尾加 Id)
+              sed -i -E '/LUCI_EXTRA_DEPENDS.*adguardhome/Id' "$f"
 
               after=$(md5sum "$f")
               if [ "$before" != "$after" ]; then
-                echo "Successfully sanitized $f"
+                echo "✅ [Success]: Successfully sanitized $f"
                 changed=1
               fi
             fi
           done
           
           if [ $changed -eq 0 ]; then
-            echo "No changes made to any Makefile"
+            echo "⚠️ [Warning]: No changes were made to any Makefile."
           fi
 
       - name: Show diff
@@ -59,7 +59,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # 检查是否有文件真正被修改，防止 git commit 报错
           if ! git diff --exit-code; then
             git add '**/Makefile'
             git commit -m "ci: sanitize adguardhome deps in Makefile"
