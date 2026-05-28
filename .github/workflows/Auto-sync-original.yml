@@ -130,7 +130,7 @@ jobs:
           fi
           if [ -f "patches/prepare.patch" ]; then
             patch -p1 < patches/prepare.patch
-            chmod +x root/.prepare.sh
+            chmod +x .prepare.sh
             echo "✅ create .prepare.sh successfully!"
           else
             echo "❌ Error: patches/prepare.patch not found in your repository!"
