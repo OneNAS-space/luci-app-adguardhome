@@ -115,6 +115,7 @@ jobs:
           fi
           if [ -f "patches/update_core.patch" ]; then
             patch -p1 < patches/update_core.patch
+            chmod +x root/usr/share/AdGuardHome/update_core.sh
             echo "✅ create update_core.sh successfully!"
           else
             echo "❌ Error: patches/update_core.patch not found in your repository!"
