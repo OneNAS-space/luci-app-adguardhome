@@ -130,6 +130,7 @@ jobs:
           echo "Patched Makefile:"
           grep -E 'PKG_VERSION|PKG_RELEASE' "$MF"
           echo "version=v${PKG_VERSION}-r${PKG_RELEASE}" >> $GITHUB_OUTPUT
+          cat "$MF"
           
       - name: 🧮 Compute ARCH
         run: |
