@@ -156,6 +156,7 @@ Update_Core(){
 	rm -rf /tmp/AdGuardHome_Update
 	chmod +x ${binpath}
     echo "Restarting AdGuardHome service ..."
+    /etc/init.d/adguardhome enable > /dev/null 2>&1
     /etc/init.d/adguardhome restart > /dev/null 2>&1
 
 	echo "AdGuardHome core updated successfully!"
