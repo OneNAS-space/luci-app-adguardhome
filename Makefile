@@ -9,6 +9,7 @@ PKG_LICENSE:=GPL-2.0-only
 LUCI_TITLE:=LuCI support for AdGuard Home
 LUCI_DEPENDS:=+luci-base
 LUCI_PKGARCH:=all
+PKG_UNPACK:=$(CURDIR)/.prepare.sh $(PKG_NAME) $(CURDIR) $(PKG_BUILD_DIR)
 
 include ../../luci.mk
 
