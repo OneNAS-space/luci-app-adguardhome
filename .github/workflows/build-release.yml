@@ -32,18 +32,22 @@ jobs:
       - name: 🧾 Checkout repo
         uses: actions/checkout@v6
 
-      - name: 🏷️ Extract version info from Date
+      - name: 🏷️ Extract version info from Git Commit
         id: version
         run: |
           set -euo pipefail
-          PKG_VERSION=$(date -u +'%y.%j')
-          PKG_RELEASE=$(date -u +'%s' | cut -c6-10)
+
+          COMMIT_TIMESTAMP=$(git log -1 --format=%ct)
+          COMMIT_SHA=$(git rev-parse --short=7 HEAD)
+
+          PKG_VERSION=$(date -u -d "@${COMMIT_TIMESTAMP}" +'%y.%j')
+          PKG_RELEASE=$(echo "${COMMIT_TIMESTAMP}" | cut -c6-10)
           COMBINED_VERSION="v${PKG_VERSION}-r${PKG_RELEASE}"
-          
+
           echo "tag_name=${COMBINED_VERSION}" >> "$GITHUB_OUTPUT"
           echo "main_version=$PKG_VERSION" >> "$GITHUB_OUTPUT"
           echo "main_full_version=$COMBINED_VERSION" >> "$GITHUB_OUTPUT"
-                    
+
       - name: 🧐 Check if release exists
         id: check_release
         env:
