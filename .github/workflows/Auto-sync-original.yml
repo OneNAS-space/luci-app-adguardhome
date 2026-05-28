@@ -97,7 +97,7 @@ jobs:
       - name: Apply ACL Patche
         run: |
           # 1. 确保当前处于拉取下来的源码根目录
-          cd patches
+          cd /patches
 
           # 2. 直接从你的 Commit 链接下载补丁文件 (使用 -sL 静默且跟随重定向)
           curl -sL "https://github.com/Jackie264/luci-app-adguardhome/commit/883995b0d027fcd32fb9ba4ff24d607e9c176ee2.patch" > acl.patch
