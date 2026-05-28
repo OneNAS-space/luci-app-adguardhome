@@ -95,18 +95,14 @@ jobs:
       - name: 🧰 Set up Feed structure
         run: |
           set -e
-          # Also add a shim so ../../luci.mk from package/feeds/jackie264/<pkg> works:
           mkdir -p package
           printf 'include $(TOPDIR)/feeds/luci/luci.mk\n' > package/luci.mk
 
-          # LuCI-style layout so ../../luci.mk resolves from applications/<pkg>
           mkdir -p feed/luci/applications/${PKG_NAME}
 
-          # Add shim luci/luci.mk pointing to the official LuCI feed
           mkdir -p feed/luci
           printf 'include $(TOPDIR)/feeds/luci/luci.mk\n' > feed/luci/luci.mk
 
-          # Copy the package sources into the feed subdir (exclude CI and feed itself)
           rsync -av \
             --exclude='.git' \
             --exclude='feed' \
@@ -118,7 +114,7 @@ jobs:
         id: patch_version
         run: |
           set -euo pipefail
-          OFFICIAL_VERSION="${{ steps.version.outputs.main_version }}"
+          OFFICIAL_VERSION="${{ needs.check.outputs.main_version }}"
           echo "🚀 Using official standard version: ${OFFICIAL_VERSION}"
 
           MF="feed/luci/applications/${PKG_NAME}/Makefile"
