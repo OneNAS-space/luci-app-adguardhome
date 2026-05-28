@@ -1,15 +1,14 @@
 permissions:
   contents: write
-name: Build OpenWrt Package
+name: Build luci-app-adguardhome Package
 
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - 'Makefile'
-      - 'luasrc/**'
-      - 'root/**'
+      - '!**/patches'
       - '!**/.github/**'
   workflow_dispatch:
 
