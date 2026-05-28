@@ -95,7 +95,7 @@ jobs:
           fi
 
       # 8. ACL 打补丁
-      - name: Apply ACL Patch
+      - name: Apply custom Patches
         run: |
           # 核心修正：必须在源码根目录下执行！
           # patch -p1 会自动剥离补丁内部的 a/ 和 b/ 前缀，从而精准匹配到当前根目录下的 root/ 文件夹
@@ -104,6 +104,13 @@ jobs:
             echo "✅ ACL patch applied successfully!"
           else
             echo "❌ Error: patches/acl.patch not found in your repository!"
+            exit 1
+          fi
+          if [ -f "patches/config.patch" ]; then
+            patch -p1 < patches/config.patch
+            echo "✅ config patch applied successfully!"
+          else
+            echo "❌ Error: patches/config.patch not found in your repository!"
             exit 1
           fi
 
