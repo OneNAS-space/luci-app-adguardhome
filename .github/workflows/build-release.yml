@@ -121,7 +121,7 @@ jobs:
           echo "Using version: ${PKG_VERSION}-r${PKG_RELEASE}"
 
           MF="feed/luci/applications/${PKG_NAME}/Makefile"
-
+          sed -i 's|../../luci.mk|$(TOPDIR)/feeds/luci/luci.mk|g' "$MF"
           sed -i '/^PKG_VERSION/d' "$MF"
           sed -i '/^PKG_RELEASE/d' "$MF"
           sed -i "/^LUCI_NAME/a PKG_RELEASE:=${PKG_RELEASE}" "$MF"
