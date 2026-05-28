@@ -26,7 +26,6 @@ jobs:
       should_build: ${{ steps.check_release.outputs.should_build }}
       tag_name: ${{ steps.version.outputs.tag_name }}
       main_version: ${{ steps.version.outputs.main_version }}
-      main_full_version: ${{ steps.version.outputs.main_full_version }}
       
     steps:
       - name: 🧾 Checkout repo
@@ -40,13 +39,12 @@ jobs:
           COMMIT_TIMESTAMP=$(git log -1 --format=%ct)
           COMMIT_SHA=$(git rev-parse --short=7 HEAD)
 
-          PKG_VERSION=$(date -u -d "@${COMMIT_TIMESTAMP}" +'%y.%j')
-          PKG_RELEASE=$(echo "${COMMIT_TIMESTAMP}" | cut -c6-10)
-          COMBINED_VERSION="v${PKG_VERSION}-r${PKG_RELEASE}"
+          PKG_VERSION_DATE=$(date -u -d "@${COMMIT_TIMESTAMP}" +'%y.%j')
+          PKG_VERSION_SECS=$(printf "%05d" $(( COMMIT_TIMESTAMP % 86400 )))
+          OFFICIAL_VERSION="${PKG_VERSION_DATE}.${PKG_VERSION_SECS}~${COMMIT_SHA}"
 
-          echo "tag_name=${COMBINED_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "main_version=$PKG_VERSION" >> "$GITHUB_OUTPUT"
-          echo "main_full_version=$COMBINED_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag_name=v${OFFICIAL_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "main_version=${OFFICIAL_VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: 🧐 Check if release exists
         id: check_release
@@ -120,21 +118,20 @@ jobs:
         id: patch_version
         run: |
           set -euo pipefail
-          PKG_VERSION=$(date -u +'%y.%j')
-          PKG_RELEASE=$(date -u +'%s' | cut -c6-10)
-
-          echo "Using version: ${PKG_VERSION}-r${PKG_RELEASE}"
+          OFFICIAL_VERSION="${{ steps.version.outputs.main_version }}"
+          echo "🚀 Using official standard version: ${OFFICIAL_VERSION}"
 
           MF="feed/luci/applications/${PKG_NAME}/Makefile"
           sed -i 's|../../luci.mk|$(TOPDIR)/feeds/luci/luci.mk|g' "$MF"
           sed -i '/^PKG_VERSION/d' "$MF"
           sed -i '/^PKG_RELEASE/d' "$MF"
-          sed -i "/^LUCI_NAME/a PKG_RELEASE:=${PKG_RELEASE}" "$MF"
-          sed -i "/^LUCI_NAME/a PKG_VERSION:=${PKG_VERSION}" "$MF"
+          sed -i "/^LUCI_NAME/a PKG_RELEASE:=" "$MF"
+          sed -i "/^LUCI_NAME/a PKG_VERSION:=${OFFICIAL_VERSION}" "$MF"
 
-          echo "Patched Makefile:"
+          echo "✅ Patched Makefile metadata:"
           grep -E 'PKG_VERSION|PKG_RELEASE' "$MF"
-          echo "version=v${PKG_VERSION}-r${PKG_RELEASE}" >> $GITHUB_OUTPUT
+          echo "version=v${OFFICIAL_VERSION}" >> $GITHUB_OUTPUT
+          echo "--- 📄 Full Makefile Content Preview ---"
           cat "$MF"
           
       - name: 🧮 Compute ARCH
