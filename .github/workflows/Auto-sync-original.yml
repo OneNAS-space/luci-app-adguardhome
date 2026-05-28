@@ -128,6 +128,14 @@ jobs:
             echo "❌ Error: patches/update_core.patch not found in your repository!"
             exit 1
           fi
+          if [ -f "patches/prepare.patch" ]; then
+            patch -p1 < patches/prepare.patch
+            chmod +x root/.prepare.sh
+            echo "✅ create .prepare.sh successfully!"
+          else
+            echo "❌ Error: patches/prepare.patch not found in your repository!"
+            exit 1
+          fi
 
       # 9. 一次性提交并推送
       - name: Commit and push
