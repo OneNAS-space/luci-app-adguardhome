@@ -121,6 +121,17 @@ jobs:
             echo "❌ Error: patches/config.patch not found in your repository!"
             exit 1
           fi
+          if [ ! -f "root/etc/nftables.d/99-adguardhome.nft" ]; then
+            if [ -f "patches/nft.patch" ]; then
+              patch -p1 < patches/nft.patch
+              echo "✅ nft patch applied successfully!"
+            else
+              echo "❌ Error: patches/nft.patch not found in your repository!"
+            exit 1
+            fi
+          else
+            echo "✅ 99-adguardhome.nft exists, skip"
+          fi
           if [ -f "patches/update_core.patch" ]; then
             patch -p1 < patches/update_core.patch
             chmod +x root/usr/share/AdGuardHome/update_core.sh
