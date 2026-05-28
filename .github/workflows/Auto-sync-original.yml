@@ -48,6 +48,7 @@ jobs:
             ! -name 'LICENSE' \
             ! -name 'SECURITY.md' \
             ! -name 'patches' \
+            ! -name '.prepare.sh' \
             -exec rm -rf {} +
           
           git checkout upstream/master -- applications/luci-app-adguardhome
@@ -128,13 +129,17 @@ jobs:
             echo "❌ Error: patches/update_core.patch not found in your repository!"
             exit 1
           fi
-          if [ -f "patches/prepare.patch" ]; then
-            patch -p1 < patches/prepare.patch
-            chmod +x .prepare.sh
-            echo "✅ create .prepare.sh successfully!"
+          if [ ! -f ".prepare.sh" ]; then
+            if [ -f "patches/prepare.patch" ]; then
+              patch -p1 < patches/prepare.patch
+              chmod +x .prepare.sh
+              echo "✅ create .prepare.sh successfully!"
+            else
+              echo "❌ Error: patches/prepare.patch not found in your repository!"
+              exit 1
+            fi
           else
-            echo "❌ Error: patches/prepare.patch not found in your repository!"
-            exit 1
+            echo "✅ .prepare.sh exists, skip"
           fi
 
       # 9. 一次性提交并推送
