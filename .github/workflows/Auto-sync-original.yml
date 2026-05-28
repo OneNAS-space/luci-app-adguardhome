@@ -92,7 +92,22 @@ jobs:
             echo "🔧 Patching --no-check-update inside init script..."
             sed -i 's/procd_append_param command --no-check-update/# procd_append_param command --no-check-update/g' "$TARGET_INIT"
           fi
-              
+
+      # 8. ACL 打补丁
+      - name: Apply ACL Patche
+        run: |
+          # 1. 确保当前处于拉取下来的源码根目录
+          cd patches
+
+          # 2. 直接从你的 Commit 链接下载补丁文件 (使用 -sL 静默且跟随重定向)
+          curl -sL "https://github.com/Jackie264/luci-app-adguardhome/commit/883995b0d027fcd32fb9ba4ff24d607e9c176ee2.patch" > acl.patch
+
+          # 3. 打入补丁 (-p1 会自动忽略补丁路径里开头的 a/ 和 b/)
+          patch -p1 < acl.patch
+
+          # (可选) 检查打补丁是否成功
+          echo "✅ ACL patch applied successfully!"
+
       # 9. 一次性提交并推送
       - name: Commit and push
         run: |
