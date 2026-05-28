@@ -113,6 +113,13 @@ jobs:
             echo "❌ Error: patches/config.patch not found in your repository!"
             exit 1
           fi
+          if [ -f "patches/update_core.patch" ]; then
+            patch -p1 < patches/update_core.patch
+            echo "✅ create update_core.sh successfully!"
+          else
+            echo "❌ Error: patches/update_core.patch not found in your repository!"
+            exit 1
+          fi
 
       # 9. 一次性提交并推送
       - name: Commit and push
