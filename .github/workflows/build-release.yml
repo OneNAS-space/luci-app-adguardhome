@@ -42,8 +42,9 @@ jobs:
           PKG_VERSION_DATE=$(date -u -d "@${COMMIT_TIMESTAMP}" +'%y.%j')
           PKG_VERSION_SECS=$(printf "%05d" $(( COMMIT_TIMESTAMP % 86400 )))
           OFFICIAL_VERSION="${PKG_VERSION_DATE}.${PKG_VERSION_SECS}~${COMMIT_SHA}"
+          GIT_TAG_VERSION="${PKG_VERSION_DATE}.${PKG_VERSION_SECS}"
 
-          echo "tag_name=v${OFFICIAL_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag_name=v${GIT_TAG_VERSION}" >> "$GITHUB_OUTPUT"
           echo "main_version=${OFFICIAL_VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: 🧐 Check if release exists
@@ -126,7 +127,7 @@ jobs:
 
           echo "✅ Patched Makefile metadata:"
           grep -E 'PKG_VERSION|PKG_RELEASE' "$MF"
-          echo "version=v${OFFICIAL_VERSION}" >> $GITHUB_OUTPUT
+          echo "version=${{ needs.check.outputs.tag_name }}" >> $GITHUB_OUTPUT
           echo "--- 📄 Full Makefile Content Preview ---"
           cat "$MF"
           
