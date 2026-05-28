@@ -23,25 +23,48 @@ jobs:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:
-      resolved_tag: ${{ steps.resolve.outputs.version }}
-      pkg_version: ${{ steps.resolve.outputs.pkg_version }}
-      pkg_release: ${{ steps.resolve.outputs.pkg_release }}
-      should_build: "true"
+      should_build: ${{ steps.check_release.outputs.should_build }}
+      tag_name: ${{ steps.version.outputs.tag_name }}
+      main_version: ${{ steps.version.outputs.main_version }}
+      main_full_version: ${{ steps.version.outputs.main_full_version }}
+      
     steps:
-      - name: 🧾 Generate Dynamic Version
-        id: resolve
+      - name: 🧾 Checkout repo
+        uses: actions/checkout@v6
+
+      - name: 🏷️ Extract version info from Date
+        id: version
         run: |
+          set -euo pipefail
           PKG_VERSION=$(date -u +'%y.%j')
           PKG_RELEASE=$(date -u +'%s' | cut -c6-10)
-          FULL_VER="v${PKG_VERSION}-r${PKG_RELEASE}"
+          COMBINED_VERSION="v${PKG_VERSION}-r${PKG_RELEASE}"
           
-          echo "Generated version: $FULL_VER"
-          echo "version=$FULL_VER" >> "$GITHUB_OUTPUT"
-          echo "pkg_version=$PKG_VERSION" >> "$GITHUB_OUTPUT"
-          echo "pkg_release=$PKG_RELEASE" >> "$GITHUB_OUTPUT"
+          echo "tag_name=${COMBINED_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "main_version=$PKG_VERSION" >> "$GITHUB_OUTPUT"
+          echo "main_full_version=$COMBINED_VERSION" >> "$GITHUB_OUTPUT"
+                    
+      - name: 🧐 Check if release exists
+        id: check_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag_name }}
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "Manual run detected. Forcing build."
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "Release $TAG already exists. Skipping build."
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Release $TAG does not exist. Proceeding with build."
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          fi
 
   build:
-    name: 2. Build for ${{ matrix.version }} / ${{ matrix.target }}
+    name: Build for ${{ matrix.version }} / ${{ matrix.target }}
     needs: check
     if: needs.check.outputs.should_build == 'true'
     runs-on: ubuntu-latest
@@ -57,14 +80,15 @@ jobs:
             target: x86_64
             suffix: noarch
 
+    outputs:
+      version: ${{ steps.patch_version.outputs.version }}
+
     steps:
       - name: 🧾 Checkout repo
         uses: actions/checkout@v6
 
-      - name: 📛 Set Environment
-        run: |
-          echo "PKG_NAME=${{ github.event.repository.name }}" >> "$GITHUB_ENV"
-          echo "ARCH=${{ matrix.target }}-${{ matrix.version }}" >> "$GITHUB_ENV"
+      - name: 📛 Set PKG_NAME from repo
+        run: echo "PKG_NAME=${{ github.event.repository.name }}" >> "$GITHUB_ENV"
 
       - name: 🧰 Set up Feed structure
         run: |
@@ -86,6 +110,30 @@ jobs:
             --exclude='feed' \
             --exclude='.github' \
             ./ feed/luci/applications/${PKG_NAME}/
+
+      - name: 🩹 Patch Makefile with dynamic version
+        id: patch_version
+        run: |
+          set -euo pipefail
+          PKG_VERSION=$(date -u +'%y.%j')
+          PKG_RELEASE=$(date -u +'%s' | cut -c6-10)
+
+          echo "Using version: ${PKG_VERSION}-r${PKG_RELEASE}"
+
+          MF="feed/luci/applications/${PKG_NAME}/Makefile"
+
+          sed -i '/^PKG_VERSION/d' "$MF"
+          sed -i '/^PKG_RELEASE/d' "$MF"
+          sed -i "/^LUCI_NAME/a PKG_RELEASE:=${PKG_RELEASE}" "$MF"
+          sed -i "/^LUCI_NAME/a PKG_VERSION:=${PKG_VERSION}" "$MF"
+
+          echo "Patched Makefile:"
+          grep -E 'PKG_VERSION|PKG_RELEASE' "$MF"
+          echo "version=v${PKG_VERSION}-r${PKG_RELEASE}" >> $GITHUB_OUTPUT
+          
+      - name: 🧮 Compute ARCH
+        run: |
+          echo "ARCH=${{ matrix.target }}-${{ matrix.version }}" >> "$GITHUB_ENV"
 
       - name: 🏗️ Build with OpenWrt SDK
         uses: openwrt/gh-action-sdk@v11
@@ -137,8 +185,8 @@ jobs:
       - name: 🗃️ Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ needs.check.outputs.resolved_tag }}
-          name: Build-${{ needs.check.outputs.resolved_tag }}
+          tag_name: ${{ needs.build.outputs.version }}
+          name: Build-${{ needs.build.outputs.version }}
           files: |
             ./release-assets/**/*.ipk
             ./release-assets/**/*.apk
