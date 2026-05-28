@@ -109,6 +109,7 @@ jobs:
             --exclude='.git' \
             --exclude='feed' \
             --exclude='.github' \
+            --exclude='patches' \
             ./ feed/luci/applications/${PKG_NAME}/
 
       - name: 🩹 Patch Makefile with dynamic version
