@@ -152,6 +152,16 @@ start_service() {
 		return 0
 	fi
 
+	if [ "$user" = "adguardhome" ] && ! grep -q "^adguardhome:" /etc/passwd; then
+		echo "luci-app: User 'adguardhome' is missing, injecting UID 853 into system files..." >&2
+
+		# 1. 确保组存在，不存在则直接追加
+		grep -q "^adguardhome:" /etc/group || echo "adguardhome:x:853:" >> /etc/group
+
+		# 2. 直接向 passwd 追加用户（严格对应你 EQ12 上的标准格式）
+		echo "adguardhome:x:853:853:adguardhome:/var/run/adguardhome:/bin/false" >> /etc/passwd
+	fi
+
 	local config_dir
 	config_dir=$(dirname "$config_file")
 	if [ "$config_dir" = '/etc' ]; then
@@ -231,7 +241,7 @@ start_service() {
 	(sleep 10 && [ -z "$(pgrep -f "$(basename "$PROG")")" ] && logger -t adguardhome "no process in 10s cancel redirect" && $CONTROL_SCRIPT 0 ) &
 }
 
-# 必须注入显式的服务中止钩子，用于平滑清理 nft 规则和 crontab
+# 必须注入显式的服务中止钩子，用于平滑清理 nft 规则 and crontab
 stop_service() {
 	config_load 'adguardhome'
 	local config_name='config'
