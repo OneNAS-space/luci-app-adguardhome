@@ -35,6 +35,8 @@ index 748778a..33ba1fd 100644
 +                                "/tmp/AdGuardHome_update.log": [ "read" ],
 +                                "/var/run/update_core": [ "stat" ],
 +                                "/var/run/update_core_error": [ "stat" ],
++                                "/var/run/AdGredir": [ "read" ],
++                                "/var/run/AdGserverdis": [ "read" ],
 +                                "/usr/bin/AdGuardHome --version": [ "exec" ]
 +                        },
 +                        "ubus": {
