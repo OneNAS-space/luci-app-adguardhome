@@ -121,6 +121,17 @@ jobs:
             echo "❌ Error: patches/config.patch not found in your repository!"
             exit 1
           fi
+          if [ ! -f "root/usr/share/AdGuardHome/adguardhome.nft.tpl" ]; then
+            if [ -f "patches/nft_tpl.patch" ]; then
+              patch -p1 < patches/nft_tpl.patch
+              echo "✅ nft_tpl patch applied successfully!"
+            else
+              echo "❌ Error: patches/nft_tpl.patch not found in your repository!"
+            exit 1
+            fi
+          else
+            echo "✅ adguardhome.nft.tpl exists, skip"
+          fi
           if [ ! -f "root/etc/nftables.d/99-adguardhome.nft" ]; then
             if [ -f "patches/nft.patch" ]; then
               patch -p1 < patches/nft.patch
