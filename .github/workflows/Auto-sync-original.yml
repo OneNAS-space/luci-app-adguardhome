@@ -106,8 +106,8 @@ jobs:
       - name: Apply custom Patches
         run: |
           if [ -f "patches/01_init.patch" ]; then
-            patch -p1 < patches/01_init.patch
             echo ""
+            patch -p1 < patches/01_init.patch
             echo "✅ 01_init.patch applied successfully!"
           else
             echo "❌ Error: patches/01_init.patch not found in your repository!"
@@ -115,8 +115,8 @@ jobs:
           fi
 
           if [ -f "patches/02_acl.patch" ]; then
-            patch -p1 < patches/02_acl.patch
             echo ""
+            patch -p1 < patches/02_acl.patch
             echo "✅ 02_acl.patch applied successfully!"
           else
             echo "❌ Error: patches/02_acl.patch not found in your repository!"
@@ -124,8 +124,8 @@ jobs:
           fi
 
           if [ -f "patches/03_config.patch" ]; then
-            patch -p1 < patches/03_config.patch
             echo ""
+            patch -p1 < patches/03_config.patch
             echo "✅ 03_config.patch applied successfully!"
           else
             echo "❌ Error: patches/03_config.patch not found in your repository!"
@@ -133,8 +133,8 @@ jobs:
           fi
 
           if [ -f "patches/04_config_file.patch" ]; then
-            patch -p1 < patches/04_config_file.patch
             echo ""
+            patch -p1 < patches/04_config_file.patch
             echo "✅ 04_config_file.patch applied successfully!"
           else
             echo "❌ Error: patches/04_config_file.patch not found in your repository!"
@@ -142,9 +142,9 @@ jobs:
           fi
 
           if [ ! -f "root/usr/share/AdGuardHome/adguardhome.nft.tpl" ]; then
+            echo ""
             if [ -f "patches/05_nft_tpl.patch" ]; then
               patch -p1 < patches/05_nft_tpl.patch
-              echo ""
               echo "✅ 05_nft_tpl patch applied successfully!"
             else
               echo "❌ Error: patches/05_nft_tpl.patch not found in your repository!"
@@ -156,9 +156,9 @@ jobs:
           fi
 
           if [ ! -f "root/etc/nftables.d/99-adguardhome.nft" ]; then
+            echo ""
             if [ -f "patches/06_nft.patch" ]; then
               patch -p1 < patches/06_nft.patch
-              echo ""
               echo "✅ 06_nft.patch create 99-adguardhome.nft successfully!"
             else
               echo "❌ Error: patches/06_nft.patch not found in your repository!"
@@ -170,10 +170,10 @@ jobs:
           fi
 
           if [ ! -f "root/usr/share/AdGuardHome/update_core.sh" ]; then
+            echo ""
             if [ -f "patches/07_update_core.patch" ]; then
               patch -p1 < patches/07_update_core.patch
               chmod +x root/usr/share/AdGuardHome/update_core.sh
-              echo ""
               echo "✅ 07_update_core.patch create update_core.sh successfully!"
             else
               echo "❌ Error: patches/07_update_core.patch not found in your repository!"
@@ -185,10 +185,10 @@ jobs:
           fi
 
           if [ ! -f "root/usr/share/AdGuardHome/control.sh" ]; then
+            echo ""
             if [ -f "patches/08_control.patch" ]; then
               patch -p1 < patches/08_control.patch
               chmod +x root/usr/share/AdGuardHome/control.sh
-              echo ""
               echo "✅ 08_control.patch create control.sh successfully!"
             else
               echo "❌ Error: patches/08_control.patch not found in your repository!"
@@ -200,10 +200,10 @@ jobs:
           fi
 
           if [ ! -f "root/usr/share/AdGuardHome/watchconfig.sh" ]; then
+            echo ""
             if [ -f "patches/09_watchconfig.patch" ]; then
               patch -p1 < patches/09_watchconfig.patch
               chmod +x root/usr/share/AdGuardHome/watchconfig.sh
-              echo ""
               echo "✅ 09_watchconfig.patch create watchconfig.sh successfully!"
             else
               echo "❌ Error: patches/09_watchconfig.patch not found in your repository!"
@@ -215,10 +215,10 @@ jobs:
           fi
 
           if [ ! -f ".prepare.sh" ]; then
+            echo ""
             if [ -f "patches/prepare.patch" ]; then
               patch -p1 < patches/prepare.patch
               chmod +x .prepare.sh
-              echo ""
               echo "✅ create .prepare.sh successfully!"
             else
               echo "❌ Error: patches/prepare.patch not found in your repository!"
