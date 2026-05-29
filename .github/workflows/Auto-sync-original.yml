@@ -102,12 +102,13 @@ jobs:
       #      sed -i 's/procd_append_param command --no-check-update/# procd_append_param command --no-check-update/g' "$TARGET_INIT"
       #    fi
 
-      # 8. ACL 打补丁
+      # 8. 系统文件打补丁
       - name: Apply custom Patches
         run: |
           if [ -f "patches/01_init.patch" ]; then
             patch -p1 < patches/01_init.patch
-            echo "✅ 01_init patch applied successfully!"
+            echo ""
+            echo "✅ 01_init.patch applied successfully!"
           else
             echo "❌ Error: patches/01_init.patch not found in your repository!"
             exit 1
@@ -115,7 +116,8 @@ jobs:
 
           if [ -f "patches/02_acl.patch" ]; then
             patch -p1 < patches/02_acl.patch
-            echo "✅ 02_acl patch applied successfully!"
+            echo ""
+            echo "✅ 02_acl.patch applied successfully!"
           else
             echo "❌ Error: patches/02_acl.patch not found in your repository!"
             exit 1
@@ -123,7 +125,8 @@ jobs:
 
           if [ -f "patches/03_config.patch" ]; then
             patch -p1 < patches/03_config.patch
-            echo "✅ 03_config patch applied successfully!"
+            echo ""
+            echo "✅ 03_config.patch applied successfully!"
           else
             echo "❌ Error: patches/03_config.patch not found in your repository!"
             exit 1
@@ -131,7 +134,8 @@ jobs:
 
           if [ -f "patches/04_config_file.patch" ]; then
             patch -p1 < patches/04_config_file.patch
-            echo "✅ 04_config_file patch applied successfully!"
+            echo ""
+            echo "✅ 04_config_file.patch applied successfully!"
           else
             echo "❌ Error: patches/04_config_file.patch not found in your repository!"
             exit 1
@@ -140,77 +144,83 @@ jobs:
           if [ ! -f "root/usr/share/AdGuardHome/adguardhome.nft.tpl" ]; then
             if [ -f "patches/05_nft_tpl.patch" ]; then
               patch -p1 < patches/05_nft_tpl.patch
+              echo ""
               echo "✅ 05_nft_tpl patch applied successfully!"
             else
               echo "❌ Error: patches/05_nft_tpl.patch not found in your repository!"
             exit 1
             fi
           else
-            echo "🔐 adguardhome.nft.tpl exists, 05_nft_tpl patch skipped"
+            echo "🔐 05_nft_tpl.patch skipped, adguardhome.nft.tpl exists!"
           fi
 
           if [ ! -f "root/etc/nftables.d/99-adguardhome.nft" ]; then
             if [ -f "patches/06_nft.patch" ]; then
               patch -p1 < patches/06_nft.patch
-              echo "✅ create 99-adguardhome.nft successfully!"
+              echo ""
+              echo "✅ 06_nft.patch create 99-adguardhome.nft successfully!"
             else
               echo "❌ Error: patches/06_nft.patch not found in your repository!"
             exit 1
             fi
           else
-            echo "🔐 99-adguardhome.nft exists, 06_nft.patch skipped"
+            echo "🔐 06_nft.patch skipped, 99-adguardhome.nft exists!"
           fi
 
           if [ ! -f "root/usr/share/AdGuardHome/update_core.sh" ]; then
             if [ -f "patches/07_update_core.patch" ]; then
               patch -p1 < patches/07_update_core.patch
               chmod +x root/usr/share/AdGuardHome/update_core.sh
-              echo "✅ create update_core.sh successfully!"
+              echo ""
+              echo "✅ 07_update_core.patch create update_core.sh successfully!"
             else
               echo "❌ Error: patches/07_update_core.patch not found in your repository!"
               exit 1
             fi
           else
-            echo "🔐 update_core.sh exists, 07_update_core.patch skipped"
+            echo "🔐 07_update_core.patch skipped, update_core.sh exists!"
           fi
 
           if [ ! -f "root/usr/share/AdGuardHome/control.sh" ]; then
             if [ -f "patches/08_control.patch" ]; then
               patch -p1 < patches/08_control.patch
               chmod +x root/usr/share/AdGuardHome/control.sh
-              echo "✅ create control.sh successfully!"
+              echo ""
+              echo "✅ 08_control.patch create control.sh successfully!"
             else
               echo "❌ Error: patches/08_control.patch not found in your repository!"
               exit 1
             fi
           else
-            echo "🔐 control.sh exists, 08_control.patch skipped"
+            echo "🔐 08_control.patch skipped, control.sh exists!"
           fi
 
           if [ ! -f "root/usr/share/AdGuardHome/watchconfig.sh" ]; then
             if [ -f "patches/09_watchconfig.patch" ]; then
               patch -p1 < patches/09_watchconfig.patch
               chmod +x root/usr/share/AdGuardHome/watchconfig.sh
-              echo "✅ create watchconfig.sh successfully!"
+              echo ""
+              echo "✅ 09_watchconfig.patch create watchconfig.sh successfully!"
             else
               echo "❌ Error: patches/09_watchconfig.patch not found in your repository!"
               exit 1
             fi
           else
-            echo "🔐 watchconfig.sh exists, 09_watchconfig.patch skipped"
+            echo "🔐 09_watchconfig.patch skipped, watchconfig.sh exists!"
           fi
 
           if [ ! -f ".prepare.sh" ]; then
             if [ -f "patches/prepare.patch" ]; then
               patch -p1 < patches/prepare.patch
               chmod +x .prepare.sh
+              echo ""
               echo "✅ create .prepare.sh successfully!"
             else
               echo "❌ Error: patches/prepare.patch not found in your repository!"
               exit 1
             fi
           else
-            echo "🔐 .prepare.sh exists, prepare.patch skipped"
+            echo "🔐 prepare.patch skipped, .prepare.sh exists!"
           fi
 
       # 9. 一次性提交并推送
