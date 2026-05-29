@@ -94,19 +94,25 @@ jobs:
           chmod +x root/etc/uci-defaults/adguardhome
 
       # 7. 【合并进来】修正启动脚本 (移除 --no-check-update)
-      - name: Patch Init Script
-        run: |
-          TARGET_INIT="root/etc/init.d/adguardhome"
-          if [ -f "$TARGET_INIT" ]; then
-            echo "🔧 Patching --no-check-update inside init script..."
-            sed -i 's/procd_append_param command --no-check-update/# procd_append_param command --no-check-update/g' "$TARGET_INIT"
-          fi
+      #- name: Patch Init Script
+      #  run: |
+      #    TARGET_INIT="root/etc/init.d/adguardhome"
+      #    if [ -f "$TARGET_INIT" ]; then
+      #      echo "🔧 Patching --no-check-update inside init script..."
+      #      sed -i 's/procd_append_param command --no-check-update/# procd_append_param command --no-check-update/g' "$TARGET_INIT"
+      #    fi
 
       # 8. ACL 打补丁
       - name: Apply custom Patches
         run: |
-          # 核心修正：必须在源码根目录下执行！
-          # patch -p1 会自动剥离补丁内部的 a/ 和 b/ 前缀，从而精准匹配到当前根目录下的 root/ 文件夹
+          if [ -f "patches/init.patch" ]; then
+            patch -p1 < patches/init.patch
+            echo "✅ init patch applied successfully!"
+          else
+            echo "❌ Error: patches/init.patch not found in your repository!"
+            exit 1
+          fi
+
           if [ -f "patches/acl.patch" ]; then
             patch -p1 < patches/acl.patch
             echo "✅ ACL patch applied successfully!"
@@ -134,7 +140,7 @@ jobs:
           else
             echo "✅ adguardhome.nft.tpl exists, skipped"
           fi
-          
+
           if [ ! -f "root/etc/nftables.d/99-adguardhome.nft" ]; then
             if [ -f "patches/nft.patch" ]; then
               patch -p1 < patches/nft.patch
@@ -146,7 +152,7 @@ jobs:
           else
             echo "✅ 99-adguardhome.nft exists, skipped"
           fi
-          
+
           if [ ! -f "root/usr/share/AdGuardHome/update_core.sh" ]; then
             if [ -f "patches/update_core.patch" ]; then
               patch -p1 < patches/update_core.patch
@@ -159,7 +165,7 @@ jobs:
           else
             echo "✅ update_core.sh exists, skipped"
           fi
-          
+
           if [ ! -f "root/usr/share/AdGuardHome/control.sh" ]; then
             if [ -f "patches/control.patch" ]; then
               patch -p1 < patches/control.patch
@@ -172,7 +178,20 @@ jobs:
           else
             echo "✅ control.sh exists, skipped"
           fi
-          
+
+          if [ ! -f "root/usr/share/AdGuardHome/watchconfig.sh" ]; then
+            if [ -f "patches/watchconfig.patch" ]; then
+              patch -p1 < patches/watchconfig.patch
+              chmod +x root/usr/share/AdGuardHome/watchconfig.sh
+              echo "✅ create watchconfig.sh successfully!"
+            else
+              echo "❌ Error: patches/watchconfig.patch not found in your repository!"
+              exit 1
+            fi
+          else
+            echo "✅ watchconfig.sh exists, skipped"
+          fi
+
           if [ ! -f ".prepare.sh" ]; then
             if [ -f "patches/prepare.patch" ]; then
               patch -p1 < patches/prepare.patch
