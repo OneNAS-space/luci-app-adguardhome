@@ -114,6 +114,7 @@ jobs:
             echo "❌ Error: patches/acl.patch not found in your repository!"
             exit 1
           fi
+
           if [ -f "patches/config.patch" ]; then
             patch -p1 < patches/config.patch
             echo "✅ config patch applied successfully!"
@@ -121,6 +122,7 @@ jobs:
             echo "❌ Error: patches/config.patch not found in your repository!"
             exit 1
           fi
+
           if [ ! -f "root/usr/share/AdGuardHome/adguardhome.nft.tpl" ]; then
             if [ -f "patches/nft_tpl.patch" ]; then
               patch -p1 < patches/nft_tpl.patch
@@ -130,8 +132,9 @@ jobs:
             exit 1
             fi
           else
-            echo "✅ adguardhome.nft.tpl exists, skip"
+            echo "✅ adguardhome.nft.tpl exists, skipped"
           fi
+          
           if [ ! -f "root/etc/nftables.d/99-adguardhome.nft" ]; then
             if [ -f "patches/nft.patch" ]; then
               patch -p1 < patches/nft.patch
@@ -141,16 +144,35 @@ jobs:
             exit 1
             fi
           else
-            echo "✅ 99-adguardhome.nft exists, skip"
+            echo "✅ 99-adguardhome.nft exists, skipped"
           fi
-          if [ -f "patches/update_core.patch" ]; then
-            patch -p1 < patches/update_core.patch
-            chmod +x root/usr/share/AdGuardHome/update_core.sh
-            echo "✅ create update_core.sh successfully!"
+          
+          if [ ! -f "root/usr/share/AdGuardHome/update_core.sh" ]; then
+            if [ -f "patches/update_core.patch" ]; then
+              patch -p1 < patches/update_core.patch
+              chmod +x root/usr/share/AdGuardHome/update_core.sh
+              echo "✅ create update_core.sh successfully!"
+            else
+              echo "❌ Error: patches/update_core.patch not found in your repository!"
+              exit 1
+            fi
           else
-            echo "❌ Error: patches/update_core.patch not found in your repository!"
-            exit 1
+            echo "✅ update_core.sh exists, skipped"
           fi
+          
+          if [ ! -f "root/usr/share/AdGuardHome/control.sh" ]; then
+            if [ -f "patches/control.patch" ]; then
+              patch -p1 < patches/control.patch
+              chmod +x root/usr/share/AdGuardHome/control.sh
+              echo "✅ create control.sh successfully!"
+            else
+              echo "❌ Error: patches/control.patch not found in your repository!"
+              exit 1
+            fi
+          else
+            echo "✅ control.sh exists, skipped"
+          fi
+          
           if [ ! -f ".prepare.sh" ]; then
             if [ -f "patches/prepare.patch" ]; then
               patch -p1 < patches/prepare.patch
@@ -161,7 +183,7 @@ jobs:
               exit 1
             fi
           else
-            echo "✅ .prepare.sh exists, skip"
+            echo "✅ .prepare.sh exists, skipped"
           fi
 
       # 9. 一次性提交并推送
