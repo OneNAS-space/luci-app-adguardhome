@@ -105,91 +105,99 @@ jobs:
       # 8. ACL 打补丁
       - name: Apply custom Patches
         run: |
-          if [ -f "patches/init.patch" ]; then
-            patch -p1 < patches/init.patch
-            echo "✅ init patch applied successfully!"
+          if [ -f "patches/01_init.patch" ]; then
+            patch -p1 < patches/01_init.patch
+            echo "✅ 01_init patch applied successfully!"
           else
-            echo "❌ Error: patches/init.patch not found in your repository!"
+            echo "❌ Error: patches/01_init.patch not found in your repository!"
             exit 1
           fi
 
-          if [ -f "patches/acl.patch" ]; then
-            patch -p1 < patches/acl.patch
-            echo "✅ ACL patch applied successfully!"
+          if [ -f "patches/02_acl.patch" ]; then
+            patch -p1 < patches/02_acl.patch
+            echo "✅ 02_acl patch applied successfully!"
           else
-            echo "❌ Error: patches/acl.patch not found in your repository!"
+            echo "❌ Error: patches/02_acl.patch not found in your repository!"
             exit 1
           fi
 
-          if [ -f "patches/config.patch" ]; then
-            patch -p1 < patches/config.patch
-            echo "✅ config patch applied successfully!"
+          if [ -f "patches/03_config.patch" ]; then
+            patch -p1 < patches/03_config.patch
+            echo "✅ 03_config patch applied successfully!"
           else
-            echo "❌ Error: patches/config.patch not found in your repository!"
+            echo "❌ Error: patches/03_config.patch not found in your repository!"
+            exit 1
+          fi
+
+          if [ -f "patches/04_config_file.patch" ]; then
+            patch -p1 < patches/04_config_file.patch
+            echo "✅ 04_config_file patch applied successfully!"
+          else
+            echo "❌ Error: patches/04_config_file.patch not found in your repository!"
             exit 1
           fi
 
           if [ ! -f "root/usr/share/AdGuardHome/adguardhome.nft.tpl" ]; then
-            if [ -f "patches/nft_tpl.patch" ]; then
-              patch -p1 < patches/nft_tpl.patch
-              echo "✅ nft_tpl patch applied successfully!"
+            if [ -f "patches/05_nft_tpl.patch" ]; then
+              patch -p1 < patches/05_nft_tpl.patch
+              echo "✅ 05_nft_tpl patch applied successfully!"
             else
-              echo "❌ Error: patches/nft_tpl.patch not found in your repository!"
+              echo "❌ Error: patches/05_nft_tpl.patch not found in your repository!"
             exit 1
             fi
           else
-            echo "✅ adguardhome.nft.tpl exists, skipped"
+            echo "🔐 adguardhome.nft.tpl exists, 05_nft_tpl patch skipped"
           fi
 
           if [ ! -f "root/etc/nftables.d/99-adguardhome.nft" ]; then
-            if [ -f "patches/nft.patch" ]; then
-              patch -p1 < patches/nft.patch
-              echo "✅ nft patch applied successfully!"
+            if [ -f "patches/06_nft.patch" ]; then
+              patch -p1 < patches/06_nft.patch
+              echo "✅ create 99-adguardhome.nft successfully!"
             else
-              echo "❌ Error: patches/nft.patch not found in your repository!"
+              echo "❌ Error: patches/06_nft.patch not found in your repository!"
             exit 1
             fi
           else
-            echo "✅ 99-adguardhome.nft exists, skipped"
+            echo "🔐 99-adguardhome.nft exists, 06_nft.patch skipped"
           fi
 
           if [ ! -f "root/usr/share/AdGuardHome/update_core.sh" ]; then
-            if [ -f "patches/update_core.patch" ]; then
-              patch -p1 < patches/update_core.patch
+            if [ -f "patches/07_update_core.patch" ]; then
+              patch -p1 < patches/07_update_core.patch
               chmod +x root/usr/share/AdGuardHome/update_core.sh
               echo "✅ create update_core.sh successfully!"
             else
-              echo "❌ Error: patches/update_core.patch not found in your repository!"
+              echo "❌ Error: patches/07_update_core.patch not found in your repository!"
               exit 1
             fi
           else
-            echo "✅ update_core.sh exists, skipped"
+            echo "🔐 update_core.sh exists, 07_update_core.patch skipped"
           fi
 
           if [ ! -f "root/usr/share/AdGuardHome/control.sh" ]; then
-            if [ -f "patches/control.patch" ]; then
-              patch -p1 < patches/control.patch
+            if [ -f "patches/08_control.patch" ]; then
+              patch -p1 < patches/08_control.patch
               chmod +x root/usr/share/AdGuardHome/control.sh
               echo "✅ create control.sh successfully!"
             else
-              echo "❌ Error: patches/control.patch not found in your repository!"
+              echo "❌ Error: patches/08_control.patch not found in your repository!"
               exit 1
             fi
           else
-            echo "✅ control.sh exists, skipped"
+            echo "🔐 control.sh exists, 08_control.patch skipped"
           fi
 
           if [ ! -f "root/usr/share/AdGuardHome/watchconfig.sh" ]; then
-            if [ -f "patches/watchconfig.patch" ]; then
-              patch -p1 < patches/watchconfig.patch
+            if [ -f "patches/09_watchconfig.patch" ]; then
+              patch -p1 < patches/09_watchconfig.patch
               chmod +x root/usr/share/AdGuardHome/watchconfig.sh
               echo "✅ create watchconfig.sh successfully!"
             else
-              echo "❌ Error: patches/watchconfig.patch not found in your repository!"
+              echo "❌ Error: patches/09_watchconfig.patch not found in your repository!"
               exit 1
             fi
           else
-            echo "✅ watchconfig.sh exists, skipped"
+            echo "🔐 watchconfig.sh exists, 09_watchconfig.patch skipped"
           fi
 
           if [ ! -f ".prepare.sh" ]; then
@@ -202,7 +210,7 @@ jobs:
               exit 1
             fi
           else
-            echo "✅ .prepare.sh exists, skipped"
+            echo "🔐 .prepare.sh exists, prepare.patch skipped"
           fi
 
       # 9. 一次性提交并推送
