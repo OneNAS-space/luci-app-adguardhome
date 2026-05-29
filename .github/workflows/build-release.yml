@@ -122,11 +122,13 @@ jobs:
           sed -i 's|../../luci.mk|$(TOPDIR)/feeds/luci/luci.mk|g' "$MF"
           sed -i '/^PKG_VERSION/d' "$MF"
           sed -i '/^PKG_RELEASE/d' "$MF"
+          sed -i '/^USERID/d' "$MF"
           sed -i "/^LUCI_NAME/a PKG_RELEASE:=" "$MF"
           sed -i "/^LUCI_NAME/a PKG_VERSION:=${OFFICIAL_VERSION}" "$MF"
+          sed -i "/^LUCI_NAME/a USERID:=adguardhome=853:adguardhome=853" "$MF"
 
           echo "✅ Patched Makefile metadata:"
-          grep -E 'PKG_VERSION|PKG_RELEASE' "$MF"
+          grep -E 'PKG_VERSION|PKG_RELEASE|USERID' "$MF"
           echo "version=${{ needs.check.outputs.tag_name }}" >> $GITHUB_OUTPUT
           echo "--- 📄 Full Makefile Content Preview ---"
           cat "$MF"
