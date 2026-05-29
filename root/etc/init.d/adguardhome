@@ -69,7 +69,7 @@ start_service() {
 
 	procd_append_param command --config "$config_file"
 	procd_append_param command --logfile syslog
-	# procd_append_param command --no-check-update
+	procd_append_param command --no-check-update
 	[ "$verbose" = 1 ] && procd_append_param command --verbose
 	procd_append_param command --work-dir "$work_dir"
 
