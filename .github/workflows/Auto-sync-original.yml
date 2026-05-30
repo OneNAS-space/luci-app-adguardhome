@@ -105,6 +105,15 @@ jobs:
       # 8. 系统文件打补丁
       - name: Apply custom Patches
         run: |
+          if [ -f "patches/00_makefile.patch" ]; then
+            echo ""
+            patch -p1 < patches/00_makefile.patch
+            echo "✅ 00_makefile.patch applied successfully!"
+          else
+            echo "❌ Error: patches/00_makefile.patch not found in your repository!"
+            exit 1
+          fi
+
           if [ -f "patches/01_init.patch" ]; then
             echo ""
             patch -p1 < patches/01_init.patch
