@@ -25,10 +25,6 @@ const NOT_RUNNING_SPAN = `<span style="color: var(--error-color-high); font-weig
 
 const STORAGE_KEY = 'luci-app-adguardhome';
 
-// ==== 新增专用KEY ====
-const STORAGE_KEY_CORE = 'luci-app-adguardhome_core_update';
-// ===================
-
 function getServiceInfo(name) {
 	const fn = rpc.declare({
 		object: 'service',
@@ -142,11 +138,6 @@ return view.extend({
 			_('Go environment variables that tune garbage collector and memory management.') +
 				' ' + _('Modify at your own risk.'),
 		);
-		mainSect.tab(
-			'core_update',
-			_('Core Update'),
-			_('Settings and operations for updating the AdGuardHome core binary.')
-		);
 
 		const configFileOpt = mainSect.taboption(
 			'general',
@@ -213,21 +204,6 @@ return view.extend({
 		advSettingsOpt.remove = () => {};
 		advSettingsOpt.write = (_, value) => sessionStorage.setItem(STORAGE_KEY, value);
 
-		// ==== 新增：General 控制 Core Update 的开关 ====
-		const coreUpdateToggleOpt = mainSect.taboption(
-			'general',
-			form.Flag,
-			'enable_core_update',
-			_('Core Update'),
-			_('Show the tab and settings for updating the AdGuardHome core binary.')
-		);
-		coreUpdateToggleOpt.default = '0';
-		coreUpdateToggleOpt.rmempty = false;
-		coreUpdateToggleOpt.load = () => sessionStorage.getItem(STORAGE_KEY_CORE) || '0';
-		coreUpdateToggleOpt.remove = () => {};
-		coreUpdateToggleOpt.write = (_, value) => sessionStorage.setItem(STORAGE_KEY_CORE, value);
-		// ==========================================
-
 		mainSect.taboption('jail', form.DynamicList, 'jail_mount', _('Read-only access'));
 		mainSect.taboption('jail', form.DynamicList, 'jail_mount_rw', _('Read-write access'));
 
@@ -275,159 +251,10 @@ return view.extend({
 		memLimitOpt.placeholder = DEFAULT_GOMEMLIMIT;
 		memLimitOpt.retain = true;
 
-		// ======== Core Update 控件内容 ========
-		const coreVersionOpt = mainSect.taboption(
-			'core_update',
-			form.ListValue,
-			'core_version',
-			_('Core Branch'),
-			_('Select the branch for the core binary update.')
-		);
-		coreVersionOpt.value('latest', _('Latest Version'));
-		coreVersionOpt.value('beta', _('Beta Version'));
-		coreVersionOpt.default = 'latest';
-		coreVersionOpt.depends('enable_core_update', '1');
-		coreVersionOpt.retain = true;
-
-		const coreUrlOpt = mainSect.taboption(
-			'core_update',
-			form.Value,
-			'update_url',
-			_('Core-bin Update URL'),
-			_('Customize the download link if needed. Variables like ${Cloud_Version} and ${Arch} can be used.')
-		);
-		coreUrlOpt.default = 'https://github.com/AdguardTeam/AdGuardHome/releases/download/${Cloud_Version}/AdGuardHome_linux_${Arch}.tar.gz';
-		coreUrlOpt.placeholder = coreUrlOpt.default;
-		coreUrlOpt.rmempty = false;
-		coreUrlOpt.depends('enable_core_update', '1');
-		coreUrlOpt.retain = true;
-
-		const updateActionOpt = mainSect.taboption(
-			'core_update',
-			form.DummyValue,
-			'_update_action',
-			_('Action')
-		);
-		updateActionOpt.rawhtml = true;
-		updateActionOpt.cfgvalue = () => `
-			<div id="agh-update-controls" style="display: flex; gap: 10px; margin-bottom: 10px;">
-				<button class="btn cbi-button cbi-button-apply" type="button" id="btn-agh-update">${_('Update core version')}</button>
-				<button class="btn cbi-button cbi-button-apply" type="button" id="btn-agh-force" style="display: none;">${_('Force update')}</button>
-			</div>
-			<div id="agh-update-log-container" style="display: none;">
-				<textarea id="agh-update-log" class="cbi-input-textarea" style="width: 100%; display: block; font-family: monospace;" rows="10" readonly="readonly"></textarea>
-			</div>
-		`;
-		updateActionOpt.depends('enable_core_update', '1');
-		// ==========================================
-
 		const rendered = await map.render();
 
 		const statusNode = map.findElement('data-field', statusOpt.cbid('status_section'));
 		poll.add(updateStatus(statusNode), POLL_INTERVAL);
-
-		// ========== 更新状态机与轮询逻辑 =========
-		let updatePollId = null;
-
-		function startLogPolling() {
-			if (updatePollId) clearInterval(updatePollId);
-			const pollAction = () => {
-				const btnU = document.getElementById('btn-agh-update');
-				const btnF = document.getElementById('btn-agh-force');
-				const logC = document.getElementById('agh-update-log-container');
-				const logT = document.getElementById('agh-update-log');
-
-				if (btnU) btnU.disabled = true;
-				if (btnF) btnF.style.display = 'inline-block';
-				if (logC) logC.style.display = 'block';
-
-				fs.read('/tmp/AdGuardHome_update.log').then((txt) => {
-					if (txt && logT) {
-						logT.value = txt;
-						logT.scrollTop = logT.scrollHeight;
-					}
-				}).catch(() => {});
-
-				Promise.all([
-					fs.stat('/var/run/update_core').catch(() => null),
-					fs.stat('/var/run/update_core_done').catch(() => null),
-					fs.stat('/var/run/update_core_error').catch(() => null)
-				]).then(([isCore, isDone, isError]) => {
-					if (isDone) {
-						clearInterval(updatePollId);
-						fs.remove('/var/run/update_core_done').catch(() => {});
-						if (btnU) {
-							btnU.disabled = false;
-							btnU.textContent = _('Updated');
-						}
-					} else if (isError) {
-						clearInterval(updatePollId);
-						if (btnU) {
-							btnU.disabled = false;
-							btnU.textContent = _('Failed');
-						}
-					} else if (!isCore && !isDone && !isError) {
-						clearInterval(updatePollId);
-						if (btnU) {
-							btnU.disabled = false;
-							btnU.textContent = _('Already up-to-date');
-						}
-					}
-				});
-			};
-
-			pollAction();
-			updatePollId = setInterval(pollAction, 1500);
-		}
-
-		function applyUpdate(isForce) {
-			const btnU = document.getElementById('btn-agh-update');
-			const logC = document.getElementById('agh-update-log-container');
-			const logT = document.getElementById('agh-update-log');
-			if (btnU) {
-				btnU.textContent = _('Checking...');
-				btnU.disabled = true;
-			}
-			
-			if (logC) logC.style.display = 'block';
-			if (logT) logT.value = _('Checking and preparing...\n');
-			
-			map.save().then(() => {
-				const arg = isForce ? 'force' : '';
-				fs.exec('/usr/share/AdGuardHome/update_core.sh', [arg]).catch((err) => {
-					console.error('Failed to trigger update script:', err);
-				});
-				startLogPolling();
-			}).catch((err) => {
-				console.error('Config save failed:', err);
-				if (btnU) {
-					btnU.textContent = _('Save Failed');
-					btnU.disabled = false;
-				}
-			});
-		}
-
-		rendered.addEventListener('click', (e) => {
-			if (e.target && e.target.id === 'btn-agh-update') {
-				e.preventDefault();
-				applyUpdate(false);
-			} else if (e.target && e.target.id === 'btn-agh-force') {
-				e.preventDefault();
-				applyUpdate(true);
-			}
-		});
-
-		Promise.all([
-			fs.stat('/var/run/update_core').catch(() => null),
-			fs.stat('/var/run/update_core_error').catch(() => null)
-		]).then(([isCore, isError]) => {
-			if (isCore || isError) {
-				const btnU = document.getElementById('btn-agh-update');
-				if (btnU) btnU.textContent = _('Checking...');
-				startLogPolling();
-			}
-		});
-		// ==========================================
 
 		return rendered;
 	},
