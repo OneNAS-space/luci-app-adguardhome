@@ -56,21 +56,21 @@ jobs:
           rm -rf applications
 
       # 5. 【合并进来】清洗 Makefile 依赖
-      - name: Sanitize Makefile Dependencies
-        run: |
-          for f in $(find . -type f -name "Makefile"); do
-            if grep -q -i "adguardhome" "$f"; then
-              echo "🩹 Sanitizing dependencies in $f"
-              sed -i -E 's/[[:space:]]+\+adguardhome//gI' "$f"
-              sed -i -E 's/\+adguardhome[[:space:]]+//gI' "$f"
-              sed -i -E 's/\+adguardhome//gI' "$f"
-              sed -i -E '/LUCI_EXTRA_DEPENDS.*adguardhome/Id' "$f"
-              if ! grep -q "PKG_UNPACK" "$f"; then
-                echo "🚀 Injecting PKG_UNPACK hook under LUCI_PKGARCH"
-                sed -i '/LUCI_PKGARCH:=all/a PKG_UNPACK:=$(CURDIR)/.prepare.sh $(PKG_NAME) $(CURDIR) $(PKG_BUILD_DIR)' "$f"
-              fi
-            fi
-          done
+      #- name: Sanitize Makefile Dependencies
+      #  run: |
+      #    for f in $(find . -type f -name "Makefile"); do
+      #      if grep -q -i "adguardhome" "$f"; then
+      #        echo "🩹 Sanitizing dependencies in $f"
+      #        sed -i -E 's/[[:space:]]+\+adguardhome//gI' "$f"
+      #        sed -i -E 's/\+adguardhome[[:space:]]+//gI' "$f"
+      #        sed -i -E 's/\+adguardhome//gI' "$f"
+      #        sed -i -E '/LUCI_EXTRA_DEPENDS.*adguardhome/Id' "$f"
+      #        if ! grep -q "PKG_UNPACK" "$f"; then
+      #          echo "🚀 Injecting PKG_UNPACK hook under LUCI_PKGARCH"
+      #          sed -i '/LUCI_PKGARCH:=all/a PKG_UNPACK:=$(CURDIR)/.prepare.sh $(PKG_NAME) $(CURDIR) $(PKG_BUILD_DIR)' "$f"
+      #        fi
+      #      fi
+      #    done
 
       # 6. 【合并进来】注入官方后端配置文件到当前的 root 矩阵
       - name: Inject Upstream Configurations into LuCI Root
