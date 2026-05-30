@@ -103,148 +103,59 @@ jobs:
       #    fi
 
       # 8. 系统文件打补丁
-      - name: Apply custom Patches
+      - name: Apply Custom Patches Pipeline
         run: |
-          if [ -f "patches/00_makefile.patch" ]; then
-            echo ""
-            patch -p1 < patches/00_makefile.patch
-            echo "✅ 00_makefile.patch applied successfully!"
-          else
-            echo "❌ Error: patches/00_makefile.patch not found in your repository!"
-            exit 1
-          fi
+          set -e
 
-          if [ -f "patches/01_init.patch" ]; then
-            echo ""
-            patch -p1 < patches/01_init.patch
-            echo "✅ 01_init.patch applied successfully!"
-          else
-            echo "❌ Error: patches/01_init.patch not found in your repository!"
-            exit 1
-          fi
+          PATCH_LIST="
+            00_makefile.patch
+            01_init.patch
+            02_acl.patch
+            03_config.patch
+            04_config_file.patch
+            05_nft_tpl.patch
+            06_nft.patch
+            07_update_core.patch
+            08_control.patch
+            09_watchconfig.patch
+          "
 
-          if [ -f "patches/02_acl.patch" ]; then
+          for patch_file in $PATCH_LIST; do
             echo ""
-            patch -p1 < patches/02_acl.patch
-            echo "✅ 02_acl.patch applied successfully!"
-          else
-            echo "❌ Error: patches/02_acl.patch not found in your repository!"
-            exit 1
-          fi
-
-          if [ -f "patches/03_config.patch" ]; then
-            echo ""
-            patch -p1 < patches/03_config.patch
-            echo "✅ 03_config.patch applied successfully!"
-          else
-            echo "❌ Error: patches/03_config.patch not found in your repository!"
-            exit 1
-          fi
-
-          if [ -f "patches/04_config_file.patch" ]; then
-            echo ""
-            patch -p1 < patches/04_config_file.patch
-            echo "✅ 04_config_file.patch applied successfully!"
-          else
-            echo "❌ Error: patches/04_config_file.patch not found in your repository!"
-            exit 1
-          fi
-
-          if [ ! -f "root/usr/share/AdGuardHome/adguardhome.nft.tpl" ]; then
-            echo ""
-            if [ -f "patches/05_nft_tpl.patch" ]; then
-              patch -p1 < patches/05_nft_tpl.patch
-              echo "✅ 05_nft_tpl patch applied successfully!"
+            if [ -f "patches/$patch_file" ]; then
+              echo "🩹 Applying patches/$patch_file ..."
+              patch -p1 < "patches/$patch_file"
+              echo "✅ $patch_file applied successfully!"
             else
-              echo "❌ Error: patches/05_nft_tpl.patch not found in your repository!"
-            exit 1
-            fi
-          else
-            echo ""
-            echo "🔐 05_nft_tpl.patch skipped, adguardhome.nft.tpl exists!"
-          fi
-
-          if [ ! -f "root/etc/nftables.d/99-adguardhome.nft" ]; then
-            echo ""
-            if [ -f "patches/06_nft.patch" ]; then
-              patch -p1 < patches/06_nft.patch
-              echo "✅ 06_nft.patch create 99-adguardhome.nft successfully!"
-            else
-              echo "❌ Error: patches/06_nft.patch not found in your repository!"
-            exit 1
-            fi
-          else
-            echo ""
-            echo "🔐 06_nft.patch skipped, 99-adguardhome.nft exists!"
-          fi
-
-          if [ ! -f "root/usr/share/AdGuardHome/update_core.sh" ]; then
-            echo ""
-            if [ -f "patches/07_update_core.patch" ]; then
-              patch -p1 < patches/07_update_core.patch
-              chmod +x root/usr/share/AdGuardHome/update_core.sh
-              echo "✅ 07_update_core.patch create update_core.sh successfully!"
-            else
-              echo "❌ Error: patches/07_update_core.patch not found in your repository!"
+              echo "❌ Critical Error: patches/$patch_file missing!"
               exit 1
             fi
-          else
-            echo ""
-            echo "🔐 07_update_core.patch skipped, update_core.sh exists!"
-          fi
+          done
 
-          if [ ! -f "root/usr/share/AdGuardHome/control.sh" ]; then
-            echo ""
-            if [ -f "patches/08_control.patch" ]; then
-              patch -p1 < patches/08_control.patch
-              chmod +x root/usr/share/AdGuardHome/control.sh
-              echo "✅ 08_control.patch create control.sh successfully!"
-            else
-              echo "❌ Error: patches/08_control.patch not found in your repository!"
-              exit 1
-            fi
-          else
-            echo ""
-            echo "🔐 08_control.patch skipped, control.sh exists!"
-          fi
-
-          if [ ! -f "root/usr/share/AdGuardHome/watchconfig.sh" ]; then
-            echo ""
-            if [ -f "patches/09_watchconfig.patch" ]; then
-              patch -p1 < patches/09_watchconfig.patch
-              chmod +x root/usr/share/AdGuardHome/watchconfig.sh
-              echo "✅ 09_watchconfig.patch create watchconfig.sh successfully!"
-            else
-              echo "❌ Error: patches/09_watchconfig.patch not found in your repository!"
-              exit 1
-            fi
-          else
-            echo ""
-            echo "🔐 09_watchconfig.patch skipped, watchconfig.sh exists!"
-          fi
-
+          echo ""
           if [ ! -f ".prepare.sh" ]; then
-            echo ""
             if [ -f "patches/prepare.patch" ]; then
+              echo "🚀 .prepare.sh not found, initializing via prepare.patch..."
               patch -p1 < patches/prepare.patch
-              chmod +x .prepare.sh
-              echo "✅ create .prepare.sh successfully!"
+              echo "✅ .prepare.sh created successfully!"
             else
-              echo "❌ Error: patches/prepare.patch not found in your repository!"
+              echo "❌ Critical Error: patches/prepare.patch missing!"
               exit 1
             fi
           else
-            echo ""
-            echo "🔐 prepare.patch skipped, .prepare.sh exists!"
+            echo "🔐 .prepare.sh already exists, safely skipping prepare.patch to avoid reject conflict."
           fi
+
+          echo ""
+          echo "🔐 Setting executable permissions for runtime scripts..."
+          chmod +x root/usr/share/AdGuardHome/*.sh 2>/dev/null || true
+          chmod +x .prepare.sh 2>/dev/null || true
 
       # 9. 一次性提交并推送
       - name: Commit and push
         run: |
-          # 暂存所有变更（包括新创建的 root 文件夹）
           git add -A
           
-          # 如果没有发生任何实质性变化，直接退出
           if git diff-index --quiet HEAD --; then
             echo "Genius! No upstream updates or modification changes detected."
             exit 0
