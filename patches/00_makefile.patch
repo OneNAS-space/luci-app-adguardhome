@@ -1,0 +1,48 @@
+From c7533d6b71d9e6c7f88f8c866e19528edd1fa3dd Mon Sep 17 00:00:00 2001
+From: Jackie264 <125248570+Jackie264@users.noreply.github.com>
+Date: Sat, 30 May 2026 16:26:41 +0800
+Subject: [PATCH] Enhance Makefile for AdGuard Home support
+
+Added configuration and cleanup scripts for AdGuard Home.
+---
+ Makefile | 26 +++++++++++++++++++++++---
+ 1 file changed, 23 insertions(+), 3 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index a48c04d..16184bf 100644
+--- a/Makefile
++++ b/Makefile
+@@ -7,10 +7,30 @@ LUCI_MAINTAINER:=George Sapkin <george@sapk.in>
+ PKG_LICENSE:=GPL-2.0-only
+
+ LUCI_TITLE:=LuCI support for AdGuard Home
+-LUCI_DEPENDS:=+adguardhome +luci-base
+-LUCI_EXTRA_DEPENDS:=adguardhome (>=0.107.73-r3)
++LUCI_DEPENDS:=+luci-base
+ LUCI_PKGARCH:=all
++USERID:=adguardhome=853:adguardhome=853
+
+-include ../../luci.mk
++PKG_UNPACK:=$(CURDIR)/.prepare.sh $(PKG_NAME) $(CURDIR) $(PKG_BUILD_DIR)
++
++define Package/luci-app-adguardhome/conffiles
++/etc/adguardhome/adguardhome.yaml
++/etc/config/adguardhome
++endef
++
++define Package/luci-app-adguardhome/prerm
++#!/bin/sh
++rm -f /usr/bin/AdGuardHome
++rm -rf /etc/adguardhome
++
++sed -i '/adguardhome/d' /etc/passwd
++sed -i '/adguardhome/d' /etc/group
++
++/etc/init.d/dnsmasq restart
++
++exit 0
++endef
++
++include $(TOPDIR)/feeds/luci/luci.mk
+
+# call BuildPackage - OpenWrt buildroot signature
