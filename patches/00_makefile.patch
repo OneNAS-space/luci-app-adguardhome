@@ -1,6 +1,6 @@
-From 3e23847e55a51af105eaa2afeb051e998657c393 Mon Sep 17 00:00:00 2001
+From 949b7b09d1dc9be6f84843772e53eb9dff14b138 Mon Sep 17 00:00:00 2001
 From: Jackie264 <125248570+Jackie264@users.noreply.github.com>
-Date: Sun, 31 May 2026 11:06:16 +0800
+Date: Sun, 31 May 2026 14:07:18 +0800
 Subject: [PATCH] Update Makefile
 
 ---
@@ -8,7 +8,7 @@ Subject: [PATCH] Update Makefile
  1 file changed, 33 insertions(+), 3 deletions(-)
 
 diff --git a/Makefile b/Makefile
-index a48c04d..a01b6aa 100644
+index a48c04d..a33e17f 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -7,10 +7,40 @@ LUCI_MAINTAINER:=George Sapkin <george@sapk.in>
@@ -28,8 +28,6 @@ index a48c04d..a01b6aa 100644
 +/etc/adguardhome/adguardhome.yaml
 +/etc/config/adguardhome
 +endef
-+
-+include $(TOPDIR)/feeds/luci/luci.mk
 +
 +define Package/luci-app-adguardhome/prerm
 +#!/bin/sh
@@ -53,5 +51,7 @@ index a48c04d..a01b6aa 100644
 +}
 +exit 0
 +endef
++
++include $(TOPDIR)/feeds/luci/luci.mk
  
  # call BuildPackage - OpenWrt buildroot signature
