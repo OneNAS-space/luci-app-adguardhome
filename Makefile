@@ -18,8 +18,6 @@ define Package/luci-app-adguardhome/conffiles
 /etc/config/adguardhome
 endef
 
-include $(TOPDIR)/feeds/luci/luci.mk
-
 define Package/luci-app-adguardhome/prerm
 #!/bin/sh
 [ -n "$${IPKG_INSTROOT}" ] || {
@@ -42,5 +40,7 @@ define Package/luci-app-adguardhome/prerm
 }
 exit 0
 endef
+
+include $(TOPDIR)/feeds/luci/luci.mk
 
 # call BuildPackage - OpenWrt buildroot signature
