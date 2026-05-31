@@ -329,8 +329,11 @@ return view.extend({
 			'dns_redirect',
 			form.Value,
 			'hashpass',
-			_('Change WebUI management password'),
-			_('Press load calculate model and calculate finally save/apply')
+			_('Change password'),
+			_('Press load calculate model and calculate finally save/apply') + 
+			'<br /><button class="btn cbi-button cbi-button-apply" type="button" id="btn-agh-calc-hash" style="display:inline-block; margin-top:5px;">' +
+				_('Load calculate Module') + 
+			'</button>'
 		);
 		hashPassOpt.default = '';
 		hashPassOpt.datatype = 'string';
@@ -340,19 +343,6 @@ return view.extend({
 		hashPassOpt.cfgvalue = function(section_id) {
 			return '';
 		};
-		// 用于呈现“计算哈希”按钮的占位控件
-		const hashBtnOpt = mainSect.taboption(
-			'dns_redirect',
-			form.DummyValue,
-			'_hash_btn'
-		);
-		hashBtnOpt.rawhtml = true;
-		hashBtnOpt.cfgvalue = () => `
-			<button class="btn cbi-button cbi-button-apply" type="button" id="btn-agh-calc-hash">
-				${_('Load calculate model')}
-			</button>
-		`;
-		// ==========================================
 
 		const redirectOpt = mainSect.taboption(
 			'dns_redirect',
@@ -390,7 +380,7 @@ return view.extend({
 			_('Update URL'),
 			_('Select the download link for the core update.')
 		);
-		coreUrlOpt.value('https://static.adtidy.org/adguardhome/release/AdGuardHome_linux_${Arch}.tar.gz', _('Official Static Mirror (AdTidy - Recommended)'));
+		coreUrlOpt.value('https://static.adtidy.org/adguardhome/release/AdGuardHome_linux_${Arch}.tar.gz', _('Official Mirror (AdTidy - Recommended)'));
 		coreUrlOpt.value('https://github.com/AdguardTeam/AdGuardHome/releases/download/${Cloud_Version}/AdGuardHome_linux_${Arch}.tar.gz', _('GitHub Releases (Original)'));
 		coreUrlOpt.default = 'https://static.adtidy.org/adguardhome/release/AdGuardHome_linux_${Arch}.tar.gz';
 		coreUrlOpt.rmempty = false;
@@ -538,11 +528,11 @@ return view.extend({
 					script.type = 'text/javascript';
 					
 					script.onload = () => {
-						btn.textContent = _('Calculate');
+						btn.textContent = _('Click here to Calculate');
 						btn.disabled = false;
 					};
 					script.onerror = () => {
-						btn.textContent = _('Load Error');
+						btn.textContent = _(' ... Load Error ... ');
 						btn.disabled = false;
 					};
 					document.head.appendChild(script);
@@ -552,7 +542,7 @@ return view.extend({
 					if (passInput.value) {
 						// 防止对已哈希的字符串重复哈希 ($2a$ 或 $2y$ 开头)
 						if (passInput.value.startsWith('$2a$') || passInput.value.startsWith('$2y$')) {
-							btn.textContent = _('Already hashed');
+							btn.textContent = _('Calculation already DONE !');
 							return;
 						}
 						
@@ -563,9 +553,9 @@ return view.extend({
 						passInput.dispatchEvent(new Event('input', { bubbles: true }));
 						passInput.dispatchEvent(new Event('change', { bubbles: true }));
 						
-						btn.textContent = _('Please save/apply');
+						btn.textContent = _(' Press Save/Apply ... ↘️ ');
 					} else {
-						btn.textContent = _('Is empty');
+						btn.textContent = _(' ... Nothing input yet ... ');
 					}
 				}
 			}
