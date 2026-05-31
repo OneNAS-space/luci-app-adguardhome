@@ -1,47 +1,28 @@
-From 3560301c8160785704171ffb86ad18554fb0a5dc Mon Sep 17 00:00:00 2001
+From a4ebb3442c5bcd45077976c2a28be5da3626eec3 Mon Sep 17 00:00:00 2001
 From: Jackie264 <125248570+Jackie264@users.noreply.github.com>
-Date: Fri, 29 May 2026 11:28:44 +0800
-Subject: [PATCH] Add control script for AdGuard Home
+Date: Sun, 31 May 2026 08:53:35 +0800
+Subject: [PATCH] Create control.sh
 
 ---
- root/usr/share/AdGuardHome/control.sh | 230 ++++++++++++++++++++++++++
- 1 file changed, 230 insertions(+)
+ root/usr/share/AdGuardHome/control.sh | 215 ++++++++++++++++++++++++++
+ 1 file changed, 215 insertions(+)
  create mode 100644 root/usr/share/AdGuardHome/control.sh
 
 diff --git a/root/usr/share/AdGuardHome/control.sh b/root/usr/share/AdGuardHome/control.sh
 new file mode 100644
-index 0000000..5450a1b
+index 0000000..f72ac7e
 --- /dev/null
 +++ b/root/usr/share/AdGuardHome/control.sh
-@@ -0,0 +1,230 @@
+@@ -0,0 +1,215 @@
 +#!/bin/sh
 +# /usr/share/AdGuardHome/control.sh
++. /usr/share/AdGuardHome/helper.sh
 +
 +ENABLED="$1" 
 +CONFIGURATION="adguardhome"
 +NFT_RULES_TPL="/usr/share/AdGuardHome/adguardhome.nft.tpl"
 +NFT_RULES_FILE="/var/etc/adguardhome.nft"
 +NFT_TABLE="adguardhome"
-+
-+config_editor() {
-+    awk -v yaml="$1" -v value="$2" -v file="$3" -v ro="$4" '
-+    BEGIN{split(yaml,part,"\.");s="";i=1;l=length(part);}
-+    {
-+        if (match($0,s""part[i]":")) {
-+            if (i==l) {
-+                split($0,t,": ");
-+                if (ro==""){
-+                    system("sed -i '\''"FNR"c\\" t[1] ": " value "'\'' " file " >/dev/null 2>&1");
-+                } else {
-+                    print(t[2]);
-+                }
-+                exit;
-+            }
-+            s=s"[- ]{2}";
-+            i++;
-+        }
-+    }' "$3"
-+}
 +
 +set_nft_redirect() {
 +    local port="$1"
@@ -110,6 +91,10 @@ index 0000000..5450a1b
 +    /etc/init.d/dnsmasq restart >/dev/null 2>&1
 +}
 +
++agh_reload() {
++    ubus call service event '{"type":"config.change","data":{"package":"adguardhome"}}' >/dev/null 2>&1
++}
++
 +rm_port53() {
 +    local configpath
 +    configpath=$(uci -q get adguardhome.config.config_file)
@@ -131,7 +116,7 @@ index 0000000..5450a1b
 +    uci commit dhcp
 +
 +    /etc/init.d/dnsmasq restart
-+    ubus call service event '{"type":"config.change","data":{"package":"adguardhome"}}' >/dev/null 2>&1
++    agh_reload
 +}
 +
 +use_port53() {
@@ -154,7 +139,7 @@ index 0000000..5450a1b
 +    uci set dhcp.@dnsmasq[0].port="$adguardhome_PORT"
 +    uci commit dhcp
 +    /etc/init.d/dnsmasq restart
-+    ubus call service event '{"type":"config.change","data":{"package":"adguardhome"}}' >/dev/null 2>&1
++    agh_reload
 +}
 +
 +mark_redirect_flag() {
