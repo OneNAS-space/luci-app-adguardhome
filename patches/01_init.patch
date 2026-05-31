@@ -1,22 +1,28 @@
-From e0700ccf99020dca34c454c0e2eac0e94356475e Mon Sep 17 00:00:00 2001
+From 5ebef091de6a877b5b43b01703b0a5ff3d64363a Mon Sep 17 00:00:00 2001
 From: Jackie264 <125248570+Jackie264@users.noreply.github.com>
-Date: Fri, 29 May 2026 15:11:28 +0800
-Subject: [PATCH] Enhance AdGuard Home init script with new features
+Date: Sun, 31 May 2026 08:41:34 +0800
+Subject: [PATCH] Update adguardhome
 
-Added extra commands and functions for configuration management and cron job handling in AdGuard Home init script.
 ---
- root/etc/init.d/adguardhome | 181 +++++++++++++++++++++++++++++++++++-
- 1 file changed, 179 insertions(+), 2 deletions(-)
+ root/etc/init.d/adguardhome | 155 +++++++++++++++++++++++++++++++++++-
+ 1 file changed, 153 insertions(+), 2 deletions(-)
 
 diff --git a/root/etc/init.d/adguardhome b/root/etc/init.d/adguardhome
-index 4712913..384239c 100755
+index 4712913..71a541f 100755
 --- a/root/etc/init.d/adguardhome
 +++ b/root/etc/init.d/adguardhome
-@@ -12,6 +12,89 @@ STOP=89
+@@ -3,6 +3,7 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ #
+ # shellcheck disable=SC3043 # ash supports local
++. /usr/share/AdGuardHome/helper.sh
+ 
+ # matches dnsmasq
+ START=19
+@@ -12,6 +13,65 @@ STOP=89
  PROG=/usr/bin/AdGuardHome
  USE_PROCD=1
  
-+# 额外拓展指令集
 +EXTRA_COMMANDS="do_redirect force_reload isrunning"
 +EXTRA_HELP="\
 +\tdo_redirect \t0 or 1\n\
@@ -26,28 +32,6 @@ index 4712913..384239c 100755
 +CONTROL_SCRIPT="/usr/share/AdGuardHome/control.sh"
 +CRON_FILE=/etc/crontabs/root
 +
-+# 用于下发密码和修改端口的辅助函数
-+config_editor() {
-+	awk -v yaml="$1" -v value="$2" -v file="$3" -v ro="$4" '
-+	BEGIN{split(yaml,part,"\.");s="";i=1;l=length(part);}
-+	{
-+		if (match($0,s""part[i]":")) {
-+			if (i==l) {
-+				split($0,t,": ");
-+				if (ro==""){
-+					system("sed -i '\''"FNR"c\\" t[1] ": " value "'\'' " file " >/dev/null 2>&1");
-+				} else {
-+					print(t[2]);
-+				}
-+				exit;
-+			}
-+			s=s"[- ]{2}";
-+			i++;
-+		}
-+	}' "$3"
-+}
-+
-+# 时区提取函数，确保沙箱容器内时间对齐
 +get_tz() {
 +	SET_TZ=""
 +	local zonename
@@ -62,7 +46,6 @@ index 4712913..384239c 100755
 +	[ -n "$tz" ] && SET_TZ=$tz && return
 +}
 +
-+# 计划任务接管管道
 +do_crontab() {
 +	local enabled="$1"
 +	local crontab="$2"
@@ -102,7 +85,7 @@ index 4712913..384239c 100755
  boot() {
  	ADGUARDHOME_BOOT=1
  	start "$@"
-@@ -23,11 +106,13 @@ start_service() {
+@@ -23,11 +83,13 @@ start_service() {
  		return 0
  	fi
  
@@ -116,7 +99,7 @@ index 4712913..384239c 100755
  
  	uci_validate_section 'adguardhome' 'adguardhome' "$config_name" \
  		'gc:uinteger:0' \
-@@ -41,12 +126,42 @@ start_service() {
+@@ -41,12 +103,38 @@ start_service() {
  		'user:string:adguardhome' \
  		'verbose:bool:0' \
  		'workdir:string' \
@@ -149,18 +132,14 @@ index 4712913..384239c 100755
 +
 +	if [ "$user" = "adguardhome" ] && ! grep -q "^adguardhome:" /etc/passwd; then
 +		echo "luci-app: User 'adguardhome' is missing, injecting UID 853 into system files..." >&2
-+
-+		# 1. 确保组存在，不存在则直接追加
 +		grep -q "^adguardhome:" /etc/group || echo "adguardhome:x:853:" >> /etc/group
-+
-+		# 2. 直接向 passwd 追加用户（严格对应你 EQ12 上的标准格式）
 +		echo "adguardhome:x:853:853:adguardhome:/var/run/adguardhome:/bin/false" >> /etc/passwd
 +	fi
 +
  	local config_dir
  	config_dir=$(dirname "$config_file")
  	if [ "$config_dir" = '/etc' ]; then
-@@ -59,6 +174,13 @@ start_service() {
+@@ -59,6 +147,13 @@ start_service() {
  	mkdir -m 0700 -p "$work_dir"
  	chown -R "$user":"$group" "$work_dir"
  
@@ -174,7 +153,7 @@ index 4712913..384239c 100755
  	procd_open_instance adguardhome
  
  	procd_set_param command "$PROG"
-@@ -67,9 +189,14 @@ start_service() {
+@@ -67,12 +162,18 @@ start_service() {
  	[ "$maxprocs" -le 0 ] || procd_append_param env GOMAXPROCS="$maxprocs"
  	[ "$memlimit" -le 0 ] || procd_append_param env GOMEMLIMIT="$memlimit"
  
@@ -190,7 +169,11 @@ index 4712913..384239c 100755
  	[ "$verbose" = 1 ] && procd_append_param command --verbose
  	procd_append_param command --work-dir "$work_dir"
  
-@@ -91,10 +218,60 @@ start_service() {
++	procd_set_param file /etc/config/adguardhome "$config_file"
+ 	procd_set_param stdout 1
+ 	procd_set_param stderr 1
+ 	procd_set_param user "$user"
+@@ -91,10 +192,60 @@ start_service() {
  
  	procd_add_jail_mount '/etc/hosts'
  	procd_add_jail_mount '/etc/ssl/certs'
