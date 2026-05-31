@@ -1,19 +1,19 @@
-From a4ebb3442c5bcd45077976c2a28be5da3626eec3 Mon Sep 17 00:00:00 2001
+From 0e2440feea5f51d187189aae41d45d15102773bc Mon Sep 17 00:00:00 2001
 From: Jackie264 <125248570+Jackie264@users.noreply.github.com>
-Date: Sun, 31 May 2026 08:53:35 +0800
+Date: Sun, 31 May 2026 09:38:02 +0800
 Subject: [PATCH] Create control.sh
 
 ---
- root/usr/share/AdGuardHome/control.sh | 215 ++++++++++++++++++++++++++
- 1 file changed, 215 insertions(+)
+ root/usr/share/AdGuardHome/control.sh | 223 ++++++++++++++++++++++++++
+ 1 file changed, 223 insertions(+)
  create mode 100644 root/usr/share/AdGuardHome/control.sh
 
 diff --git a/root/usr/share/AdGuardHome/control.sh b/root/usr/share/AdGuardHome/control.sh
 new file mode 100644
-index 0000000..f72ac7e
+index 0000000..1686183
 --- /dev/null
 +++ b/root/usr/share/AdGuardHome/control.sh
-@@ -0,0 +1,215 @@
+@@ -0,0 +1,223 @@
 +#!/bin/sh
 +# /usr/share/AdGuardHome/control.sh
 +. /usr/share/AdGuardHome/helper.sh
@@ -50,10 +50,13 @@ index 0000000..f72ac7e
 +}
 +
 +clear_nft_redirect() {
-+    [ -f "$NFT_RULES_FILE" ] && rm -f "$NFT_RULES_FILE"
-+    nft delete table inet "$NFT_TABLE" 2>/dev/null
-+    fw4 reload
-+    logger -t adguardhome "nft table $NFT_TABLE cleared"
++    # 优化：只有当表存在时才清理和重载防火墙，避免无意义的性能开销
++    if nft list table inet "$NFT_TABLE" >/dev/null 2>&1; then
++        [ -f "$NFT_RULES_FILE" ] && rm -f "$NFT_RULES_FILE"
++        nft delete table inet "$NFT_TABLE" 2>/dev/null
++        fw4 reload
++        logger -t adguardhome "nft table $NFT_TABLE cleared"
++    fi
 +}
 +
 +set_forward_dnsmasq() {
@@ -177,9 +180,15 @@ index 0000000..f72ac7e
 +    [ -z "$adguardhome_PORT" ] && adguardhome_PORT="0"
 +
 +    redirect=$(uci -q get adguardhome.config.redirect || echo "none")
-+    old_redirect=$(uci -q get adguardhome.config.old_redirect || echo "none")
-+    old_port=$(uci -q get adguardhome.config.old_port || echo "0")
-+    old_enabled=$(uci -q get adguardhome.config.old_enabled || echo "0")
++
++    # 【核心修复】：从内存文件中读取旧状态，彻底放弃污染 UCI
++    if [ -f /var/run/adguardhome.state ]; then
++        . /var/run/adguardhome.state
++    else
++        old_redirect="none"
++        old_port="0"
++        old_enabled="0"
++    fi
 +
 +    uci get dhcp.@dnsmasq[0].port >/dev/null 2>&1 || uci set dhcp.@dnsmasq[0].port="53"
 +    uci commit dhcp
@@ -204,13 +213,12 @@ index 0000000..f72ac7e
 +        fi
 +    fi
 +
-+    uci delete adguardhome.config.old_redirect 2>/dev/null
-+    uci delete adguardhome.config.old_port 2>/dev/null
-+    uci delete adguardhome.config.old_enabled 2>/dev/null
-+    uci set adguardhome.config.old_redirect="$redirect" 2>/dev/null
-+    uci set adguardhome.config.old_port="$adguardhome_PORT" 2>/dev/null
-+    uci set adguardhome.config.old_enabled="$enabled" 2>/dev/null
-+    uci commit adguardhome
++    # 【核心修复】：将当前状态覆盖写入内存文件，轻量、疾速、安全！
++    cat <<EOF > /var/run/adguardhome.state
++old_redirect="$redirect"
++old_port="$adguardhome_PORT"
++old_enabled="$enabled"
++EOF
 +
 +    if [ "$enabled" = "0" ] || [ "$adguardhome_PORT" = "0" ]; then
 +        echo -n "0" > /var/run/AdGredir
