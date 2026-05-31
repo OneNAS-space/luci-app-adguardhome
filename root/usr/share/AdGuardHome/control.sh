@@ -34,10 +34,13 @@ set_nft_redirect() {
 }
 
 clear_nft_redirect() {
-    [ -f "$NFT_RULES_FILE" ] && rm -f "$NFT_RULES_FILE"
-    nft delete table inet "$NFT_TABLE" 2>/dev/null
-    fw4 reload
-    logger -t adguardhome "nft table $NFT_TABLE cleared"
+    # 优化：只有当表存在时才清理和重载防火墙，避免无意义的性能开销
+    if nft list table inet "$NFT_TABLE" >/dev/null 2>&1; then
+        [ -f "$NFT_RULES_FILE" ] && rm -f "$NFT_RULES_FILE"
+        nft delete table inet "$NFT_TABLE" 2>/dev/null
+        fw4 reload
+        logger -t adguardhome "nft table $NFT_TABLE cleared"
+    fi
 }
 
 set_forward_dnsmasq() {
@@ -161,9 +164,15 @@ _do_redirect() {
     [ -z "$adguardhome_PORT" ] && adguardhome_PORT="0"
 
     redirect=$(uci -q get adguardhome.config.redirect || echo "none")
-    old_redirect=$(uci -q get adguardhome.config.old_redirect || echo "none")
-    old_port=$(uci -q get adguardhome.config.old_port || echo "0")
-    old_enabled=$(uci -q get adguardhome.config.old_enabled || echo "0")
+
+    # 【核心修复】：从内存文件中读取旧状态，彻底放弃污染 UCI
+    if [ -f /var/run/adguardhome.state ]; then
+        . /var/run/adguardhome.state
+    else
+        old_redirect="none"
+        old_port="0"
+        old_enabled="0"
+    fi
 
     uci get dhcp.@dnsmasq[0].port >/dev/null 2>&1 || uci set dhcp.@dnsmasq[0].port="53"
     uci commit dhcp
@@ -188,13 +197,12 @@ _do_redirect() {
         fi
     fi
 
-    uci delete adguardhome.config.old_redirect 2>/dev/null
-    uci delete adguardhome.config.old_port 2>/dev/null
-    uci delete adguardhome.config.old_enabled 2>/dev/null
-    uci set adguardhome.config.old_redirect="$redirect" 2>/dev/null
-    uci set adguardhome.config.old_port="$adguardhome_PORT" 2>/dev/null
-    uci set adguardhome.config.old_enabled="$enabled" 2>/dev/null
-    uci commit adguardhome
+    # 【核心修复】：将当前状态覆盖写入内存文件，轻量、疾速、安全！
+    cat <<EOF > /var/run/adguardhome.state
+old_redirect="$redirect"
+old_port="$adguardhome_PORT"
+old_enabled="$enabled"
+EOF
 
     if [ "$enabled" = "0" ] || [ "$adguardhome_PORT" = "0" ]; then
         echo -n "0" > /var/run/AdGredir
