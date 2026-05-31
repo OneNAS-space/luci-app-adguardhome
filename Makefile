@@ -20,7 +20,7 @@ endef
 
 include $(TOPDIR)/feeds/luci/luci.mk
 
-define Package/luci-app-adguardhome/pre-deinstall
+define Package/luci-app-adguardhome/prerm
 #!/bin/sh
 [ -n "$${IPKG_INSTROOT}" ] || {
     logger -t luci-app-adguardhome "prerm triggered, action: $$1"
