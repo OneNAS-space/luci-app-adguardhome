@@ -31,7 +31,7 @@ endef
 define Package/luci-app-adguardhome/prerm
 #!/bin/sh
 # 检查标记：如果锁存在，说明是在做升级，保留配置
-if [ -f "$LOCK_FILE" ]; then
+if [ -f "$(LOCK_FILE)" ]; then
     logger -t luci-app-adguardhome "Detected upgrade, preserving configuration."
     exit 0
 fi
@@ -57,7 +57,7 @@ endef
 
 define Package/luci-app-adguardhome/postinst
 #!/bin/sh
-rm -f "$LOCK_FILE"
+rm -f "$(LOCK_FILE)"
 [ -n "${IPKG_INSTROOT}" ] || { 
     rm -f /tmp/luci-indexcache.*
     rm -rf /tmp/luci-modulecache/
