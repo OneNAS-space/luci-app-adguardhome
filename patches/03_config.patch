@@ -1,14 +1,14 @@
-From 99f1df89f2d437d723c4502a2e66d7dcd9f00763 Mon Sep 17 00:00:00 2001
+From 29f214e6e7e60efd26da8f8040c5e3d7ce43e384 Mon Sep 17 00:00:00 2001
 From: Jackie264 <125248570+Jackie264@users.noreply.github.com>
-Date: Sun, 31 May 2026 20:34:13 +0800
-Subject: [PATCH] Update config.js add chpass
+Date: Sun, 31 May 2026 21:36:03 +0800
+Subject: [PATCH] Update config.js
 
 ---
- .../resources/view/adguardhome/config.js      | 330 +++++++++++++++++-
- 1 file changed, 329 insertions(+), 1 deletion(-)
+ .../resources/view/adguardhome/config.js      | 320 +++++++++++++++++-
+ 1 file changed, 319 insertions(+), 1 deletion(-)
 
 diff --git a/htdocs/luci-static/resources/view/adguardhome/config.js b/htdocs/luci-static/resources/view/adguardhome/config.js
-index 6dc2d45..440dcc0 100644
+index 6dc2d45..63580fc 100644
 --- a/htdocs/luci-static/resources/view/adguardhome/config.js
 +++ b/htdocs/luci-static/resources/view/adguardhome/config.js
 @@ -5,6 +5,7 @@
@@ -101,7 +101,7 @@ index 6dc2d45..440dcc0 100644
  		mainSect.taboption('jail', form.DynamicList, 'jail_mount', _('Read-only access'));
  		mainSect.taboption('jail', form.DynamicList, 'jail_mount_rw', _('Read-write access'));
  
-@@ -251,11 +301,289 @@ return view.extend({
+@@ -251,11 +301,279 @@ return view.extend({
  		memLimitOpt.placeholder = DEFAULT_GOMEMLIMIT;
  		memLimitOpt.retain = true;
  
@@ -133,8 +133,11 @@ index 6dc2d45..440dcc0 100644
 +			'dns_redirect',
 +			form.Value,
 +			'hashpass',
-+			_('Change WebUI management password'),
-+			_('Press load calculate model and calculate finally save/apply')
++			_('Change password'),
++			_('Press load calculate model and calculate finally save/apply') + 
++			'<br /><button class="btn cbi-button cbi-button-apply" type="button" id="btn-agh-calc-hash" style="display:inline-block; margin-top:5px;">' +
++				_('Load calculate Module') + 
++			'</button>'
 +		);
 +		hashPassOpt.default = '';
 +		hashPassOpt.datatype = 'string';
@@ -144,19 +147,6 @@ index 6dc2d45..440dcc0 100644
 +		hashPassOpt.cfgvalue = function(section_id) {
 +			return '';
 +		};
-+		// 用于呈现“计算哈希”按钮的占位控件
-+		const hashBtnOpt = mainSect.taboption(
-+			'dns_redirect',
-+			form.DummyValue,
-+			'_hash_btn'
-+		);
-+		hashBtnOpt.rawhtml = true;
-+		hashBtnOpt.cfgvalue = () => `
-+			<button class="btn cbi-button cbi-button-apply" type="button" id="btn-agh-calc-hash">
-+				${_('Load calculate model')}
-+			</button>
-+		`;
-+		// ==========================================
 +
 +		const redirectOpt = mainSect.taboption(
 +			'dns_redirect',
@@ -194,7 +184,7 @@ index 6dc2d45..440dcc0 100644
 +			_('Update URL'),
 +			_('Select the download link for the core update.')
 +		);
-+		coreUrlOpt.value('https://static.adtidy.org/adguardhome/release/AdGuardHome_linux_${Arch}.tar.gz', _('Official Static Mirror (AdTidy - Recommended)'));
++		coreUrlOpt.value('https://static.adtidy.org/adguardhome/release/AdGuardHome_linux_${Arch}.tar.gz', _('Official Mirror (AdTidy - Recommended)'));
 +		coreUrlOpt.value('https://github.com/AdguardTeam/AdGuardHome/releases/download/${Cloud_Version}/AdGuardHome_linux_${Arch}.tar.gz', _('GitHub Releases (Original)'));
 +		coreUrlOpt.default = 'https://static.adtidy.org/adguardhome/release/AdGuardHome_linux_${Arch}.tar.gz';
 +		coreUrlOpt.rmempty = false;
@@ -342,11 +332,11 @@ index 6dc2d45..440dcc0 100644
 +					script.type = 'text/javascript';
 +					
 +					script.onload = () => {
-+						btn.textContent = _('Calculate');
++						btn.textContent = _('Click here to Calculate');
 +						btn.disabled = false;
 +					};
 +					script.onerror = () => {
-+						btn.textContent = _('Load Error');
++						btn.textContent = _(' ... Load Error ... ');
 +						btn.disabled = false;
 +					};
 +					document.head.appendChild(script);
@@ -356,7 +346,7 @@ index 6dc2d45..440dcc0 100644
 +					if (passInput.value) {
 +						// 防止对已哈希的字符串重复哈希 ($2a$ 或 $2y$ 开头)
 +						if (passInput.value.startsWith('$2a$') || passInput.value.startsWith('$2y$')) {
-+							btn.textContent = _('Already hashed');
++							btn.textContent = _('Calculation already DONE !');
 +							return;
 +						}
 +						
@@ -367,9 +357,9 @@ index 6dc2d45..440dcc0 100644
 +						passInput.dispatchEvent(new Event('input', { bubbles: true }));
 +						passInput.dispatchEvent(new Event('change', { bubbles: true }));
 +						
-+						btn.textContent = _('Please save/apply');
++						btn.textContent = _(' Press Save/Apply ... ↘️ ');
 +					} else {
-+						btn.textContent = _('Is empty');
++						btn.textContent = _(' ... Nothing input yet ... ');
 +					}
 +				}
 +			}
