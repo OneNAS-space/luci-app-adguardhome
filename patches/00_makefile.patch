@@ -1,17 +1,17 @@
-From 949b7b09d1dc9be6f84843772e53eb9dff14b138 Mon Sep 17 00:00:00 2001
+From 8f55fd0a1bde691679767a2030dc1cf5e3a35da1 Mon Sep 17 00:00:00 2001
 From: Jackie264 <125248570+Jackie264@users.noreply.github.com>
-Date: Sun, 31 May 2026 14:07:18 +0800
+Date: Sun, 31 May 2026 16:55:26 +0800
 Subject: [PATCH] Update Makefile
 
 ---
- Makefile | 36 +++++++++++++++++++++++++++++++++---
- 1 file changed, 33 insertions(+), 3 deletions(-)
+ Makefile | 61 +++++++++++++++++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 58 insertions(+), 3 deletions(-)
 
 diff --git a/Makefile b/Makefile
-index a48c04d..a33e17f 100644
+index a48c04d..3daace8 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -7,10 +7,40 @@ LUCI_MAINTAINER:=George Sapkin <george@sapk.in>
+@@ -7,10 +7,65 @@ LUCI_MAINTAINER:=George Sapkin <george@sapk.in>
  PKG_LICENSE:=GPL-2.0-only
  
  LUCI_TITLE:=LuCI support for AdGuard Home
@@ -29,25 +29,50 @@ index a48c04d..a33e17f 100644
 +/etc/config/adguardhome
 +endef
 +
++LOCK_FILE:=/etc/adguardhome/.upgrading
++
++define Package/luci-app-adguardhome/preinst
++#!/bin/sh
++mkdir -p /etc/adguardhome
++rm -f $(LOCK_FILE)
++touch $(LOCK_FILE)
++exit 0
++endef
++
 +define Package/luci-app-adguardhome/prerm
 +#!/bin/sh
-+[ -n "$${IPKG_INSTROOT}" ] || {
-+    logger -t luci-app-adguardhome "prerm triggered, action: $$1"
-+    if [ "$$1" != "upgrade" ]; then
-+        logger -t luci-app-adguardhome "Performing full uninstall, cleaning configuration..."
-+        rm -rf /etc/adguardhome
-+        rm -f /etc/config/adguardhome
-+        rm -f /usr/bin/AdGuardHome
-+    else
-+        logger -t luci-app-adguardhome "Detected package upgrade, skipping configuration deletion."
-+    fi
++# 检查标记：如果锁存在，说明是在做升级，保留配置
++if [ -f "$LOCK_FILE" ]; then
++    logger -t luci-app-adguardhome "Detected upgrade, preserving configuration."
++    exit 0
++fi
 +
-+    logger -t luci-app-adguardhome "Cleaning up system users/groups and cache..."
-+    sed -i '/adguardhome/d' /etc/passwd
-+    sed -i '/adguardhome/d' /etc/group
-+    rm -f /tmp/luci-indexcache
-+    /etc/init.d/dnsmasq restart
-+    logger -t luci-app-adguardhome "prerm finished successfully."
++# 否则是卸载，清空配置文件
++logger -t luci-app-adguardhome "Performing full uninstall, cleaning configuration..."
++rm -rf /etc/adguardhome
++rm -f /etc/config/adguardhome
++rm -f /usr/bin/AdGuardHome
++
++logger -t luci-app-adguardhome "Cleaning up system users/groups and cache..."
++sed -i '/adguardhome/d' /etc/passwd
++sed -i '/adguardhome/d' /etc/group
++
++[ -n "${IPKG_INSTROOT}" ] || { 
++    rm -f /tmp/luci-indexcache.*
++    rm -rf /tmp/luci-modulecache/
++    /etc/init.d/rpcd reload 2>/dev/null
++}
++logger -t luci-app-adguardhome "prerm finished successfully."
++exit 0
++endef
++
++define Package/luci-app-adguardhome/postinst
++#!/bin/sh
++rm -f "$LOCK_FILE"
++[ -n "${IPKG_INSTROOT}" ] || { 
++    rm -f /tmp/luci-indexcache.*
++    rm -rf /tmp/luci-modulecache/
++    /etc/init.d/rpcd reload 2>/dev/null
 +}
 +exit 0
 +endef
