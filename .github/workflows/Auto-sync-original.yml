@@ -120,6 +120,7 @@ jobs:
             09_watchconfig.patch
             10_yaml_helper.patch
             11_AGH_yaml.patch
+            12_twin-bcrypt.patch
           "
 
           for patch_file in $PATCH_LIST; do
@@ -148,6 +149,7 @@ jobs:
             echo "🔐 .prepare.sh already exists, safely skipping prepare.patch to avoid reject conflict."
           fi
 
+          echo ""
           echo "🔐 Setting executable permissions for runtime scripts..."
           chmod +x root/usr/share/AdGuardHome/*.sh 2>/dev/null || true
           chmod +x .prepare.sh 2>/dev/null || true
