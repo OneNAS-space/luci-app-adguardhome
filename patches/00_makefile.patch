@@ -1,27 +1,26 @@
-From c7533d6b71d9e6c7f88f8c866e19528edd1fa3dd Mon Sep 17 00:00:00 2001
+From 3e23847e55a51af105eaa2afeb051e998657c393 Mon Sep 17 00:00:00 2001
 From: Jackie264 <125248570+Jackie264@users.noreply.github.com>
-Date: Sat, 30 May 2026 16:26:41 +0800
-Subject: [PATCH] Enhance Makefile for AdGuard Home support
+Date: Sun, 31 May 2026 11:06:16 +0800
+Subject: [PATCH] Update Makefile
 
-Added configuration and cleanup scripts for AdGuard Home.
 ---
- Makefile | 26 +++++++++++++++++++++++---
- 1 file changed, 23 insertions(+), 3 deletions(-)
+ Makefile | 36 +++++++++++++++++++++++++++++++++---
+ 1 file changed, 33 insertions(+), 3 deletions(-)
 
 diff --git a/Makefile b/Makefile
-index a48c04d..16184bf 100644
+index a48c04d..a01b6aa 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -7,10 +7,30 @@ LUCI_MAINTAINER:=George Sapkin <george@sapk.in>
+@@ -7,10 +7,40 @@ LUCI_MAINTAINER:=George Sapkin <george@sapk.in>
  PKG_LICENSE:=GPL-2.0-only
-
+ 
  LUCI_TITLE:=LuCI support for AdGuard Home
 -LUCI_DEPENDS:=+adguardhome +luci-base
 -LUCI_EXTRA_DEPENDS:=adguardhome (>=0.107.73-r3)
 +LUCI_DEPENDS:=+luci-base
  LUCI_PKGARCH:=all
 +USERID:=adguardhome=853:adguardhome=853
-
+ 
 -include ../../luci.mk
 +PKG_UNPACK:=$(CURDIR)/.prepare.sh $(PKG_NAME) $(CURDIR) $(PKG_BUILD_DIR)
 +
@@ -30,19 +29,29 @@ index a48c04d..16184bf 100644
 +/etc/config/adguardhome
 +endef
 +
++include $(TOPDIR)/feeds/luci/luci.mk
++
 +define Package/luci-app-adguardhome/prerm
 +#!/bin/sh
-+rm -f /usr/bin/AdGuardHome
-+rm -rf /etc/adguardhome
++[ -n "$${IPKG_INSTROOT}" ] || {
++    logger -t luci-app-adguardhome "prerm triggered, action: $$1"
++    if [ "$$1" != "upgrade" ]; then
++        logger -t luci-app-adguardhome "Performing full uninstall, cleaning configuration..."
++        rm -rf /etc/adguardhome
++        rm -f /etc/config/adguardhome
++        rm -f /usr/bin/AdGuardHome
++    else
++        logger -t luci-app-adguardhome "Detected package upgrade, skipping configuration deletion."
++    fi
 +
-+sed -i '/adguardhome/d' /etc/passwd
-+sed -i '/adguardhome/d' /etc/group
-+
-+/etc/init.d/dnsmasq restart
-+
++    logger -t luci-app-adguardhome "Cleaning up system users/groups and cache..."
++    sed -i '/adguardhome/d' /etc/passwd
++    sed -i '/adguardhome/d' /etc/group
++    rm -f /tmp/luci-indexcache
++    /etc/init.d/dnsmasq restart
++    logger -t luci-app-adguardhome "prerm finished successfully."
++}
 +exit 0
 +endef
-+
-+include $(TOPDIR)/feeds/luci/luci.mk
-
-# call BuildPackage - OpenWrt buildroot signature
+ 
+ # call BuildPackage - OpenWrt buildroot signature
