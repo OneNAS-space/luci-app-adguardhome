@@ -1,17 +1,17 @@
-From 8f55fd0a1bde691679767a2030dc1cf5e3a35da1 Mon Sep 17 00:00:00 2001
+From 8dda9436fdf1966079d57bf371787311627f10e8 Mon Sep 17 00:00:00 2001
 From: Jackie264 <125248570+Jackie264@users.noreply.github.com>
-Date: Sun, 31 May 2026 16:55:26 +0800
+Date: Sun, 31 May 2026 18:32:03 +0800
 Subject: [PATCH] Update Makefile
 
 ---
- Makefile | 61 +++++++++++++++++++++++++++++++++++++++++++++++++++++---
- 1 file changed, 58 insertions(+), 3 deletions(-)
+ Makefile | 23 ++++++++++++++++++++---
+ 1 file changed, 20 insertions(+), 3 deletions(-)
 
 diff --git a/Makefile b/Makefile
-index a48c04d..3daace8 100644
+index a48c04d..2844434 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -7,10 +7,65 @@ LUCI_MAINTAINER:=George Sapkin <george@sapk.in>
+@@ -7,10 +7,27 @@ LUCI_MAINTAINER:=George Sapkin <george@sapk.in>
  PKG_LICENSE:=GPL-2.0-only
  
  LUCI_TITLE:=LuCI support for AdGuard Home
@@ -29,47 +29,9 @@ index a48c04d..3daace8 100644
 +/etc/config/adguardhome
 +endef
 +
-+LOCK_FILE:=/etc/adguardhome/.upgrading
-+
-+define Package/luci-app-adguardhome/preinst
-+#!/bin/sh
-+mkdir -p /etc/adguardhome
-+rm -f $(LOCK_FILE)
-+touch $(LOCK_FILE)
-+exit 0
-+endef
-+
 +define Package/luci-app-adguardhome/prerm
 +#!/bin/sh
-+# 检查标记：如果锁存在，说明是在做升级，保留配置
-+if [ -f "$(LOCK_FILE)" ]; then
-+    logger -t luci-app-adguardhome "Detected upgrade, preserving configuration."
-+    exit 0
-+fi
-+
-+# 否则是卸载，清空配置文件
-+logger -t luci-app-adguardhome "Performing full uninstall, cleaning configuration..."
-+rm -rf /etc/adguardhome
-+rm -f /etc/config/adguardhome
-+rm -f /usr/bin/AdGuardHome
-+
-+logger -t luci-app-adguardhome "Cleaning up system users/groups and cache..."
-+sed -i '/adguardhome/d' /etc/passwd
-+sed -i '/adguardhome/d' /etc/group
-+
-+[ -n "${IPKG_INSTROOT}" ] || { 
-+    rm -f /tmp/luci-indexcache.*
-+    rm -rf /tmp/luci-modulecache/
-+    /etc/init.d/rpcd reload 2>/dev/null
-+}
-+logger -t luci-app-adguardhome "prerm finished successfully."
-+exit 0
-+endef
-+
-+define Package/luci-app-adguardhome/postinst
-+#!/bin/sh
-+rm -f "$(LOCK_FILE)"
-+[ -n "${IPKG_INSTROOT}" ] || { 
++[ -n "$${IPKG_INSTROOT}" ] || { 
 +    rm -f /tmp/luci-indexcache.*
 +    rm -rf /tmp/luci-modulecache/
 +    /etc/init.d/rpcd reload 2>/dev/null
