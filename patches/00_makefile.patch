@@ -31,7 +31,7 @@ index a48c04d..a01b6aa 100644
 +
 +include $(TOPDIR)/feeds/luci/luci.mk
 +
-+define Package/luci-app-adguardhome/pre-deinstall
++define Package/luci-app-adguardhome/prerm
 +#!/bin/sh
 +[ -n "$${IPKG_INSTROOT}" ] || {
 +    logger -t luci-app-adguardhome "prerm triggered, action: $$1"
