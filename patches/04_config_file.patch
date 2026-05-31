@@ -1,25 +1,26 @@
-From 67dcdcfac068f2784a86ef0a1f6364939d15bbf0 Mon Sep 17 00:00:00 2001
+From 4909f945b89d248d9d3c6d63f70a9656a88b5836 Mon Sep 17 00:00:00 2001
 From: Jackie264 <125248570+Jackie264@users.noreply.github.com>
-Date: Fri, 29 May 2026 11:22:54 +0800
-Subject: [PATCH] Add configuration options for AdGuard Home
+Date: Sun, 31 May 2026 11:48:03 +0800
+Subject: [PATCH] Update adguardhome config
 
 ---
- root/etc/config/adguardhome | 7 +++++++
- 1 file changed, 7 insertions(+)
+ root/etc/config/adguardhome | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
 diff --git a/root/etc/config/adguardhome b/root/etc/config/adguardhome
-index 92d86e1..da77201 100644
+index 92d86e1..52b2372 100644
 --- a/root/etc/config/adguardhome
 +++ b/root/etc/config/adguardhome
-@@ -7,6 +7,13 @@ config adguardhome 'config'
+@@ -7,6 +7,14 @@ config adguardhome 'config'
  	option user 'adguardhome'
  	option group 'adguardhome'
  	option verbose '0'
 +	option enabled '0'
 +	option httpport '3008'
 +	option redirect 'none'
++	option core_version 'latest'
 +	option update_url 'https://static.adtidy.org/adguardhome/release/AdGuardHome_linux_${Arch}.tar.gz'
-+	list old_redirect 'dnsmasq-upstream'
++	list old_redirect 'none'
 +	list old_port '1745'
 +	list old_enabled '0'
  
