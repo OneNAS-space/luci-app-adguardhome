@@ -5,6 +5,7 @@
 'require fs';
 'require poll';
 'require rpc';
+'require uci';
 'require view';
 
 const DEFAULT_CONFIG_FILE = '/etc/adguardhome/adguardhome.yaml';
@@ -110,10 +111,34 @@ return view.extend({
 		return Promise.all([
 			getStatus(),
 			getVersion(),
+			uci.load('adguardhome').then(() => {
+				// 💡 动态安全取值：获取类型为 adguardhome 的所有 section
+				const sections = uci.sections('adguardhome', 'adguardhome');
+				// 取第一个 section，如果为空则给个空对象兜底
+				const sec = sections.length > 0 ? sections[0] : {};
+				const configFile = sec.config_file || DEFAULT_CONFIG_FILE;
+				return fs.read(configFile).catch(() => null);
+			})
 		]);
 	},
 
-	async render([isRunning, version]) {
+	async render([isRunning, version, yamlContent]) {
+		// 💡 纯前端正则解析：代替旧版 awk 提取 YAML 里的第二个 port (即 DNS 服务端口)
+		let dnsPort = '53';
+		if (yamlContent) {
+			const portMatches = yamlContent.match(/port:\s*(\d+)/g);
+			if (portMatches && portMatches.length >= 2) {
+				const actualPort = portMatches[1].match(/\d+/);
+				if (actualPort) {
+					dnsPort = actualPort[0];
+				}
+			}
+		}
+
+		// 💡 动态安全取值：UI 渲染需要用到 httpport 生成跳转链接
+		const sections = uci.sections('adguardhome', 'adguardhome');
+		const savedHttpPort = (sections.length > 0 && sections[0].httpport) ? sections[0].httpport : '3008';
+
 		const map = new form.Map('adguardhome', _('AdGuard Home'));
 
 		const statusSect = map.section(form.TypedSection, 'status');
@@ -136,16 +161,17 @@ return view.extend({
 			_('File System Access'),
 			_('Files and directories that AdGuard Home should have read-only or read-write access to.'),
 		);
+		mainSect.tab('dns_redirect', _('DNS Redirect Settings'));
+		mainSect.tab(
+			'core_update',
+			_('Core Update'),
+			_('Settings and operations for updating the AdGuardHome core binary.')
+		);
 		mainSect.tab(
 			'advanced',
 			_('Advanced Settings'),
 			_('Go environment variables that tune garbage collector and memory management.') +
 				' ' + _('Modify at your own risk.'),
-		);
-		mainSect.tab(
-			'core_update',
-			_('Core Update'),
-			_('Settings and operations for updating the AdGuardHome core binary.')
 		);
 
 		const configFileOpt = mainSect.taboption(
@@ -274,6 +300,44 @@ return view.extend({
 		memLimitOpt.depends('advanced_settings', '1');
 		memLimitOpt.placeholder = DEFAULT_GOMEMLIMIT;
 		memLimitOpt.retain = true;
+
+		// ==== 🎯 DNS 基础控制与重定向选项 ====
+		const enabledOpt = mainSect.taboption(
+			'dns_redirect',
+			form.Flag,
+			'enabled',
+			_('Enable')
+		);
+		enabledOpt.default = '0';
+		enabledOpt.rmempty = false;
+
+		const httpPortOpt = mainSect.taboption(
+			'dns_redirect',
+			form.Value,
+			'httpport',
+			_('WebUI management port')
+		);
+		httpPortOpt.placeholder = '3008';
+		httpPortOpt.default = '3008';
+		httpPortOpt.datatype = 'port';
+		httpPortOpt.rmempty = false;
+		httpPortOpt.description = _('WebUI port for AdGuard Home management interface.') + 
+			`<br /><a class="btn cbi-button cbi-button-link" style="font-weight:bold; display:inline-block; margin-top:5px;" href="http://${window.location.hostname}:${savedHttpPort}" target="_blank">${_('Open AdGuardHome WebUI')}</a>`;
+
+		const redirectOpt = mainSect.taboption(
+			'dns_redirect',
+			form.ListValue,
+			'redirect',
+			`${dnsPort} ` + _('Redirect'),
+			_('AdGuardHome redirect mode')
+		);
+		redirectOpt.value('none', _('No redirect'));
+		redirectOpt.value('dnsmasq-upstream', _('As the upstream server of dnsmasq'));
+		redirectOpt.value('redirect', _('Redirect port 53 to AdGuardHome'));
+		redirectOpt.value('exchange', _('Use port 53 to replace dnsmasq'));
+		redirectOpt.default = 'none';
+		redirectOpt.rmempty = false;
+		// ==========================================
 
 		// ======== Core Update 控件内容 ========
 		const coreVersionOpt = mainSect.taboption(

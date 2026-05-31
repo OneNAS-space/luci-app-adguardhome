@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 #
 # shellcheck disable=SC3043 # ash supports local
+. /usr/share/AdGuardHome/helper.sh
 
 # matches dnsmasq
 START=19
@@ -12,7 +13,6 @@ STOP=89
 PROG=/usr/bin/AdGuardHome
 USE_PROCD=1
 
-# 额外拓展指令集
 EXTRA_COMMANDS="do_redirect force_reload isrunning"
 EXTRA_HELP="\
 \tdo_redirect \t0 or 1\n\
@@ -22,28 +22,6 @@ EXTRA_HELP="\
 CONTROL_SCRIPT="/usr/share/AdGuardHome/control.sh"
 CRON_FILE=/etc/crontabs/root
 
-# 用于下发密码和修改端口的辅助函数
-config_editor() {
-	awk -v yaml="$1" -v value="$2" -v file="$3" -v ro="$4" '
-	BEGIN{split(yaml,part,"\.");s="";i=1;l=length(part);}
-	{
-		if (match($0,s""part[i]":")) {
-			if (i==l) {
-				split($0,t,": ");
-				if (ro==""){
-					system("sed -i '\''"FNR"c\\" t[1] ": " value "'\'' " file " >/dev/null 2>&1");
-				} else {
-					print(t[2]);
-				}
-				exit;
-			}
-			s=s"[- ]{2}";
-			i++;
-		}
-	}' "$3"
-}
-
-# 时区提取函数，确保沙箱容器内时间对齐
 get_tz() {
 	SET_TZ=""
 	local zonename
@@ -58,7 +36,6 @@ get_tz() {
 	[ -n "$tz" ] && SET_TZ=$tz && return
 }
 
-# 计划任务接管管道
 do_crontab() {
 	local enabled="$1"
 	local crontab="$2"
@@ -136,17 +113,17 @@ start_service() {
 	[ -n "$config" ] && config_file="$config"
 	[ -n "$workdir" ] && work_dir="$workdir"
 
-	# 处理 hashpass 明文下发及回刷清除
+	# Handle hashpass clear text issuance and back brush removal
 	if [ -n "$hashpass" ]; then
 		config_editor "users.password" "$hashpass" "$config_file"
 		uci set adguardhome."$config_name".hashpass=""
 		uci commit adguardhome
 	fi
 
-	# 下发计划任务变更
+	# Isse the plan task change
 	do_crontab "$enabled" "$crontab"
 
-	# 未启用则联动清理重定向防火墙规则并安全退出
+	# If it is not enabled, the linkage cleans up the redirection firewall rules and exits safely.
 	if [ "$enabled" = 0 ]; then
 		$CONTROL_SCRIPT 0
 		return 0
@@ -154,11 +131,7 @@ start_service() {
 
 	if [ "$user" = "adguardhome" ] && ! grep -q "^adguardhome:" /etc/passwd; then
 		echo "luci-app: User 'adguardhome' is missing, injecting UID 853 into system files..." >&2
-
-		# 1. 确保组存在，不存在则直接追加
 		grep -q "^adguardhome:" /etc/group || echo "adguardhome:x:853:" >> /etc/group
-
-		# 2. 直接向 passwd 追加用户（严格对应你 EQ12 上的标准格式）
 		echo "adguardhome:x:853:853:adguardhome:/var/run/adguardhome:/bin/false" >> /etc/passwd
 	fi
 
@@ -174,7 +147,7 @@ start_service() {
 	mkdir -m 0700 -p "$work_dir"
 	chown -R "$user":"$group" "$work_dir"
 
-	# 核心缺失时静默降级并呼叫核心下载脚本
+	# Silently downgrade and call the kernel download script when the kernel is missing.
 	if [ ! -f "$PROG" ]; then
 		$CONTROL_SCRIPT 0
 		/usr/share/AdGuardHome/update_core.sh >/tmp/AdGuardHome_update.log 2>&1 &
@@ -189,7 +162,6 @@ start_service() {
 	[ "$maxprocs" -le 0 ] || procd_append_param env GOMAXPROCS="$maxprocs"
 	[ "$memlimit" -le 0 ] || procd_append_param env GOMEMLIMIT="$memlimit"
 
-	# 为隔离沙箱装载精确的时区环境变量
 	local SET_TZ
 	get_tz
 	[ -n "$SET_TZ" ] && procd_append_param env TZ="$SET_TZ"
@@ -200,6 +172,7 @@ start_service() {
 	[ "$verbose" = 1 ] && procd_append_param command --verbose
 	procd_append_param command --work-dir "$work_dir"
 
+	procd_set_param file /etc/config/adguardhome "$config_file"
 	procd_set_param stdout 1
 	procd_set_param stderr 1
 	procd_set_param user "$user"
@@ -225,7 +198,7 @@ start_service() {
 
 	procd_close_instance
 
-	# 主进程成功提交启动后，开始异步介入接管控制
+	# After the main process is successfully submitted for start-up, it begins to intervene asynchronously and take over the control.
 	if [ -f "$config_file" ]; then
 		($CONTROL_SCRIPT 1) &
 	else
@@ -237,11 +210,9 @@ start_service() {
 		fi
 	fi
 
-	# 10秒看门狗防护：如果主进程异常崩塌，自动熔断重定向，避免全网断网
 	(sleep 10 && [ -z "$(pgrep -f "$(basename "$PROG")")" ] && logger -t adguardhome "no process in 10s cancel redirect" && $CONTROL_SCRIPT 0 ) &
 }
 
-# 必须注入显式的服务中止钩子，用于平滑清理 nft 规则 and crontab
 stop_service() {
 	config_load 'adguardhome'
 	local config_name='config'

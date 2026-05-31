@@ -1,31 +1,12 @@
 #!/bin/sh
 # /usr/share/AdGuardHome/control.sh
+. /usr/share/AdGuardHome/helper.sh
 
 ENABLED="$1" 
 CONFIGURATION="adguardhome"
 NFT_RULES_TPL="/usr/share/AdGuardHome/adguardhome.nft.tpl"
 NFT_RULES_FILE="/var/etc/adguardhome.nft"
 NFT_TABLE="adguardhome"
-
-config_editor() {
-    awk -v yaml="$1" -v value="$2" -v file="$3" -v ro="$4" '
-    BEGIN{split(yaml,part,"\.");s="";i=1;l=length(part);}
-    {
-        if (match($0,s""part[i]":")) {
-            if (i==l) {
-                split($0,t,": ");
-                if (ro==""){
-                    system("sed -i '\''"FNR"c\\" t[1] ": " value "'\'' " file " >/dev/null 2>&1");
-                } else {
-                    print(t[2]);
-                }
-                exit;
-            }
-            s=s"[- ]{2}";
-            i++;
-        }
-    }' "$3"
-}
 
 set_nft_redirect() {
     local port="$1"
@@ -94,6 +75,10 @@ stop_forward_dnsmasq() {
     /etc/init.d/dnsmasq restart >/dev/null 2>&1
 }
 
+agh_reload() {
+    ubus call service event '{"type":"config.change","data":{"package":"adguardhome"}}' >/dev/null 2>&1
+}
+
 rm_port53() {
     local configpath
     configpath=$(uci -q get adguardhome.config.config_file)
@@ -115,7 +100,7 @@ rm_port53() {
     uci commit dhcp
 
     /etc/init.d/dnsmasq restart
-    ubus call service event '{"type":"config.change","data":{"package":"adguardhome"}}' >/dev/null 2>&1
+    agh_reload
 }
 
 use_port53() {
@@ -138,7 +123,7 @@ use_port53() {
     uci set dhcp.@dnsmasq[0].port="$adguardhome_PORT"
     uci commit dhcp
     /etc/init.d/dnsmasq restart
-    ubus call service event '{"type":"config.change","data":{"package":"adguardhome"}}' >/dev/null 2>&1
+    agh_reload
 }
 
 mark_redirect_flag() {
