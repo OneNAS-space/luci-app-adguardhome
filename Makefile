@@ -18,19 +18,29 @@ define Package/luci-app-adguardhome/conffiles
 /etc/config/adguardhome
 endef
 
+include $(TOPDIR)/feeds/luci/luci.mk
+
 define Package/luci-app-adguardhome/prerm
 #!/bin/sh
-rm -f /usr/bin/AdGuardHome
-rm -rf /etc/adguardhome
+[ -n "$${IPKG_INSTROOT}" ] || {
+    logger -t luci-app-adguardhome "prerm triggered, action: $$1"
+    if [ "$$1" != "upgrade" ]; then
+        logger -t luci-app-adguardhome "Performing full uninstall, cleaning configuration..."
+        rm -rf /etc/adguardhome
+        rm -f /etc/config/adguardhome
+        rm -f /usr/bin/AdGuardHome
+    else
+        logger -t luci-app-adguardhome "Detected package upgrade, skipping configuration deletion."
+    fi
 
-sed -i '/adguardhome/d' /etc/passwd
-sed -i '/adguardhome/d' /etc/group
-
-/etc/init.d/dnsmasq restart
-
+    logger -t luci-app-adguardhome "Cleaning up system users/groups and cache..."
+    sed -i '/adguardhome/d' /etc/passwd
+    sed -i '/adguardhome/d' /etc/group
+    rm -f /tmp/luci-indexcache
+    /etc/init.d/dnsmasq restart
+    logger -t luci-app-adguardhome "prerm finished successfully."
+}
 exit 0
 endef
-
-include $(TOPDIR)/feeds/luci/luci.mk
 
 # call BuildPackage - OpenWrt buildroot signature
