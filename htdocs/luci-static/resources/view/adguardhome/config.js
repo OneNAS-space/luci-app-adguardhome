@@ -324,6 +324,36 @@ return view.extend({
 		httpPortOpt.description = _('WebUI port for AdGuard Home management interface.') + 
 			`<br /><a class="btn cbi-button cbi-button-link" style="font-weight:bold; display:inline-block; margin-top:5px;" href="http://${window.location.hostname}:${savedHttpPort}" target="_blank">${_('Open AdGuardHome WebUI')}</a>`;
 
+		// ==== 🎯 移植修改密码功能到 WebUI 端口下方 ====
+		const hashPassOpt = mainSect.taboption(
+			'dns_redirect',
+			form.Value,
+			'hashpass',
+			_('Change WebUI management password'),
+			_('Press load calculate model and calculate finally save/apply')
+		);
+		hashPassOpt.default = '';
+		hashPassOpt.datatype = 'string';
+		hashPassOpt.password = true;
+		hashPassOpt.rmempty = true;
+
+		hashPassOpt.cfgvalue = function(section_id) {
+			return '';
+		};
+		// 用于呈现“计算哈希”按钮的占位控件
+		const hashBtnOpt = mainSect.taboption(
+			'dns_redirect',
+			form.DummyValue,
+			'_hash_btn'
+		);
+		hashBtnOpt.rawhtml = true;
+		hashBtnOpt.cfgvalue = () => `
+			<button class="btn cbi-button cbi-button-apply" type="button" id="btn-agh-calc-hash">
+				${_('Load calculate model')}
+			</button>
+		`;
+		// ==========================================
+
 		const redirectOpt = mainSect.taboption(
 			'dns_redirect',
 			form.ListValue,
@@ -479,7 +509,67 @@ return view.extend({
 			} else if (e.target && e.target.id === 'btn-agh-force') {
 				e.preventDefault();
 				applyUpdate(true);
+			} 
+			// ==== 🎯 处理前端哈希加密逻辑 ====
+			else if (e.target && e.target.id === 'btn-agh-calc-hash') {
+				e.preventDefault();
+				const btn = e.target;
+
+				// 动态查找页面上的密码输入框 (匹配后缀为 .hashpass 的元素)
+				const inputs = rendered.querySelectorAll('input[type="text"], input[type="password"]');
+				let passInput = null;
+				for (const el of inputs) {
+					if (el.id && el.id.endsWith('.hashpass')) {
+						passInput = el;
+						break;
+					}
+				}
+
+				if (!passInput) return;
+
+				// 1. 如果没有加载过 JS，则动态加载
+				if (typeof window.TwinBcrypt === 'undefined') {
+					btn.disabled = true;
+					btn.textContent = _('Loading...');
+					
+					const script = document.createElement('script');
+					// LuCI 会自动把 L.resource 转换成正确的静态资源路径
+					script.src = L.resource('view/adguardhome/twin-bcrypt.min.js');
+					script.type = 'text/javascript';
+					
+					script.onload = () => {
+						btn.textContent = _('Calculate');
+						btn.disabled = false;
+					};
+					script.onerror = () => {
+						btn.textContent = _('Load Error');
+						btn.disabled = false;
+					};
+					document.head.appendChild(script);
+				} 
+				// 2. 如果已经加载，则执行计算
+				else {
+					if (passInput.value) {
+						// 防止对已哈希的字符串重复哈希 ($2a$ 或 $2y$ 开头)
+						if (passInput.value.startsWith('$2a$') || passInput.value.startsWith('$2y$')) {
+							btn.textContent = _('Already hashed');
+							return;
+						}
+						
+						const hash = window.TwinBcrypt.hashSync(passInput.value);
+						passInput.value = hash;
+						
+						// 手动触发原生的 input 和 change 事件，让 LuCI 认为该字段被修改过，从而触发保存
+						passInput.dispatchEvent(new Event('input', { bubbles: true }));
+						passInput.dispatchEvent(new Event('change', { bubbles: true }));
+						
+						btn.textContent = _('Please save/apply');
+					} else {
+						btn.textContent = _('Is empty');
+					}
+				}
 			}
+			// ==========================================
 		});
 
 		Promise.all([
