@@ -355,13 +355,14 @@ return view.extend({
 
 		const coreUrlOpt = mainSect.taboption(
 			'core_update',
-			form.Value,
+			form.ListValue,
 			'update_url',
-			_('Core-bin Update URL'),
-			_('Customize the download link if needed. Variables like ${Cloud_Version} and ${Arch} can be used.')
+			_('Update URL'),
+			_('Select the download link for the core update.')
 		);
-		coreUrlOpt.default = 'https://github.com/AdguardTeam/AdGuardHome/releases/download/${Cloud_Version}/AdGuardHome_linux_${Arch}.tar.gz';
-		coreUrlOpt.placeholder = coreUrlOpt.default;
+		coreUrlOpt.value('https://static.adtidy.org/adguardhome/release/AdGuardHome_linux_${Arch}.tar.gz', _('Official Static Mirror (AdTidy - Recommended)'));
+		coreUrlOpt.value('https://github.com/AdguardTeam/AdGuardHome/releases/download/${Cloud_Version}/AdGuardHome_linux_${Arch}.tar.gz', _('GitHub Releases (Original)'));
+		coreUrlOpt.default = 'https://static.adtidy.org/adguardhome/release/AdGuardHome_linux_${Arch}.tar.gz';
 		coreUrlOpt.rmempty = false;
 		coreUrlOpt.depends('enable_core_update', '1');
 		coreUrlOpt.retain = true;
