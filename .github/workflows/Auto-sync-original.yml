@@ -118,7 +118,8 @@ jobs:
             07_update_core.patch
             08_control.patch
             09_watchconfig.patch
-            10_AGH_yaml.patch
+            10_yaml_helper.patch
+            11_AGH_yaml.patch
           "
 
           for patch_file in $PATCH_LIST; do
