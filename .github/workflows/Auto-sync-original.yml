@@ -111,8 +111,8 @@ jobs:
             00_makefile.patch
             01_init.patch
             02_acl.patch
-            03_config.patch
-            04_config_file.patch
+            03_config_js.patch
+            04_etc_config.patch
             05_nft_tpl.patch
             06_nft.patch
             07_update_core.patch
