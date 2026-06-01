@@ -301,7 +301,7 @@ return view.extend({
 		memLimitOpt.placeholder = DEFAULT_GOMEMLIMIT;
 		memLimitOpt.retain = true;
 
-		// ==== 🎯 DNS 基础控制与重定向选项 ====
+		// ==== DNS basic control and redirection options ====
 		const enabledOpt = mainSect.taboption(
 			'dns_redirect',
 			form.Flag,
@@ -315,7 +315,7 @@ return view.extend({
 			'dns_redirect',
 			form.Value,
 			'httpport',
-			_('WebUI management port')
+			_('WebUI port')
 		);
 		httpPortOpt.placeholder = '3008';
 		httpPortOpt.default = '3008';
@@ -324,22 +324,23 @@ return view.extend({
 		httpPortOpt.description = _('WebUI port for AdGuard Home management interface.') + 
 			`<br /><a class="btn cbi-button cbi-button-link" style="font-weight:bold; display:inline-block; margin-top:5px;" href="http://${window.location.hostname}:${savedHttpPort}" target="_blank">${_('Open AdGuardHome WebUI')}</a>`;
 
-		// ==== 🎯 移植修改密码功能到 WebUI 端口下方 ====
+		// ==== Add the password modification function below the WebUI port ====
+		const isPasswordEmpty = yamlContent ? /password:[ \t]*(\r?\n|$)/.test(yamlContent) : false;
 		const hashPassOpt = mainSect.taboption(
 			'dns_redirect',
 			form.Value,
 			'hashpass',
 			_('Change password'),
-			_('Press load calculate model and calculate finally save/apply') + 
+			_('Enter the password here. Click the Load calculate Module button below and go on.') + 
 			'<br /><button class="btn cbi-button cbi-button-apply" type="button" id="btn-agh-calc-hash" style="display:inline-block; margin-top:5px;">' +
-				_('Load calculate Module') + 
+				_(' ... Load calculate Module ... ') + 
 			'</button>'
 		);
 		hashPassOpt.default = '';
 		hashPassOpt.datatype = 'string';
 		hashPassOpt.password = true;
 		hashPassOpt.rmempty = true;
-
+		hashPassOpt.placeholder = isPasswordEmpty ? _('Please create a new password.') : '';
 		hashPassOpt.cfgvalue = function(section_id) {
 			return '';
 		};
@@ -359,7 +360,7 @@ return view.extend({
 		redirectOpt.rmempty = false;
 		// ==========================================
 
-		// ======== Core Update 控件内容 ========
+		// ======== Core Update Control content ========
 		const coreVersionOpt = mainSect.taboption(
 			'core_update',
 			form.ListValue,
@@ -411,7 +412,7 @@ return view.extend({
 		const statusNode = map.findElement('data-field', statusOpt.cbid('status_section'));
 		poll.add(updateStatus(statusNode), POLL_INTERVAL);
 
-		// ========== 更新状态机与轮询逻辑 =========
+		// ========== Update the status and polling logic =========
 		let updatePollId = null;
 
 		function startLogPolling() {
@@ -500,12 +501,12 @@ return view.extend({
 				e.preventDefault();
 				applyUpdate(true);
 			} 
-			// ==== 🎯 处理前端哈希加密逻辑 ====
+			// ==== Handle front-end hash encryption logic ====
 			else if (e.target && e.target.id === 'btn-agh-calc-hash') {
 				e.preventDefault();
 				const btn = e.target;
 
-				// 动态查找页面上的密码输入框 (匹配后缀为 .hashpass 的元素)
+				// Dynamically find the password input box on the page (matching elements with the suffix .hashpass)
 				const inputs = rendered.querySelectorAll('input[type="text"], input[type="password"]');
 				let passInput = null;
 				for (const el of inputs) {
@@ -517,13 +518,12 @@ return view.extend({
 
 				if (!passInput) return;
 
-				// 1. 如果没有加载过 JS，则动态加载
+				// 1. If JS has not been loaded, it will be loaded dynamically.
 				if (typeof window.TwinBcrypt === 'undefined') {
 					btn.disabled = true;
 					btn.textContent = _('Loading...');
 					
 					const script = document.createElement('script');
-					// LuCI 会自动把 L.resource 转换成正确的静态资源路径
 					script.src = L.resource('view/adguardhome/twin-bcrypt.min.js');
 					script.type = 'text/javascript';
 					
@@ -537,10 +537,10 @@ return view.extend({
 					};
 					document.head.appendChild(script);
 				} 
-				// 2. 如果已经加载，则执行计算
+				// 2. If JS has been loaded, the calculation will be executed.
 				else {
 					if (passInput.value) {
-						// 防止对已哈希的字符串重复哈希 ($2a$ 或 $2y$ 开头)
+						// Prevent repeated hashing of hashed strings (starting with $2a$ or $2y$)
 						if (passInput.value.startsWith('$2a$') || passInput.value.startsWith('$2y$')) {
 							btn.textContent = _('Calculation already DONE !');
 							return;
@@ -549,13 +549,13 @@ return view.extend({
 						const hash = window.TwinBcrypt.hashSync(passInput.value);
 						passInput.value = hash;
 						
-						// 手动触发原生的 input 和 change 事件，让 LuCI 认为该字段被修改过，从而触发保存
+						// Manually trigger native input and change events
 						passInput.dispatchEvent(new Event('input', { bubbles: true }));
 						passInput.dispatchEvent(new Event('change', { bubbles: true }));
 						
-						btn.textContent = _(' Press Save/Apply ... ↘️ ');
+						btn.textContent = _(' ... Click Save/Apply ↘️ ... ');
 					} else {
-						btn.textContent = _(' ... Nothing input yet ... ');
+						btn.textContent = _(' ... Nothing inputted yet ... ');
 					}
 				}
 			}
