@@ -311,18 +311,47 @@ return view.extend({
 		enabledOpt.default = '0';
 		enabledOpt.rmempty = false;
 
-		const httpPortOpt = mainSect.taboption(
+		// 💡 1. Extract the real listening address and port directly from YAML
+		let realHttpAddress = '0.0.0.0:3008';
+		if (yamlContent) {
+			// Match the address: field below http: in YAML
+			const addrMatch = yamlContent.match(/address:\s*([^\s]+)/);
+			if (addrMatch && addrMatch[1]) {
+				realHttpAddress = addrMatch[1];
+			}
+		}
+
+		// 💡 2. Analyze the real IP and port used by the jump button
+		let linkIp = window.location.hostname;
+		let linkPort = '3008';
+		const addrParts = realHttpAddress.split(':');
+		if (addrParts.length >= 2) {
+			linkPort = addrParts.pop();
+			let ipPart = addrParts.join(':').replace(/\[|\]/g, '');
+			// If the binding is a full zero address, the IP accessed by the current router will be returned.
+			if (ipPart !== '0.0.0.0' && ipPart !== '') {
+				linkIp = ipPart;
+			}
+		}
+
+		// 💡 3. Upgrade the original httpport to http_address
+		const httpAddressOpt = mainSect.taboption(
 			'dns_redirect',
 			form.Value,
-			'httpport',
-			_('WebUI port')
+			'http_address',
+			_('WebUI Bind Address'),
+			_('Format: IP:Port (e.g., 0.0.0.0:3008). Leave as 0.0.0.0 to listen on all interfaces.') + 
+			`<br /><a class="btn cbi-button cbi-button-link" style="font-weight:bold; display:inline-block; margin-top:5px;" href="http://${linkIp}:${linkPort}" target="_blank">${_('Open AdGuardHome WebUI')}</a>`
 		);
-		httpPortOpt.placeholder = '3008';
-		httpPortOpt.default = '3008';
-		httpPortOpt.datatype = 'port';
-		httpPortOpt.rmempty = false;
-		httpPortOpt.description = _('WebUI port for AdGuard Home management interface.') + 
-			`<br /><a class="btn cbi-button cbi-button-link" style="font-weight:bold; display:inline-block; margin-top:5px;" href="http://${window.location.hostname}:${savedHttpPort}" target="_blank">${_('Open AdGuardHome WebUI')}</a>`;
+		httpAddressOpt.placeholder = '0.0.0.0:3008';
+		httpAddressOpt.default = '0.0.0.0:3008';
+		httpAddressOpt.datatype = 'hostport';
+		httpAddressOpt.rmempty = false;
+
+		// 🎯 Overwrite the default reading UCI behavior and forcibly echo the real value in YAML
+		httpAddressOpt.cfgvalue = function(section_id) {
+			return realHttpAddress;
+		};
 
 		// ==== Add the password modification function below the WebUI port ====
 		const isPasswordEmpty = yamlContent ? /password:[ \t]*(\r?\n|$)/.test(yamlContent) : false;

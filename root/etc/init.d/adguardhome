@@ -107,7 +107,8 @@ start_service() {
 		'enabled:bool:0' \
 		'hashpass:string' \
 		'crontab:string' \
-		'redirect:string:none'
+		'redirect:string:none' \
+		'http_address:string'
 
 	# Compatibility with older configs
 	[ -n "$config" ] && config_file="$config"
@@ -117,6 +118,13 @@ start_service() {
 	if [ -n "$hashpass" ]; then
 		config_editor "users.password" "$hashpass" "$config_file"
 		uci set adguardhome."$config_name".hashpass=""
+		uci commit adguardhome
+	fi
+
+	# Synchronize the front-end incing WebUI listening address to YAML
+	if [ -n "$http_address" ]; then
+		config_editor "http.address" "$http_address" "$config_file"
+		uci set adguardhome."$config_name".http_address=""
 		uci commit adguardhome
 	fi
 
