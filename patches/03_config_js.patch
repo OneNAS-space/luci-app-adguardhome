@@ -1,15 +1,15 @@
-From 4469e4ac69868c1604253429bd7e5e8aefe1eb4b Mon Sep 17 00:00:00 2001
+From a78e51642469f10128ca893f04bc32960aa16fa4 Mon Sep 17 00:00:00 2001
 From: Jackie264 <125248570+Jackie264@users.noreply.github.com>
-Date: Mon, 1 Jun 2026 10:18:54 +0800
-Subject: [PATCH] Enhance AdGuard Home config with core update features
+Date: Mon, 1 Jun 2026 15:32:20 +0800
+Subject: [PATCH] Implement core update controls in config.js
 
-Added core update control options and functionality.
+Add core update functionality and UI elements
 ---
- .../resources/view/adguardhome/config.js      | 320 +++++++++++++++++-
- 1 file changed, 319 insertions(+), 1 deletion(-)
+ .../resources/view/adguardhome/config.js      | 349 +++++++++++++++++-
+ 1 file changed, 348 insertions(+), 1 deletion(-)
 
 diff --git a/htdocs/luci-static/resources/view/adguardhome/config.js b/htdocs/luci-static/resources/view/adguardhome/config.js
-index 6dc2d45..c3922bc 100644
+index 6dc2d45..4e513ac 100644
 --- a/htdocs/luci-static/resources/view/adguardhome/config.js
 +++ b/htdocs/luci-static/resources/view/adguardhome/config.js
 @@ -5,6 +5,7 @@
@@ -102,7 +102,7 @@ index 6dc2d45..c3922bc 100644
  		mainSect.taboption('jail', form.DynamicList, 'jail_mount', _('Read-only access'));
  		mainSect.taboption('jail', form.DynamicList, 'jail_mount_rw', _('Read-write access'));
  
-@@ -251,11 +301,279 @@ return view.extend({
+@@ -251,11 +301,308 @@ return view.extend({
  		memLimitOpt.placeholder = DEFAULT_GOMEMLIMIT;
  		memLimitOpt.retain = true;
  
@@ -116,18 +116,47 @@ index 6dc2d45..c3922bc 100644
 +		enabledOpt.default = '0';
 +		enabledOpt.rmempty = false;
 +
-+		const httpPortOpt = mainSect.taboption(
++		// 💡 1. Extract the real listening address and port directly from YAML
++		let realHttpAddress = '0.0.0.0:3008';
++		if (yamlContent) {
++			// Match the address: field below http: in YAML
++			const addrMatch = yamlContent.match(/address:\s*([^\s]+)/);
++			if (addrMatch && addrMatch[1]) {
++				realHttpAddress = addrMatch[1];
++			}
++		}
++
++		// 💡 2. Analyze the real IP and port used by the jump button
++		let linkIp = window.location.hostname;
++		let linkPort = '3008';
++		const addrParts = realHttpAddress.split(':');
++		if (addrParts.length >= 2) {
++			linkPort = addrParts.pop();
++			let ipPart = addrParts.join(':').replace(/\[|\]/g, '');
++			// If the binding is a full zero address, the IP accessed by the current router will be returned.
++			if (ipPart !== '0.0.0.0' && ipPart !== '') {
++				linkIp = ipPart;
++			}
++		}
++
++		// 💡 3. Upgrade the original httpport to http_address
++		const httpAddressOpt = mainSect.taboption(
 +			'dns_redirect',
 +			form.Value,
-+			'httpport',
-+			_('WebUI port')
++			'http_address',
++			_('WebUI Bind Address'),
++			_('Format: IP:Port (e.g., 0.0.0.0:3008). Leave as 0.0.0.0 to listen on all interfaces.') + 
++			`<br /><a class="btn cbi-button cbi-button-link" style="font-weight:bold; display:inline-block; margin-top:5px;" href="http://${linkIp}:${linkPort}" target="_blank">${_('Open AdGuardHome WebUI')}</a>`
 +		);
-+		httpPortOpt.placeholder = '3008';
-+		httpPortOpt.default = '3008';
-+		httpPortOpt.datatype = 'port';
-+		httpPortOpt.rmempty = false;
-+		httpPortOpt.description = _('WebUI port for AdGuard Home management interface.') + 
-+			`<br /><a class="btn cbi-button cbi-button-link" style="font-weight:bold; display:inline-block; margin-top:5px;" href="http://${window.location.hostname}:${savedHttpPort}" target="_blank">${_('Open AdGuardHome WebUI')}</a>`;
++		httpAddressOpt.placeholder = '0.0.0.0:3008';
++		httpAddressOpt.default = '0.0.0.0:3008';
++		httpAddressOpt.datatype = 'hostport';
++		httpAddressOpt.rmempty = false;
++
++		// 🎯 Overwrite the default reading UCI behavior and forcibly echo the real value in YAML
++		httpAddressOpt.cfgvalue = function(section_id) {
++			return realHttpAddress;
++		};
 +
 +		// ==== Add the password modification function below the WebUI port ====
 +		const isPasswordEmpty = yamlContent ? /password:[ \t]*(\r?\n|$)/.test(yamlContent) : false;
