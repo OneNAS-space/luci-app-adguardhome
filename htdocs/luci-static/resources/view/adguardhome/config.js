@@ -25,10 +25,7 @@ const RUNNING_SPAN = `<span style="color: var(--success-color-high); font-weight
 const NOT_RUNNING_SPAN = `<span style="color: var(--error-color-high); font-weight: bold">${_('Not running')}</span>`;
 
 const STORAGE_KEY = 'luci-app-adguardhome';
-
-// ==== 新增专用KEY ====
 const STORAGE_KEY_CORE = 'luci-app-adguardhome_core_update';
-// ===================
 
 function getServiceInfo(name) {
 	const fn = rpc.declare({
@@ -66,7 +63,7 @@ async function getVersion() {
 		return version;
 	} catch (e) {
 		console.error(e);
-		return 'unknown version';
+		return '';
 	}
 }
 
@@ -112,9 +109,7 @@ return view.extend({
 			getStatus(),
 			getVersion(),
 			uci.load('adguardhome').then(() => {
-				// 💡 动态安全取值：获取类型为 adguardhome 的所有 section
 				const sections = uci.sections('adguardhome', 'adguardhome');
-				// 取第一个 section，如果为空则给个空对象兜底
 				const sec = sections.length > 0 ? sections[0] : {};
 				const configFile = sec.config_file || DEFAULT_CONFIG_FILE;
 				return fs.read(configFile).catch(() => null);
@@ -123,7 +118,8 @@ return view.extend({
 	},
 
 	async render([isRunning, version, yamlContent]) {
-		// 💡 纯前端正则解析：代替旧版 awk 提取 YAML 里的第二个 port (即 DNS 服务端口)
+		// 有版本号说明核心存在，没版本号就是不存在
+		const coreExists = Boolean(version);
 		let dnsPort = '53';
 		if (yamlContent) {
 			const portMatches = yamlContent.match(/port:\s*(\d+)/g);
@@ -146,7 +142,8 @@ return view.extend({
 		statusSect.cfgsections = () => ['status_section'];
 
 		const versionOpt = statusSect.option(form.DummyValue, '_version', _('Version'));
-		versionOpt.cfgvalue = () => version;
+		versionOpt.cfgvalue = () => version || `<span style="color: var(--error-color-high); font-weight: bold;">${_('Not installed')}</span>`;
+        versionOpt.rawhtml = true;
 
 		const statusOpt = statusSect.option(form.DummyValue, '_status', _('Service Status'));
 		statusOpt.rawhtml = true;
@@ -161,7 +158,7 @@ return view.extend({
 			_('File System Access'),
 			_('Files and directories that AdGuard Home should have read-only or read-write access to.'),
 		);
-		mainSect.tab('dns_redirect', _('DNS Redirect Settings'));
+		mainSect.tab('dns_redirect', _('Services Settings'));
 		mainSect.tab(
 			'core_update',
 			_('Core Update'),
@@ -173,6 +170,20 @@ return view.extend({
 			_('Go environment variables that tune garbage collector and memory management.') +
 				' ' + _('Modify at your own risk.'),
 		);
+
+		// ==== 移动至此：全局启用开关 ====
+		const enabledOpt = mainSect.taboption(
+			'general',
+			form.Flag,
+			'enabled',
+			_('Enable')
+		);
+		enabledOpt.default = '0';
+		enabledOpt.rmempty = false;
+		// 如果核心不存在，追加警告提示引导用户开启服务以自动下载
+		if (!coreExists) {
+			enabledOpt.description = `<span style="color: var(--error-color-high); font-weight: bold;">${_('Core binary not found. Enable the service to trigger an automatic download.')}</span>`;
+		}
 
 		const configFileOpt = mainSect.taboption(
 			'general',
@@ -301,16 +312,6 @@ return view.extend({
 		memLimitOpt.placeholder = DEFAULT_GOMEMLIMIT;
 		memLimitOpt.retain = true;
 
-		// ==== DNS basic control and redirection options ====
-		const enabledOpt = mainSect.taboption(
-			'dns_redirect',
-			form.Flag,
-			'enabled',
-			_('Enable')
-		);
-		enabledOpt.default = '0';
-		enabledOpt.rmempty = false;
-
 		// 💡 1. Extract the real listening address and port directly from YAML
 		let realHttpAddress = '0.0.0.0:3008';
 		if (yamlContent) {
@@ -335,13 +336,24 @@ return view.extend({
 		}
 
 		// 💡 3. Upgrade the original httpport to http_address
+		const isServiceEnabled = sections.length > 0 && sections[0].enabled === '1';
+		const disabledHint = _('Service is disabled. Please go to "General Settings" to enable it.');
+
+		// 💡 4. 构造智能状态的 WebUI 按钮 HTML
+		const webuiBtnHtml = isServiceEnabled
+			? `<a class="btn cbi-button cbi-button-link" style="font-weight:bold; display:inline-block; margin-top:5px;" href="http://${linkIp}:${linkPort}" target="_blank">${_('Open AdGuardHome WebUI')}</a>`
+			: `<span title='${disabledHint}' style="display:inline-block; margin-top:5px; cursor:not-allowed;">
+					<a class="btn cbi-button cbi-button-link" style="font-weight:bold; pointer-events:none; opacity:0.5; margin-top:0;" href="javascript:void(0);">${_('Open AdGuardHome WebUI')}</a>
+			   </span>`;
+
+		// 💡 5. 渲染组件
 		const httpAddressOpt = mainSect.taboption(
 			'dns_redirect',
 			form.Value,
 			'http_address',
 			_('WebUI Bind Address'),
 			_('Format: IP:Port (e.g., 0.0.0.0:3008). Leave as 0.0.0.0 to listen on all interfaces.') + 
-			`<br /><a class="btn cbi-button cbi-button-link" style="font-weight:bold; display:inline-block; margin-top:5px;" href="http://${linkIp}:${linkPort}" target="_blank">${_('Open AdGuardHome WebUI')}</a>`
+			`<br />${webuiBtnHtml}`
 		);
 		httpAddressOpt.placeholder = '0.0.0.0:3008';
 		httpAddressOpt.default = '0.0.0.0:3008';
