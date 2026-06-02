@@ -3,28 +3,20 @@ permissions:
 name: Build luci-app-adguardhome Package
 
 on:
-  workflow_run:
-    workflows: ["Auto sync and sanitize upstream repo"]
-    types:
-      - completed
-      
   push:
     branches:
       - main
-    paths:
-      - 'Makefile'
-      - '!**/patches/**'
-      - '!**/.github/**'
-      - '!README.md'
-      - '!LICENSE'
-      - '!SECURITY.md'
-      - '!.upstream_meta'
+    paths-ignore:
+      - '.github/**'
+      - '.upstream_meta'
+      - 'README.md'
+      - 'LICENSE'
+      - 'SECURITY.md'
   workflow_dispatch:
 
 jobs:
   check:
     name: 1. Resolve Version
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:
       should_build: ${{ steps.check_release.outputs.should_build }}
@@ -87,9 +79,6 @@ jobs:
             target: x86_64
             suffix: noarch
 
-    outputs:
-      version: ${{ steps.patch_version.outputs.version }}
-
     steps:
       - name: 🧾 Checkout repo
         uses: actions/checkout@v6
@@ -132,7 +121,6 @@ jobs:
           sed -i "/^LUCI_NAME/a PKG_VERSION:=${OFFICIAL_VERSION}" "$MF"
 
           echo "✅ Patched Makefile metadata:"
-          echo "version=${{ needs.check.outputs.tag_name }}" >> $GITHUB_OUTPUT
           echo "--- 📄 Full Makefile Content Preview ---"
           cat "$MF"
           
@@ -176,6 +164,7 @@ jobs:
   release:
     name: 3. Release & Deploy ${{ github.repository }}
     needs: [check, build]
+    if: needs.check.outputs.should_build == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -190,8 +179,8 @@ jobs:
       - name: 🗃️ Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ needs.build.outputs.version }}
-          name: Build-${{ needs.build.outputs.version }}
+          tag_name: ${{ needs.check.outputs.tag_name }}
+          name: Build-${{ needs.check.outputs.tag_name }}
           files: |
             ./release-assets/**/*.ipk
             ./release-assets/**/*.apk
