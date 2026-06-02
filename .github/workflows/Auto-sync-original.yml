@@ -12,6 +12,9 @@ on:
     paths:
       - '!**/patches/**'
       - '!**/.github/**'
+      - '!README.md'
+      - '!LICENSE'
+      - '!SECURITY.md'
 
 env:
   TZ: Asia/Shanghai
