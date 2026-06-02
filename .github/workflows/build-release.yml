@@ -18,6 +18,7 @@ on:
       - '!README.md'
       - '!LICENSE'
       - '!SECURITY.md'
+      - '!.upstream_meta'
   workflow_dispatch:
 
 jobs:
@@ -114,6 +115,7 @@ jobs:
             --exclude='patches' \
             --exclude='SECURITY.md' \
             --exclude='README.md' \
+            --exclude='.upstream_meta' \
             ./ feed/luci/applications/${PKG_NAME}/
 
       - name: 🩹 Patch Makefile with dynamic version
