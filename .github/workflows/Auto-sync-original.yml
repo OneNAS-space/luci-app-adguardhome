@@ -23,20 +23,17 @@ jobs:
   sync-and-sanitize:
     runs-on: ubuntu-latest
     steps:
-      # 1. 检出当前仓库
       - name: Checkout target repo
         uses: actions/checkout@main
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      # 2. 配置 Git 机器人信息
       - name: Set up Git
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      # 3. 添加双上游仓库（LuCI 前端 + Packages 后端）并 Fetch
       - name: Add upstreams and fetch
         run: |
           git remote add upstream-luci https://github.com/openwrt/luci.git || true
@@ -47,10 +44,21 @@ jobs:
           echo "🔄 Fetching upstream-packages..."
           git fetch upstream-packages master
 
-      # 4. 切换到 Official-original 并构建绝对无尘室 (Clean Room)
-      - name: Assemble Raw Materials on Official-original Branch
+      - name: Assemble Raw Materials & Extract Upstream Logs
         run: |
-          # 严谨切换：远程有则拉取，没有则创建一个没有任何历史记录的“孤儿分支”
+          # 1. 动态获取上游指定目录的最新 Commit 摘要 (格式: Hash 说明)
+          LUCI_LOG=$(git log -1 --format="%h %s" upstream-luci/master -- applications/luci-app-adguardhome)
+          PKG_LOG=$(git log -1 --format="%h %s" upstream-packages/master -- net/adguardhome/files)
+          
+          # 2. 将动态生成的 Commit Message 写入 Actions 环境变量 (支持多行)
+          echo "SYNC_COMMIT_MSG<<EOF" >> $GITHUB_ENV
+          echo "Sync: Auto-update from upstream"
+          echo ""
+          echo "LuCI frontend: $LUCI_LOG"
+          echo "Packages backend: $PKG_LOG"
+          echo "EOF" >> $GITHUB_ENV
+
+          # 3. 严谨切换/创建 Official-original 孤儿分支
           if git ls-remote --exit-code --heads origin Official-original; then
             git fetch origin Official-original
             git checkout Official-original
@@ -59,9 +67,7 @@ jobs:
             git checkout --orphan Official-original
           fi
           
-          # 【核心修复 1：绝对净化】
-          # 清空 Git 暂存区，并暴力删除当前工作区的所有文件（仅保留 .git）
-          # 这确保了 .github, patches, .prepare.sh 绝对不会污染这个分支
+          # 4. 绝对净化工作区
           git rm -rf --cached . 2>/dev/null || true
           find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
           
@@ -96,26 +102,22 @@ jobs:
           chmod +x root/etc/init.d/adguardhome
           chmod +x root/etc/uci-defaults/adguardhome
 
-      # 5. 提交并推送纯净原始物料到 Official-original 分支
       - name: Push completely assembled raw files to Official-original
         run: |
           git add -A
           if ! git diff-index --quiet HEAD --; then
-            git commit -m "Sync: native tracking of pure upstream raw files"
+            # 【重点】这里使用刚才生成的环境变量作为提交信息
+            git commit -m "${{ env.SYNC_COMMIT_MSG }}"
             git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" Official-original --force
           else
             echo "Perfect. No updates detected in either frontend or backend upstreams."
           fi
 
-      # 6. 切回 main 分支，清理旧产物，同步纯净物料
       - name: Switch to main and prepare patching environment
         run: |
-          # 【魔法发生地】：切回 main 分支，Git 会自动把 patches 和 .github 恢复到工作区
           git checkout main
           
           echo "🧹 Cleaning up legacy generated files in main..."
-          # 【核心修复 2：清理旧产物】
-          # 只保留 main 分支的基础设施（补丁和文档），彻底删除上一次跑出来的残留文件
           find . -mindepth 1 -maxdepth 1 \
             ! -name '.git' \
             ! -name '.github' \
@@ -126,10 +128,8 @@ jobs:
             -exec rm -rf {} +
           
           echo "📥 Overlaying pristine raw materials from Official-original..."
-          # 把刚刚做好的纯净上游文件铺进来，准备打补丁
           git checkout Official-original -- .
           
-      # 7. 系统文件打补丁（仅修改动作留在 main 分支）
       - name: Apply Custom Patches Pipeline
         run: |
           set -e
@@ -166,10 +166,8 @@ jobs:
           echo ""
           echo "🔐 Setting executable permissions for runtime scripts..."
           chmod +x root/usr/share/AdGuardHome/*.sh 2>/dev/null || true
-          # 补丁打完后生成的 .prepare.sh 留在了 main，这里赋予权限
           chmod +x .prepare.sh 2>/dev/null || true
 
-      # 8. 将打好补丁的最终代码推送到 main 分支
       - name: Commit and push to main
         run: |
           git add -A
@@ -179,5 +177,8 @@ jobs:
             exit 0
           fi
           
-          git commit -m "Sanitize & Patch: automatically applied custom patches on top of upstream"
+          # 【重点】为主分支加上 [Patched] 前缀，并附加上游的更新记录，一目了然
+          git commit -m "[Patched] ${SYNC_COMMIT_MSG}"
+          # 注意：因为这里是环境变量传递给 bash 脚本执行，可以直接用 ${SYNC_COMMIT_MSG}
+          
           git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" main --force
