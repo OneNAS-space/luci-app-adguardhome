@@ -75,16 +75,18 @@ jobs:
           [ -z "$LUCI_CHANGELOG" ] && LUCI_CHANGELOG="No changes in this range."
           [ -z "$PKG_CHANGELOG" ] && PKG_CHANGELOG="No changes in this range."
 
-          # 5. 组装环境变量
-          echo "SYNC_COMMIT_MSG<<EOF" >> $GITHUB_ENV
-          echo "Sync: Combined upstream updates"
-          echo ""
-          echo "===== 📌 LuCI Frontend Commits ====="
-          echo "$LUCI_CHANGELOG"
-          echo ""
-          echo "===== 📌 Packages Backend Commits ====="
-          echo "$PKG_CHANGELOG"
-          echo "EOF" >> $GITHUB_ENV
+          # 5. 核心修复：用大括号包裹，将整段输出准确推入 $GITHUB_ENV
+          {
+            echo "SYNC_COMMIT_MSG<<EOF_GHA"
+            echo "Sync: Combined upstream updates"
+            echo ""
+            echo "===== 📌 LuCI Frontend Commits ====="
+            echo "$LUCI_CHANGELOG"
+            echo ""
+            echo "===== 📌 Packages Backend Commits ====="
+            echo "$PKG_CHANGELOG"
+            echo "EOF_GHA"
+          } >> $GITHUB_ENV
 
           # 6. 净化工作区 (保留元数据文件)
           git rm -rf --cached . 2>/dev/null || true
