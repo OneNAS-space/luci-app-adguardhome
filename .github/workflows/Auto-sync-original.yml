@@ -116,11 +116,13 @@ jobs:
 
           chmod +x root/etc/init.d/adguardhome root/etc/uci-defaults/adguardhome
 
+      # 5. 提交并推送纯净原始物料到 Official-original 分支
       - name: Push completely assembled raw files to Official-original
         run: |
           git add -A
           if ! git diff-index --quiet HEAD --; then
-            git commit -m "${{ env.SYNC_COMMIT_MSG }}"
+            # 💡【核心修复】去掉外层的 ${{ }}，直接使用原生的双引号 Bash 变量 "$SYNC_COMMIT_MSG"
+            git commit -m "$SYNC_COMMIT_MSG"
             git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" Official-original --force
           else
             echo "Perfect. No updates detected in either frontend or backend upstreams."
@@ -183,6 +185,7 @@ jobs:
           chmod +x root/usr/share/AdGuardHome/*.sh 2>/dev/null || true
           chmod +x .prepare.sh 2>/dev/null || true
 
+      # 8. 将打好补丁的最终代码推送到 main 分支
       - name: Commit and push to main
         run: |
           git add -A
@@ -192,5 +195,6 @@ jobs:
             exit 0
           fi
           
-          git commit -m "[Patched] ${SYNC_COMMIT_MSG}"
+          # 💡【核心修复】同样确保使用规范的双引号原生 Bash 变量
+          git commit -m "[Patched] $SYNC_COMMIT_MSG"
           git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" main --force
