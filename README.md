@@ -9,6 +9,7 @@
 - Add UI interface to modify AGH management binding ip:port function
 - You can choose AGH as dnsmasq upstream, redirect 53 port, switch dnsmasq 53 port or do nothing
 - Update the kernel to choose the Latest/Beta version, download from AGH mirror station/AGH github station
+- When updating the kernel, you can choose the Latest/Beta version, and to download from AGH mirror station/AGH github station.
 - Dynamically obtain ***WAN*** interface passed to nft rules
 
 ### Default behaviors
