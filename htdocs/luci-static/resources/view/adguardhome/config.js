@@ -5,6 +5,7 @@
 'require fs';
 'require poll';
 'require rpc';
+'require uci';
 'require view';
 
 const DEFAULT_CONFIG_FILE = '/etc/adguardhome/adguardhome.yaml';
@@ -24,10 +25,7 @@ const RUNNING_SPAN = `<span style="color: var(--success-color-high); font-weight
 const NOT_RUNNING_SPAN = `<span style="color: var(--error-color-high); font-weight: bold">${_('Not running')}</span>`;
 
 const STORAGE_KEY = 'luci-app-adguardhome';
-
-// ==== 新增专用KEY ====
 const STORAGE_KEY_CORE = 'luci-app-adguardhome_core_update';
-// ===================
 
 function getServiceInfo(name) {
 	const fn = rpc.declare({
@@ -65,7 +63,7 @@ async function getVersion() {
 		return version;
 	} catch (e) {
 		console.error(e);
-		return 'unknown version';
+		return '';
 	}
 }
 
@@ -110,10 +108,33 @@ return view.extend({
 		return Promise.all([
 			getStatus(),
 			getVersion(),
+			uci.load('adguardhome').then(() => {
+				const sections = uci.sections('adguardhome', 'adguardhome');
+				const sec = sections.length > 0 ? sections[0] : {};
+				const configFile = sec.config_file || DEFAULT_CONFIG_FILE;
+				return fs.read(configFile).catch(() => null);
+			})
 		]);
 	},
 
-	async render([isRunning, version]) {
+	async render([isRunning, version, yamlContent]) {
+		// 有版本号说明核心存在，没版本号就是不存在
+		const coreExists = Boolean(version);
+		let dnsPort = '53';
+		if (yamlContent) {
+			const portMatches = yamlContent.match(/port:\s*(\d+)/g);
+			if (portMatches && portMatches.length >= 2) {
+				const actualPort = portMatches[1].match(/\d+/);
+				if (actualPort) {
+					dnsPort = actualPort[0];
+				}
+			}
+		}
+
+		// 💡 动态安全取值：UI 渲染需要用到 httpport 生成跳转链接
+		const sections = uci.sections('adguardhome', 'adguardhome');
+		const savedHttpPort = (sections.length > 0 && sections[0].httpport) ? sections[0].httpport : '3008';
+
 		const map = new form.Map('adguardhome', _('AdGuard Home'));
 
 		const statusSect = map.section(form.TypedSection, 'status');
@@ -121,7 +142,8 @@ return view.extend({
 		statusSect.cfgsections = () => ['status_section'];
 
 		const versionOpt = statusSect.option(form.DummyValue, '_version', _('Version'));
-		versionOpt.cfgvalue = () => version;
+		versionOpt.cfgvalue = () => version || `<span style="color: var(--error-color-high); font-weight: bold;">${_('Not installed')}</span>`;
+        versionOpt.rawhtml = true;
 
 		const statusOpt = statusSect.option(form.DummyValue, '_status', _('Service Status'));
 		statusOpt.rawhtml = true;
@@ -136,17 +158,32 @@ return view.extend({
 			_('File System Access'),
 			_('Files and directories that AdGuard Home should have read-only or read-write access to.'),
 		);
+		mainSect.tab('dns_redirect', _('Services Settings'));
+		mainSect.tab(
+			'core_update',
+			_('Core Update'),
+			_('Settings and operations for updating the AdGuardHome core binary.')
+		);
 		mainSect.tab(
 			'advanced',
 			_('Advanced Settings'),
 			_('Go environment variables that tune garbage collector and memory management.') +
 				' ' + _('Modify at your own risk.'),
 		);
-		mainSect.tab(
-			'core_update',
-			_('Core Update'),
-			_('Settings and operations for updating the AdGuardHome core binary.')
+
+		// ==== 移动至此：全局启用开关 ====
+		const enabledOpt = mainSect.taboption(
+			'general',
+			form.Flag,
+			'enabled',
+			_('Enable')
 		);
+		enabledOpt.default = '0';
+		enabledOpt.rmempty = false;
+		// 如果核心不存在，追加警告提示引导用户开启服务以自动下载
+		if (!coreExists) {
+			enabledOpt.description = `<span style="color: var(--error-color-high); font-weight: bold;">${_('Core binary not found. Enable the service to trigger an automatic download.')}</span>`;
+		}
 
 		const configFileOpt = mainSect.taboption(
 			'general',
@@ -275,7 +312,96 @@ return view.extend({
 		memLimitOpt.placeholder = DEFAULT_GOMEMLIMIT;
 		memLimitOpt.retain = true;
 
-		// ======== Core Update 控件内容 ========
+		// 💡 1. Extract the real listening address and port directly from YAML
+		let realHttpAddress = '0.0.0.0:3008';
+		if (yamlContent) {
+			// Match the address: field below http: in YAML
+			const addrMatch = yamlContent.match(/address:\s*([^\s]+)/);
+			if (addrMatch && addrMatch[1]) {
+				realHttpAddress = addrMatch[1];
+			}
+		}
+
+		// 💡 2. Analyze the real IP and port used by the jump button
+		let linkIp = window.location.hostname;
+		let linkPort = '3008';
+		const addrParts = realHttpAddress.split(':');
+		if (addrParts.length >= 2) {
+			linkPort = addrParts.pop();
+			let ipPart = addrParts.join(':').replace(/\[|\]/g, '');
+			// If the binding is a full zero address, the IP accessed by the current router will be returned.
+			if (ipPart !== '0.0.0.0' && ipPart !== '') {
+				linkIp = ipPart;
+			}
+		}
+
+		// 💡 3. Upgrade the original httpport to http_address
+		const isServiceEnabled = sections.length > 0 && sections[0].enabled === '1';
+		const disabledHint = _('Service is disabled. Please go to "General Settings" to enable it.');
+
+		// 💡 4. 构造智能状态的 WebUI 按钮 HTML
+		const webuiBtnHtml = isServiceEnabled
+			? `<a class="btn cbi-button cbi-button-link" style="font-weight:bold; display:inline-block; margin-top:5px;" href="http://${linkIp}:${linkPort}" target="_blank">${_('Open AdGuardHome WebUI')}</a>`
+			: `<span title='${disabledHint}' style="display:inline-block; margin-top:5px; cursor:not-allowed;">
+					<a class="btn cbi-button cbi-button-link" style="font-weight:bold; pointer-events:none; opacity:0.5; margin-top:0;" href="javascript:void(0);">${_('Open AdGuardHome WebUI')}</a>
+			   </span>`;
+
+		// 💡 5. 渲染组件
+		const httpAddressOpt = mainSect.taboption(
+			'dns_redirect',
+			form.Value,
+			'http_address',
+			_('WebUI Bind Address'),
+			_('Format: IP:Port (e.g., 0.0.0.0:3008). Leave as 0.0.0.0 to listen on all interfaces.') + 
+			`<br />${webuiBtnHtml}`
+		);
+		httpAddressOpt.placeholder = '0.0.0.0:3008';
+		httpAddressOpt.default = '0.0.0.0:3008';
+		httpAddressOpt.datatype = 'hostport';
+		httpAddressOpt.rmempty = false;
+
+		// 🎯 Overwrite the default reading UCI behavior and forcibly echo the real value in YAML
+		httpAddressOpt.cfgvalue = function(section_id) {
+			return realHttpAddress;
+		};
+
+		// ==== Add the password modification function below the WebUI port ====
+		const isPasswordEmpty = yamlContent ? /password:[ \t]*(\r?\n|$)/.test(yamlContent) : false;
+		const hashPassOpt = mainSect.taboption(
+			'dns_redirect',
+			form.Value,
+			'hashpass',
+			_('Change password'),
+			_('Enter the password here. Click the Load calculate Module button below and go on.') + 
+			'<br /><button class="btn cbi-button cbi-button-apply" type="button" id="btn-agh-calc-hash" style="display:inline-block; margin-top:5px;">' +
+				_(' ... Load calculate Module ... ') + 
+			'</button>'
+		);
+		hashPassOpt.default = '';
+		hashPassOpt.datatype = 'string';
+		hashPassOpt.password = true;
+		hashPassOpt.rmempty = true;
+		hashPassOpt.placeholder = isPasswordEmpty ? _('Please create a new password.') : '';
+		hashPassOpt.cfgvalue = function(section_id) {
+			return '';
+		};
+
+		const redirectOpt = mainSect.taboption(
+			'dns_redirect',
+			form.ListValue,
+			'redirect',
+			`${dnsPort} ` + _('Redirect'),
+			_('AdGuardHome redirect mode')
+		);
+		redirectOpt.value('none', _('No redirect'));
+		redirectOpt.value('dnsmasq-upstream', _('As the upstream server of dnsmasq'));
+		redirectOpt.value('redirect', _('Redirect port 53 to AdGuardHome'));
+		redirectOpt.value('exchange', _('Use port 53 to replace dnsmasq'));
+		redirectOpt.default = 'none';
+		redirectOpt.rmempty = false;
+		// ==========================================
+
+		// ======== Core Update Control content ========
 		const coreVersionOpt = mainSect.taboption(
 			'core_update',
 			form.ListValue,
@@ -291,13 +417,14 @@ return view.extend({
 
 		const coreUrlOpt = mainSect.taboption(
 			'core_update',
-			form.Value,
+			form.ListValue,
 			'update_url',
-			_('Core-bin Update URL'),
-			_('Customize the download link if needed. Variables like ${Cloud_Version} and ${Arch} can be used.')
+			_('Update URL'),
+			_('Select the download link for the core update.')
 		);
-		coreUrlOpt.default = 'https://github.com/AdguardTeam/AdGuardHome/releases/download/${Cloud_Version}/AdGuardHome_linux_${Arch}.tar.gz';
-		coreUrlOpt.placeholder = coreUrlOpt.default;
+		coreUrlOpt.value('https://static.adtidy.org/adguardhome/release/AdGuardHome_linux_${Arch}.tar.gz', _('Official Mirror (AdTidy - Recommended)'));
+		coreUrlOpt.value('https://github.com/AdguardTeam/AdGuardHome/releases/download/${Cloud_Version}/AdGuardHome_linux_${Arch}.tar.gz', _('GitHub Releases (Original)'));
+		coreUrlOpt.default = 'https://static.adtidy.org/adguardhome/release/AdGuardHome_linux_${Arch}.tar.gz';
 		coreUrlOpt.rmempty = false;
 		coreUrlOpt.depends('enable_core_update', '1');
 		coreUrlOpt.retain = true;
@@ -326,7 +453,7 @@ return view.extend({
 		const statusNode = map.findElement('data-field', statusOpt.cbid('status_section'));
 		poll.add(updateStatus(statusNode), POLL_INTERVAL);
 
-		// ========== 更新状态机与轮询逻辑 =========
+		// ========== Update the status and polling logic =========
 		let updatePollId = null;
 
 		function startLogPolling() {
@@ -414,7 +541,66 @@ return view.extend({
 			} else if (e.target && e.target.id === 'btn-agh-force') {
 				e.preventDefault();
 				applyUpdate(true);
+			} 
+			// ==== Handle front-end hash encryption logic ====
+			else if (e.target && e.target.id === 'btn-agh-calc-hash') {
+				e.preventDefault();
+				const btn = e.target;
+
+				// Dynamically find the password input box on the page (matching elements with the suffix .hashpass)
+				const inputs = rendered.querySelectorAll('input[type="text"], input[type="password"]');
+				let passInput = null;
+				for (const el of inputs) {
+					if (el.id && el.id.endsWith('.hashpass')) {
+						passInput = el;
+						break;
+					}
+				}
+
+				if (!passInput) return;
+
+				// 1. If JS has not been loaded, it will be loaded dynamically.
+				if (typeof window.TwinBcrypt === 'undefined') {
+					btn.disabled = true;
+					btn.textContent = _('Loading...');
+					
+					const script = document.createElement('script');
+					script.src = L.resource('view/adguardhome/twin-bcrypt.min.js');
+					script.type = 'text/javascript';
+					
+					script.onload = () => {
+						btn.textContent = _('Click here to Calculate');
+						btn.disabled = false;
+					};
+					script.onerror = () => {
+						btn.textContent = _(' ... Load Error ... ');
+						btn.disabled = false;
+					};
+					document.head.appendChild(script);
+				} 
+				// 2. If JS has been loaded, the calculation will be executed.
+				else {
+					if (passInput.value) {
+						// Prevent repeated hashing of hashed strings (starting with $2a$ or $2y$)
+						if (passInput.value.startsWith('$2a$') || passInput.value.startsWith('$2y$')) {
+							btn.textContent = _('Calculation already DONE !');
+							return;
+						}
+						
+						const hash = window.TwinBcrypt.hashSync(passInput.value);
+						passInput.value = hash;
+						
+						// Manually trigger native input and change events
+						passInput.dispatchEvent(new Event('input', { bubbles: true }));
+						passInput.dispatchEvent(new Event('change', { bubbles: true }));
+						
+						btn.textContent = _(' ... Click Save/Apply ↘️ ... ');
+					} else {
+						btn.textContent = _(' ... Nothing inputted yet ... ');
+					}
+				}
 			}
+			// ==========================================
 		});
 
 		Promise.all([
