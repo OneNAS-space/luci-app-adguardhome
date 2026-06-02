@@ -60,7 +60,6 @@ jobs:
             OLD_LUCI_HASH=$(sed -n '1p' .upstream_meta)
             OLD_PKG_HASH=$(sed -n '2p' .upstream_meta)
           else
-            # 首次运行或文件丢失时的兜底方案：对比前5个提交
             OLD_LUCI_HASH=$(git rev-parse upstream-luci/master~5)
             OLD_PKG_HASH=$(git rev-parse upstream-packages/master~5)
           fi
@@ -69,15 +68,14 @@ jobs:
           NEW_LUCI_HASH=$(git rev-parse upstream-luci/master)
           NEW_PKG_HASH=$(git rev-parse upstream-packages/master)
 
-          # 4. 核心：提取两个旧节点到新节点之间【所有的】真实 commit 历史
+          # 4. 提取历史记录
           LUCI_CHANGELOG=$(git log --oneline ${OLD_LUCI_HASH}..${NEW_LUCI_HASH} -- applications/luci-app-adguardhome)
           PKG_CHANGELOG=$(git log --oneline ${OLD_PKG_HASH}..${NEW_PKG_HASH} -- net/adguardhome/files)
 
-          # 如果中间没有变动，给予友好的占位提示
           [ -z "$LUCI_CHANGELOG" ] && LUCI_CHANGELOG="No changes in this range."
           [ -z "$PKG_CHANGELOG" ] && PKG_CHANGELOG="No changes in this range."
 
-          # 5. 组装多行动态 Commit Message 到环境变量
+          # 5. 组装环境变量
           echo "SYNC_COMMIT_MSG<<EOF" >> $GITHUB_ENV
           echo "Sync: Combined upstream updates"
           echo ""
@@ -88,7 +86,7 @@ jobs:
           echo "$PKG_CHANGELOG"
           echo "EOF" >> $GITHUB_ENV
 
-          # 6. 绝对净化工作区（注意：这次我们要保留 .upstream_meta 避免被误删）
+          # 6. 净化工作区 (保留元数据文件)
           git rm -rf --cached . 2>/dev/null || true
           find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.upstream_meta' -exec rm -rf {} +
           
@@ -96,13 +94,11 @@ jobs:
           echo "$NEW_LUCI_HASH" > .upstream_meta
           echo "$NEW_PKG_HASH" >> .upstream_meta
 
-          # ------------------ 提取前端 (LuCI) ------------------
           echo "📥 Extracting frontend from upstream-luci..."
           git checkout upstream-luci/master -- applications/luci-app-adguardhome
           mv applications/luci-app-adguardhome/* .
           rm -rf applications
 
-          # ------------------ 提取后端 (Packages) ------------------
           echo "📥 Extracting backend configurations from upstream-packages..."
           git checkout upstream-packages/master -- net/adguardhome/files
           
@@ -116,12 +112,10 @@ jobs:
 
           chmod +x root/etc/init.d/adguardhome root/etc/uci-defaults/adguardhome
 
-      # 5. 提交并推送纯净原始物料到 Official-original 分支
       - name: Push completely assembled raw files to Official-original
         run: |
           git add -A
           if ! git diff-index --quiet HEAD --; then
-            # 💡【核心修复】去掉外层的 ${{ }}，直接使用原生的双引号 Bash 变量 "$SYNC_COMMIT_MSG"
             git commit -m "$SYNC_COMMIT_MSG"
             git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" Official-original --force
           else
@@ -133,7 +127,6 @@ jobs:
           git checkout main
           
           echo "🧹 Cleaning up legacy generated files in main..."
-          # 注意：main 分支也需要留着 .upstream_meta
           find . -mindepth 1 -maxdepth 1 \
             ! -name '.git' \
             ! -name '.github' \
@@ -185,7 +178,6 @@ jobs:
           chmod +x root/usr/share/AdGuardHome/*.sh 2>/dev/null || true
           chmod +x .prepare.sh 2>/dev/null || true
 
-      # 8. 将打好补丁的最终代码推送到 main 分支
       - name: Commit and push to main
         run: |
           git add -A
@@ -195,6 +187,5 @@ jobs:
             exit 0
           fi
           
-          # 💡【核心修复】同样确保使用规范的双引号原生 Bash 变量
           git commit -m "[Patched] $SYNC_COMMIT_MSG"
           git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" main --force
