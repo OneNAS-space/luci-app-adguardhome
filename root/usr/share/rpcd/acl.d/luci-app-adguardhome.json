@@ -3,11 +3,6 @@
 		"description": "Grant permissions for the AdGuard Home LuCI app",
 		"read": {
 			"file": {
-				"/tmp/AdGuardHome_update.log": [ "read" ],
-				"/var/run/update_core": [ "stat" ],
-				"/var/run/update_core_error": [ "stat" ],
-				"/var/run/AdGredir": [ "read" ],
-				"/var/run/AdGserverdis": [ "read" ],
 				"/usr/bin/AdGuardHome --version": [ "exec" ]
 			},
 			"ubus": {
@@ -16,9 +11,6 @@
 			"uci": [ "adguardhome" ]
 		},
 		"write": {
-			"file": {
-				"/usr/share/AdGuardHome/update_core.sh": [ "exec" ]
-			},
 			"uci": [ "adguardhome" ]
 		}
 	}

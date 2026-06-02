@@ -7,27 +7,10 @@ LUCI_MAINTAINER:=George Sapkin <george@sapk.in>
 PKG_LICENSE:=GPL-2.0-only
 
 LUCI_TITLE:=LuCI support for AdGuard Home
-LUCI_DEPENDS:=+luci-base
+LUCI_DEPENDS:=+adguardhome +luci-base
+LUCI_EXTRA_DEPENDS:=adguardhome (>=0.107.73-r3)
 LUCI_PKGARCH:=all
-USERID:=adguardhome=853:adguardhome=853
 
-PKG_UNPACK:=$(CURDIR)/.prepare.sh $(PKG_NAME) $(CURDIR) $(PKG_BUILD_DIR)
-
-define Package/luci-app-adguardhome/conffiles
-/etc/adguardhome/adguardhome.yaml
-/etc/config/adguardhome
-endef
-
-define Package/luci-app-adguardhome/prerm
-#!/bin/sh
-[ -n "$${IPKG_INSTROOT}" ] || { 
-    rm -f /tmp/luci-indexcache.*
-    rm -rf /tmp/luci-modulecache/
-    /etc/init.d/rpcd reload 2>/dev/null
-}
-exit 0
-endef
-
-include $(TOPDIR)/feeds/luci/luci.mk
+include ../../luci.mk
 
 # call BuildPackage - OpenWrt buildroot signature
