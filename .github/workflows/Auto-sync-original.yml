@@ -44,21 +44,9 @@ jobs:
           echo "🔄 Fetching upstream-packages..."
           git fetch upstream-packages master
 
-      - name: Assemble Raw Materials & Extract Upstream Logs
+      - name: Assemble Raw Materials & Generate Precision Changelog
         run: |
-          # 1. 动态获取上游指定目录的最新 Commit 摘要 (格式: Hash 说明)
-          LUCI_LOG=$(git log -1 --format="%h %s" upstream-luci/master -- applications/luci-app-adguardhome)
-          PKG_LOG=$(git log -1 --format="%h %s" upstream-packages/master -- net/adguardhome/files)
-          
-          # 2. 将动态生成的 Commit Message 写入 Actions 环境变量 (支持多行)
-          echo "SYNC_COMMIT_MSG<<EOF" >> $GITHUB_ENV
-          echo "Sync: Auto-update from upstream"
-          echo ""
-          echo "LuCI frontend: $LUCI_LOG"
-          echo "Packages backend: $PKG_LOG"
-          echo "EOF" >> $GITHUB_ENV
-
-          # 3. 严谨切换/创建 Official-original 孤儿分支
+          # 1. 严格切换/创建 Official-original 孤儿分支
           if git ls-remote --exit-code --heads origin Official-original; then
             git fetch origin Official-original
             git checkout Official-original
@@ -66,11 +54,48 @@ jobs:
             echo "Creating a pristine orphan branch..."
             git checkout --orphan Official-original
           fi
-          
-          # 4. 绝对净化工作区
+
+          # 2. 读取上一次同步的锚点 Hash
+          if [ -f .upstream_meta ]; then
+            OLD_LUCI_HASH=$(sed -n '1p' .upstream_meta)
+            OLD_PKG_HASH=$(sed -n '2p' .upstream_meta)
+          else
+            # 首次运行或文件丢失时的兜底方案：对比前5个提交
+            OLD_LUCI_HASH=$(git rev-parse upstream-luci/master~5)
+            OLD_PKG_HASH=$(git rev-parse upstream-packages/master~5)
+          fi
+
+          # 3. 获取当前最新的上游 Hash
+          NEW_LUCI_HASH=$(git rev-parse upstream-luci/master)
+          NEW_PKG_HASH=$(git rev-parse upstream-packages/master)
+
+          # 4. 核心：提取两个旧节点到新节点之间【所有的】真实 commit 历史
+          LUCI_CHANGELOG=$(git log --oneline ${OLD_LUCI_HASH}..${NEW_LUCI_HASH} -- applications/luci-app-adguardhome)
+          PKG_CHANGELOG=$(git log --oneline ${OLD_PKG_HASH}..${NEW_PKG_HASH} -- net/adguardhome/files)
+
+          # 如果中间没有变动，给予友好的占位提示
+          [ -z "$LUCI_CHANGELOG" ] && LUCI_CHANGELOG="No changes in this range."
+          [ -z "$PKG_CHANGELOG" ] && PKG_CHANGELOG="No changes in this range."
+
+          # 5. 组装多行动态 Commit Message 到环境变量
+          echo "SYNC_COMMIT_MSG<<EOF" >> $GITHUB_ENV
+          echo "Sync: Combined upstream updates"
+          echo ""
+          echo "===== 📌 LuCI Frontend Commits ====="
+          echo "$LUCI_CHANGELOG"
+          echo ""
+          echo "===== 📌 Packages Backend Commits ====="
+          echo "$PKG_CHANGELOG"
+          echo "EOF" >> $GITHUB_ENV
+
+          # 6. 绝对净化工作区（注意：这次我们要保留 .upstream_meta 避免被误删）
           git rm -rf --cached . 2>/dev/null || true
-          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.upstream_meta' -exec rm -rf {} +
           
+          # 7. 更新锚点文件
+          echo "$NEW_LUCI_HASH" > .upstream_meta
+          echo "$NEW_PKG_HASH" >> .upstream_meta
+
           # ------------------ 提取前端 (LuCI) ------------------
           echo "📥 Extracting frontend from upstream-luci..."
           git checkout upstream-luci/master -- applications/luci-app-adguardhome
@@ -81,32 +106,20 @@ jobs:
           echo "📥 Extracting backend configurations from upstream-packages..."
           git checkout upstream-packages/master -- net/adguardhome/files
           
-          # 创建 root 矩阵目录结构
-          mkdir -p root/etc/capabilities
-          mkdir -p root/etc/config
-          mkdir -p root/etc/init.d
-          mkdir -p root/etc/sysctl.d
-          mkdir -p root/etc/uci-defaults
-
-          # 移动并规范命名后端配置文件
+          mkdir -p root/etc/capabilities root/etc/config root/etc/init.d root/etc/sysctl.d root/etc/uci-defaults
           mv net/adguardhome/files/adguardhome.json root/etc/capabilities/
           mv net/adguardhome/files/adguardhome.conf root/etc/config/adguardhome
           mv net/adguardhome/files/adguardhome.init root/etc/init.d/adguardhome
           mv net/adguardhome/files/adguardhome.sysctl root/etc/sysctl.d/50-adguardhome.conf
           mv net/adguardhome/files/adguardhome.defaults root/etc/uci-defaults/adguardhome
-          
-          # 清理提取出来的多余层级
           rm -rf net
 
-          # 赋予官方脚本初始可执行权限
-          chmod +x root/etc/init.d/adguardhome
-          chmod +x root/etc/uci-defaults/adguardhome
+          chmod +x root/etc/init.d/adguardhome root/etc/uci-defaults/adguardhome
 
       - name: Push completely assembled raw files to Official-original
         run: |
           git add -A
           if ! git diff-index --quiet HEAD --; then
-            # 【重点】这里使用刚才生成的环境变量作为提交信息
             git commit -m "${{ env.SYNC_COMMIT_MSG }}"
             git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" Official-original --force
           else
@@ -118,6 +131,7 @@ jobs:
           git checkout main
           
           echo "🧹 Cleaning up legacy generated files in main..."
+          # 注意：main 分支也需要留着 .upstream_meta
           find . -mindepth 1 -maxdepth 1 \
             ! -name '.git' \
             ! -name '.github' \
@@ -125,6 +139,7 @@ jobs:
             ! -name 'README.md' \
             ! -name 'LICENSE' \
             ! -name 'SECURITY.md' \
+            ! -name '.upstream_meta' \
             -exec rm -rf {} +
           
           echo "📥 Overlaying pristine raw materials from Official-original..."
@@ -177,8 +192,5 @@ jobs:
             exit 0
           fi
           
-          # 【重点】为主分支加上 [Patched] 前缀，并附加上游的更新记录，一目了然
           git commit -m "[Patched] ${SYNC_COMMIT_MSG}"
-          # 注意：因为这里是环境变量传递给 bash 脚本执行，可以直接用 ${SYNC_COMMIT_MSG}
-          
           git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" main --force
