@@ -20,11 +20,14 @@ endef
 
 define Package/luci-app-adguardhome/prerm
 #!/bin/sh
-[ -n "$${IPKG_INSTROOT}" ] || { 
-    rm -f /tmp/luci-indexcache.*
-    rm -rf /tmp/luci-modulecache/
-    /etc/init.d/rpcd reload 2>/dev/null
-}
+rm -f /usr/bin/AdGuardHome
+rm -rf /etc/adguardhome
+
+sed -i '/adguardhome/d' /etc/passwd
+sed -i '/adguardhome/d' /etc/group
+
+/etc/init.d/dnsmasq restart
+
 exit 0
 endef
 

@@ -15,9 +15,6 @@ on:
       - 'Makefile'
       - '!**/patches/**'
       - '!**/.github/**'
-      - '!README.md'
-      - '!LICENSE'
-      - '!SECURITY.md'
   workflow_dispatch:
 
 jobs:
@@ -112,8 +109,6 @@ jobs:
             --exclude='feed' \
             --exclude='.github' \
             --exclude='patches' \
-            --exclude='SECURITY.md' \
-            --exclude='README.md' \
             ./ feed/luci/applications/${PKG_NAME}/
 
       - name: 🩹 Patch Makefile with dynamic version
