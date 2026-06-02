@@ -12,6 +12,9 @@ on:
     paths:
       - '!**/patches/**'
       - '!**/.github/**'
+      - '!README.md'
+      - '!LICENSE'
+      - '!SECURITY.md'
 
 env:
   TZ: Asia/Shanghai
@@ -33,15 +36,24 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      # 3. 添加上游仓库并获取
-      - name: Add upstream and fetch
+      # 3. 添加双上游仓库（LuCI 前端 + Packages 后端）并 Fetch
+      - name: Add upstreams and fetch
         run: |
-          git remote add upstream https://github.com/openwrt/luci.git || true
-          git fetch upstream master
+          git remote add upstream-luci https://github.com/openwrt/luci.git || true
+          git remote add upstream-packages https://github.com/openwrt/packages.git || true
+          
+          echo "🔄 Fetching upstream-luci..."
+          git fetch upstream-luci master
+          echo "🔄 Fetching upstream-packages..."
+          git fetch upstream-packages master
 
-      # 4. 更新特定目录（保持你的强力清理逻辑）
-      - name: Update luci-app-adguardhome from upstream
+      # 4. 切换到 Official-original 并拉取/组装双端原始文件
+      - name: Assemble Raw Materials on Official-original Branch
         run: |
+          # 切换/创建原始分支
+          git checkout Official-original 2>/dev/null || git checkout -b Official-original
+          
+          # 强力清理旧的工作区（保留必要的基础设施）
           find . -mindepth 1 -maxdepth 1 \
             ! -name '.git' \
             ! -name '.github' \
@@ -51,58 +63,70 @@ jobs:
             ! -name '.prepare.sh' \
             -exec rm -rf {} +
           
-          git checkout upstream/master -- applications/luci-app-adguardhome
+          # ------------------ 提取前端 (LuCI) ------------------
+          echo "📥 Extracting frontend from upstream-luci..."
+          git checkout upstream-luci/master -- applications/luci-app-adguardhome
           mv applications/luci-app-adguardhome/* .
           rm -rf applications
 
-      # 5. 【合并进来】清洗 Makefile 依赖
-      #- name: Sanitize Makefile Dependencies
-      #  run: |
-      #    for f in $(find . -type f -name "Makefile"); do
-      #      if grep -q -i "adguardhome" "$f"; then
-      #        echo "🩹 Sanitizing dependencies in $f"
-      #        sed -i -E 's/[[:space:]]+\+adguardhome//gI' "$f"
-      #        sed -i -E 's/\+adguardhome[[:space:]]+//gI' "$f"
-      #        sed -i -E 's/\+adguardhome//gI' "$f"
-      #        sed -i -E '/LUCI_EXTRA_DEPENDS.*adguardhome/Id' "$f"
-      #        if ! grep -q "PKG_UNPACK" "$f"; then
-      #          echo "🚀 Injecting PKG_UNPACK hook under LUCI_PKGARCH"
-      #          sed -i '/LUCI_PKGARCH:=all/a PKG_UNPACK:=$(CURDIR)/.prepare.sh $(PKG_NAME) $(CURDIR) $(PKG_BUILD_DIR)' "$f"
-      #        fi
-      #      fi
-      #    done
-
-      # 6. 【合并进来】注入官方后端配置文件到当前的 root 矩阵
-      - name: Inject Upstream Configurations into LuCI Root
-        run: |
+          # ------------------ 提取后端 (Packages) ------------------
+          echo "📥 Extracting backend configurations from upstream-packages..."
+          git checkout upstream-packages/master -- net/adguardhome/files
+          
+          # 创建 root 矩阵目录结构
           mkdir -p root/etc/capabilities
           mkdir -p root/etc/config
           mkdir -p root/etc/init.d
           mkdir -p root/etc/sysctl.d
           mkdir -p root/etc/uci-defaults
 
-          UPSTREAM_RAW="https://raw.githubusercontent.com/openwrt/packages/master/net/adguardhome/files"
+          # 移动并规范命名后端配置文件
+          mv net/adguardhome/files/adguardhome.json root/etc/capabilities/
+          mv net/adguardhome/files/adguardhome.conf root/etc/config/adguardhome
+          mv net/adguardhome/files/adguardhome.init root/etc/init.d/adguardhome
+          mv net/adguardhome/files/adguardhome.sysctl root/etc/sysctl.d/50-adguardhome.conf
+          mv net/adguardhome/files/adguardhome.defaults root/etc/uci-defaults/adguardhome
+          
+          # 清理提取出来的多余层级
+          rm -rf net
 
-          echo "📥 Downloading official configuration files..."
-          curl -sLo root/etc/capabilities/adguardhome.json "${UPSTREAM_RAW}/adguardhome.json"
-          curl -sLo root/etc/config/adguardhome          "${UPSTREAM_RAW}/adguardhome.conf"
-          curl -sLo root/etc/init.d/adguardhome          "${UPSTREAM_RAW}/adguardhome.init"
-          curl -sLo root/etc/sysctl.d/50-adguardhome.conf "${UPSTREAM_RAW}/adguardhome.sysctl"
-          curl -sLo root/etc/uci-defaults/adguardhome    "${UPSTREAM_RAW}/adguardhome.defaults"
-
+          # 赋予官方脚本初始可执行权限
           chmod +x root/etc/init.d/adguardhome
           chmod +x root/etc/uci-defaults/adguardhome
 
-      # 7. 【合并进来】修正启动脚本 (移除 --no-check-update)
-      #- name: Patch Init Script
-      #  run: |
-      #    TARGET_INIT="root/etc/init.d/adguardhome"
-      #    if [ -f "$TARGET_INIT" ]; then
-      #      echo "🔧 Patching --no-check-update inside init script..."
-      #      sed -i 's/procd_append_param command --no-check-update/# procd_append_param command --no-check-update/g' "$TARGET_INIT"
-      #    fi
+      # 5. 提交并推送纯净原始物料到 Official-original 分支
+      - name: Push completely assembled raw files to Official-original
+        run: |
+          git add -A
+          if ! git diff-index --quiet HEAD --; then
+            git commit -m "Sync: native tracking of upstream-luci and upstream-packages"
+            git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" Official-original --force
+          else
+            echo "Perfect. No updates detected in either frontend or backend upstreams."
+          fi
 
-      # 8. 系统文件打补丁
+      # 6. 切回 main 分支，先清空历史产物，再同步纯净物料
+      - name: Switch to main and sync from original
+        run: |
+          git checkout main
+          
+          echo "🧹 Cleaning up legacy generated files in main..."
+          # 【核心修复】强制清理 main 分支上由上一次 CI 生成的产物
+          # 仅保留你的补丁库、Action 配置和文档，确保接下来的 patch 处于绝对纯净环境
+          find . -mindepth 1 -maxdepth 1 \
+            ! -name '.git' \
+            ! -name '.github' \
+            ! -name 'patches' \
+            ! -name 'README.md' \
+            ! -name 'LICENSE' \
+            ! -name 'SECURITY.md' \
+            -exec rm -rf {} +
+          
+          echo "📥 Overlaying pristine raw materials from Official-original..."
+          # 因为上面清空了目录，这一步拉取过来的就是 100% 纯净的上游组装物料
+          git checkout Official-original -- .
+          
+      # 7. 系统文件打补丁（仅修改动作留在 main 分支）
       - name: Apply Custom Patches Pipeline
         run: |
           set -e
@@ -111,21 +135,23 @@ jobs:
             00_makefile.patch
             01_init.patch
             02_acl.patch
-            03_config.patch
-            04_config_file.patch
+            03_config_js.patch
+            04_etc_config.patch
             05_nft_tpl.patch
             06_nft.patch
             07_update_core.patch
             08_control.patch
             09_watchconfig.patch
-            10_AGH_yaml.patch
+            10_yaml_helper.patch
+            11_AGH_yaml.patch
+            12_twin-bcrypt.patch
           "
 
           for patch_file in $PATCH_LIST; do
             echo ""
             if [ -f "patches/$patch_file" ]; then
               echo "🩹 Applying patches/$patch_file ..."
-              patch -p1 < "patches/$patch_file"
+              patch --batch -p1 < "patches/$patch_file"
               echo "✅ $patch_file applied successfully!"
             else
               echo "❌ Critical Error: patches/$patch_file missing!"
@@ -147,19 +173,20 @@ jobs:
             echo "🔐 .prepare.sh already exists, safely skipping prepare.patch to avoid reject conflict."
           fi
 
+          echo ""
           echo "🔐 Setting executable permissions for runtime scripts..."
           chmod +x root/usr/share/AdGuardHome/*.sh 2>/dev/null || true
           chmod +x .prepare.sh 2>/dev/null || true
 
-      # 9. 一次性提交并推送
-      - name: Commit and push
+      # 8. 将打好补丁的最终代码推送到 main 分支
+      - name: Commit and push to main
         run: |
           git add -A
           
           if git diff-index --quiet HEAD --; then
-            echo "Genius! No upstream updates or modification changes detected."
+            echo "Genius! No modification changes detected on main branch."
             exit 0
           fi
           
-          git commit -m "Sync & Sanitize: automatically decoupled backend and injected official configs"
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git main --force
+          git commit -m "Sanitize & Patch: automatically applied custom patches on top of upstream"
+          git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" main --force
