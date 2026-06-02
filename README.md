@@ -14,6 +14,8 @@
 ### Default behaviors
 > [!TIP]
 > Use the following rules to exclude inbound traffic from **WAN** to avoid exposing the router to !!️ **Public Parser**!!️
+> 
+> This function is only effective in "Redirect" mode.
 > ```
 > iifname { __WAN_EXCLUDES__ } return
 > ```
@@ -37,7 +39,9 @@
 - [OpenWRT official packages](https://github.com/openwrt/packages/tree/master/net/adguardhome)
 
 #### Acknowledgment
-Inspired by [@w9315273 nft version](https://github.com/w9315273/luci-app-adguardhome) 
+Inspired by 
+- [@w9315273 nft version](https://github.com/w9315273/luci-app-adguardhome)
+- [@rufengsuixing](https://github.com/rufengsuixing/luci-app-adguardhome)
 
 #### Notice
 If the author of the original code has any objections, please contact me to deal with it.
