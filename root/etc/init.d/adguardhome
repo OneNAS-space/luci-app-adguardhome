@@ -78,6 +78,10 @@ boot() {
 }
 
 start_service() {
+	mkdir -p /var/etc
+	[ ! -f /var/etc/adguardhome.nft ] && touch /var/etc/adguardhome.nft
+	chmod 644 /var/etc/adguardhome.nft
+
 	if [ -n "$ADGUARDHOME_BOOT" ]; then
 		# Do not start yet, wait for triggers
 		return 0

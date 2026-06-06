@@ -36,7 +36,7 @@ set_nft_redirect() {
 clear_nft_redirect() {
     # 优化：只有当表存在时才清理和重载防火墙，避免无意义的性能开销
     if nft list table inet "$NFT_TABLE" >/dev/null 2>&1; then
-        [ -f "$NFT_RULES_FILE" ] && rm -f "$NFT_RULES_FILE"
+        [ -f "$NFT_RULES_FILE" ] && > "$NFT_RULES_FILE"
         nft delete table inet "$NFT_TABLE" 2>/dev/null
         fw4 reload
         logger -t adguardhome "nft table $NFT_TABLE cleared"
