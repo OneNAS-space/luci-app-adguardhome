@@ -136,7 +136,7 @@ jobs:
           git add -A
           if ! git diff-index --quiet HEAD --; then
             git commit -m "$SYNC_COMMIT_MSG"
-            git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" Official-original --force
+            git push "https://x-access-token:${{ secrets.CUSTOM_PACKAGES_TOKEN }}@github.com/${{ github.repository }}.git" Official-original --force
           else
             echo "Perfect. No updates detected in either frontend or backend upstreams."
           fi
@@ -208,4 +208,4 @@ jobs:
           fi
           
           git commit -m "[Patched] $SYNC_COMMIT_MSG"
-          git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" main --force
+          git push "https://x-access-token:${{ secrets.CUSTOM_PACKAGES_TOKEN }}@github.com/${{ github.repository }}.git" main --force
