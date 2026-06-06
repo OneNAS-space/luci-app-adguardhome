@@ -114,6 +114,23 @@ jobs:
 
           chmod +x root/etc/init.d/adguardhome root/etc/uci-defaults/adguardhome
 
+      # [新增] 在组装完源码后，提取官方 JSON 最新版本并固化为文件
+      - name: Fetch Latest Upstream Version Meta
+        run: |
+          echo "📡 Fetching official index.json for dependency tracking..."
+          FEED_URL="https://downloads.openwrt.org/releases/packages-25.12/x86_64/luci/index.json"
+          TARGET_PKG="luci-app-adguardhome"
+          
+          OFFICIAL_VER=$(curl -sL "$FEED_URL" | jq -r --arg pkg "$TARGET_PKG" '.packages[$pkg]')
+          
+          if [ "$OFFICIAL_VER" != "null" ] && [ -n "$OFFICIAL_VER" ]; then
+            echo "✅ Official version updated to: $OFFICIAL_VER"
+            echo "$OFFICIAL_VER" > .official_json_version
+          else
+            echo "⚠️ Failed to fetch JSON version. Creating fallback."
+            touch .official_json_version
+          fi
+
       - name: Push completely assembled raw files to Official-original
         run: |
           git add -A
@@ -137,6 +154,7 @@ jobs:
             ! -name 'LICENSE' \
             ! -name 'SECURITY.md' \
             ! -name '.upstream_meta' \
+            ! -name '.official_json_version' \
             -exec rm -rf {} +
           
           echo "📥 Overlaying pristine raw materials from Official-original..."
