@@ -8,8 +8,6 @@ on:
       - main
     paths-ignore:
       - '.github/**'
-      - '.upstream_meta'
-      - '.official_json_version'
       - 'README.md'
       - 'LICENSE'
       - 'SECURITY.md'
