@@ -56,7 +56,7 @@ jobs:
           if [ "$NEW_VER" != "$OLD_VER" ]; then
              echo "VERSION_CHANGED=true" >> $GITHUB_ENV
              echo "✅ Version changed: $OLD_VER -> $NEW_VER"
-             echo "$NEW_VER" > .official_json_version
+             # echo "$NEW_VER" > .official_json_version
           else
              echo "VERSION_CHANGED=false" >> $GITHUB_ENV
           fi
