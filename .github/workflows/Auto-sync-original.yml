@@ -26,13 +26,13 @@ jobs:
       - name: Checkout target repo
         uses: actions/checkout@main
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.TOKEN_ADGUARDHOME }}
           fetch-depth: 0
 
       - name: Set up Git
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "Jackie-Bot"
+          git config --global user.email "jackie@actions.local"
 
       - name: Add upstreams and fetch
         run: |
