@@ -44,6 +44,21 @@ jobs:
           echo "🔄 Fetching upstream-packages..."
           git fetch upstream-packages master
 
+      - name: Fetch and Compare Official Version
+        run: |
+          FEED_URL="https://downloads.openwrt.org/releases/packages-25.12/x86_64/luci/index.json"
+          TARGET_PKG="luci-app-adguardhome"
+          NEW_VER=$(curl -sL "$FEED_URL" | jq -r --arg pkg "$TARGET_PKG" '.packages[$pkg]')
+          OLD_VER=$(cat .official_json_version 2>/dev/null || echo "none")
+          
+          echo "NEW_VER=$NEW_VER" >> $GITHUB_ENV
+          if [ "$NEW_VER" != "$OLD_VER" ]; then
+             echo "VERSION_CHANGED=true" >> $GITHUB_ENV
+             echo "✅ Version changed: $OLD_VER -> $NEW_VER"
+          else
+             echo "VERSION_CHANGED=false" >> $GITHUB_ENV
+          fi
+
       - name: Assemble Raw Materials & Generate Precision Changelog
         run: |
           # 1. 严格切换/创建 Official-original 孤儿分支
@@ -85,6 +100,14 @@ jobs:
             echo ""
             echo "===== 📌 Packages Backend Commits ====="
             echo "$PKG_CHANGELOG"
+            
+            # 关键点：动态添加版本更新信息
+            if [ "$VERSION_CHANGED" = "true" ]; then
+              echo ""
+              echo "===== 🚀 Official Version Update ====="
+              echo "New Official Version: $NEW_VER"
+            fi
+            
             echo "EOF_GHA"
           } >> $GITHUB_ENV
 
@@ -114,29 +137,12 @@ jobs:
 
           chmod +x root/etc/init.d/adguardhome root/etc/uci-defaults/adguardhome
 
-      # [新增] 在组装完源码后，提取官方 JSON 最新版本并固化为文件
-      - name: Fetch Latest Upstream Version Meta
-        run: |
-          echo "📡 Fetching official index.json for dependency tracking..."
-          FEED_URL="https://downloads.openwrt.org/releases/packages-25.12/x86_64/luci/index.json"
-          TARGET_PKG="luci-app-adguardhome"
-          
-          OFFICIAL_VER=$(curl -sL "$FEED_URL" | jq -r --arg pkg "$TARGET_PKG" '.packages[$pkg]')
-          
-          if [ "$OFFICIAL_VER" != "null" ] && [ -n "$OFFICIAL_VER" ]; then
-            echo "✅ Official version updated to: $OFFICIAL_VER"
-            echo "$OFFICIAL_VER" > .official_json_version
-          else
-            echo "⚠️ Failed to fetch JSON version. Creating fallback."
-            touch .official_json_version
-          fi
-
       - name: Push completely assembled raw files to Official-original
         run: |
           git add -A
           if ! git diff-index --quiet HEAD --; then
             git commit -m "$SYNC_COMMIT_MSG"
-            git push "https://x-access-token:${{ secrets.CUSTOM_PACKAGES_TOKEN }}@github.com/${{ github.repository }}.git" Official-original --force
+            git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" Official-original --force
           else
             echo "Perfect. No updates detected in either frontend or backend upstreams."
           fi
@@ -208,4 +214,4 @@ jobs:
           fi
           
           git commit -m "[Patched] $SYNC_COMMIT_MSG"
-          git push "https://x-access-token:${{ secrets.CUSTOM_PACKAGES_TOKEN }}@github.com/${{ github.repository }}.git" main --force
+          git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" main --force
