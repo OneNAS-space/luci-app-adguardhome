@@ -115,11 +115,16 @@ jobs:
 
           # 6. 净化工作区 (保留元数据文件)
           git rm -rf --cached . 2>/dev/null || true
-          find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.upstream_meta' -exec rm -rf {} +
+          find . -mindepth 1 -maxdepth 1 \
+            ! -name '.git' \
+            ! -name '.upstream_meta' \
+            ! -name '.official_json_version' \
+            -exec rm -rf {} +
           
           # 7. 更新锚点文件
           echo "$NEW_LUCI_HASH" > .upstream_meta
           echo "$NEW_PKG_HASH" >> .upstream_meta
+          echo "$NEW_VER" > .official_json_version
 
           echo "📥 Extracting frontend from upstream-luci..."
           git checkout upstream-luci/master -- applications/luci-app-adguardhome
