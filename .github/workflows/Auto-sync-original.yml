@@ -52,9 +52,11 @@ jobs:
           OLD_VER=$(cat .official_json_version 2>/dev/null || echo "none")
           
           echo "NEW_VER=$NEW_VER" >> $GITHUB_ENV
+          
           if [ "$NEW_VER" != "$OLD_VER" ]; then
              echo "VERSION_CHANGED=true" >> $GITHUB_ENV
              echo "✅ Version changed: $OLD_VER -> $NEW_VER"
+             echo "$NEW_VER" > .official_json_version
           else
              echo "VERSION_CHANGED=false" >> $GITHUB_ENV
           fi
@@ -209,8 +211,11 @@ jobs:
           git add -A
           
           if git diff-index --quiet HEAD --; then
-            echo "Genius! No modification changes detected on main branch."
-            exit 0
+            # 即使代码没变，但如果版本号变了，我们需要在这里做一个额外判断
+            if [ "$VERSION_CHANGED" = "false" ]; then
+              echo "Genius! No modification changes detected on main branch."
+              exit 0
+            fi
           fi
           
           git commit -m "[Patched] $SYNC_COMMIT_MSG"
