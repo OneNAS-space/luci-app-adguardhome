@@ -72,27 +72,31 @@ jobs:
             git checkout --orphan Official-original
           fi
 
-          # 2. 读取上一次同步的锚点 Hash
+          # 🎯 核心修改 1：获取当前最新的“路径专属”Hash，避免被大仓库全局变动骚扰
+          NEW_LUCI_HASH=$(git log -n 1 --format="%H" upstream-luci/master -- applications/luci-app-adguardhome)
+          NEW_PKG_HASH=$(git log -n 1 --format="%H" upstream-packages/master -- net/adguardhome/files)
+
+          # 🎯 核心修改 2：安全读取或回滚锚点 Hash (确保冷启动也严格基于路径)
           if [ -f .upstream_meta ]; then
             OLD_LUCI_HASH=$(sed -n '1p' .upstream_meta)
             OLD_PKG_HASH=$(sed -n '2p' .upstream_meta)
           else
-            OLD_LUCI_HASH=$(git rev-parse upstream-luci/master~5)
-            OLD_PKG_HASH=$(git rev-parse upstream-packages/master~5)
+            echo "⚠️ .upstream_meta not found! Fallback to path-specific historical commits."
+            OLD_LUCI_HASH=$(git log -n 1 --skip=5 --format="%H" upstream-luci/master -- applications/luci-app-adguardhome)
+            [ -z "$OLD_LUCI_HASH" ] && OLD_LUCI_HASH=$NEW_LUCI_HASH
+            
+            OLD_PKG_HASH=$(git log -n 1 --skip=5 --format="%H" upstream-packages/master -- net/adguardhome/files)
+            [ -z "$OLD_PKG_HASH" ] && OLD_PKG_HASH=$NEW_PKG_HASH
           fi
 
-          # 3. 获取当前最新的上游 Hash
-          NEW_LUCI_HASH=$(git rev-parse upstream-luci/master)
-          NEW_PKG_HASH=$(git rev-parse upstream-packages/master)
-
-          # 4. 提取历史记录
+          # 4. 提取历史记录 (由于上下边界全切换为路径 Hash，这里的 Diff 会变得极度纯净)
           LUCI_CHANGELOG=$(git log --oneline ${OLD_LUCI_HASH}..${NEW_LUCI_HASH} -- applications/luci-app-adguardhome)
           PKG_CHANGELOG=$(git log --oneline ${OLD_PKG_HASH}..${NEW_PKG_HASH} -- net/adguardhome/files)
 
           [ -z "$LUCI_CHANGELOG" ] && LUCI_CHANGELOG="No changes in this range."
           [ -z "$PKG_CHANGELOG" ] && PKG_CHANGELOG="No changes in this range."
 
-          # 5. 核心修复：用大括号包裹，将整段输出准确推入 $GITHUB_ENV
+          # 5. 用大括号包裹，将整段输出准确推入 $GITHUB_ENV
           {
             echo "SYNC_COMMIT_MSG<<EOF_GHA"
             echo "Sync: Combined upstream updates"
