@@ -118,7 +118,7 @@ return view.extend({
 	},
 
 	async render([isRunning, version, yamlContent]) {
-		// 有版本号说明核心存在，没版本号就是不存在
+		// If there is a version number, it means that the kernel exists. If there is no version number, it does not exist.
 		const coreExists = Boolean(version);
 		let dnsPort = '53';
 		if (yamlContent) {
@@ -131,7 +131,7 @@ return view.extend({
 			}
 		}
 
-		// 💡 动态安全取值：UI 渲染需要用到 httpport 生成跳转链接
+		// 💡 Dynamic security value: UI rendering requires httpport to generate jump links
 		const sections = uci.sections('adguardhome', 'adguardhome');
 		const savedHttpPort = (sections.length > 0 && sections[0].httpport) ? sections[0].httpport : '3008';
 
@@ -171,7 +171,7 @@ return view.extend({
 				' ' + _('Modify at your own risk.'),
 		);
 
-		// ==== 移动至此：全局启用开关 ====
+		// ==== Move here: global switch ====
 		const enabledOpt = mainSect.taboption(
 			'general',
 			form.Flag,
@@ -180,7 +180,7 @@ return view.extend({
 		);
 		enabledOpt.default = '0';
 		enabledOpt.rmempty = false;
-		// 如果核心不存在，追加警告提示引导用户开启服务以自动下载
+		// If the kernel does not exist, additional warning prompts will guide users to turn on the service to download automatically.
 		if (!coreExists) {
 			enabledOpt.description = `<span style="color: var(--error-color-high); font-weight: bold;">${_('Core binary not found. Enable the service to trigger an automatic download.')}</span>`;
 		}
@@ -250,7 +250,7 @@ return view.extend({
 		advSettingsOpt.remove = () => {};
 		advSettingsOpt.write = (_, value) => sessionStorage.setItem(STORAGE_KEY, value);
 
-		// ==== 新增：General 控制 Core Update 的开关 ====
+		// ==== New: The switch of Core Update on General tab ====
 		const coreUpdateToggleOpt = mainSect.taboption(
 			'general',
 			form.Flag,
@@ -339,20 +339,20 @@ return view.extend({
 		const isServiceEnabled = sections.length > 0 && sections[0].enabled === '1';
 		const disabledHint = _('Service is disabled. Please go to "General Settings" to enable it.');
 
-		// 💡 4. 构造智能状态的 WebUI 按钮 HTML
+		// 💡 4. WebUI button HTML to construct intelligent state
 		const webuiBtnHtml = isServiceEnabled
 			? `<a class="btn cbi-button cbi-button-link" style="font-weight:bold; display:inline-block; margin-top:5px;" href="http://${linkIp}:${linkPort}" target="_blank">${_('Open AdGuardHome WebUI')}</a>`
 			: `<span title='${disabledHint}' style="display:inline-block; margin-top:5px; cursor:not-allowed;">
 					<a class="btn cbi-button cbi-button-link" style="font-weight:bold; pointer-events:none; opacity:0.5; margin-top:0;" href="javascript:void(0);">${_('Open AdGuardHome WebUI')}</a>
 			   </span>`;
 
-		// 💡 5. 渲染组件
+		// 💡 5. Rendering components
 		const httpAddressOpt = mainSect.taboption(
 			'dns_redirect',
 			form.Value,
 			'http_address',
-			_('WebUI Bind Address'),
-			_('Format: IP:Port (e.g., 0.0.0.0:3008). Leave as 0.0.0.0 to listen on all interfaces.') + 
+			_('WebUI listener (address:port)'),
+			_('Bind to specific interface:port (e.g., 0.0.0.0:3008). Leave as 0.0.0.0 to listen on all interfaces.') + 
 			`<br />${webuiBtnHtml}`
 		);
 		httpAddressOpt.placeholder = '0.0.0.0:3008';
