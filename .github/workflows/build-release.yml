@@ -31,11 +31,17 @@ jobs:
         run: |
           set -euo pipefail
 
-          COMMIT_TIMESTAMP=$(git log -1 --format=%ct)
           COMMIT_SHA=$(git rev-parse --short=7 HEAD)
 
-          PKG_VERSION_DATE=$(date -u -d "@${COMMIT_TIMESTAMP}" +'%y.%j')
-          PKG_VERSION_SECS=$(printf "%05d" $(( COMMIT_TIMESTAMP % 86400 )))
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "Manual trigger detected. Using current time to force unique version."
+            BASE_TIMESTAMP=$(date +%s)
+          else
+            BASE_TIMESTAMP=$(git log -1 --format=%ct)
+          fi
+
+          PKG_VERSION_DATE=$(date -u -d "@${BASE_TIMESTAMP}" +'%y.%j')
+          PKG_VERSION_SECS=$(printf "%05d" $(( BASE_TIMESTAMP % 86400 )))
           OFFICIAL_VERSION="${PKG_VERSION_DATE}.${PKG_VERSION_SECS}~${COMMIT_SHA}"
           GIT_TAG_VERSION="${PKG_VERSION_DATE}.${PKG_VERSION_SECS}"
 
