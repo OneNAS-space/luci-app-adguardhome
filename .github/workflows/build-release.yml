@@ -1,6 +1,6 @@
+name: Build luci-app-adguardhome Package
 permissions:
   contents: write
-name: Build luci-app-adguardhome Package
 
 on:
   push:
@@ -77,9 +77,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - version: openwrt-24.10
-            target: x86_64
-            suffix: all
           - version: openwrt-25.12
             target: x86_64
             suffix: noarch
@@ -98,7 +95,6 @@ jobs:
           printf 'include $(TOPDIR)/feeds/luci/luci.mk\n' > package/luci.mk
 
           mkdir -p feed/luci/applications/${PKG_NAME}
-
           mkdir -p feed/luci
           printf 'include $(TOPDIR)/feeds/luci/luci.mk\n' > feed/luci/luci.mk
 
@@ -127,12 +123,10 @@ jobs:
           sed -i "/^LUCI_NAME/a PKG_VERSION:=${OFFICIAL_VERSION}" "$MF"
 
           echo "✅ Patched Makefile metadata:"
-          echo "--- 📄 Full Makefile Content Preview ---"
-          cat "$MF"
+          grep -E 'PKG_VERSION|PKG_RELEASE' "$MF"
           
       - name: 🧮 Compute ARCH
-        run: |
-          echo "ARCH=${{ matrix.target }}-${{ matrix.version }}" >> "$GITHUB_ENV"
+        run: echo "ARCH=${{ matrix.target }}-${{ matrix.version }}" >> "$GITHUB_ENV"
 
       - name: 🏗️ Build with OpenWrt SDK
         uses: openwrt/gh-action-sdk@v11
@@ -145,26 +139,11 @@ jobs:
           NO_SHFMT_CHECK: 1
           NO_REFRESH_CHECK: 1
 
-      - name: 🔍 Debug build output
-        run: |
-          echo "=== Build directory structure ==="
-          find . -name "*.ipk" -type f 2>/dev/null || echo "No .ipk files found"
-          echo "=== bin directory structure ==="
-          ls -la bin/ 2>/dev/null || echo "No bin directory found"
-          if [ -d "bin/packages" ]; then
-            echo "=== packages directory structure ==="
-            find bin/packages/ -type f -name "*.ipk" 2>/dev/null || echo "No .ipk files in packages directory"
-            echo "=== Full packages directory tree ==="
-            ls -laR bin/packages/ 2>/dev/null || echo "No packages directory"
-          fi
-
-      - name: 📦 Upload artifact for ${{ matrix.target }}
+      - name: 📦 Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.PKG_NAME }}-${{ matrix.target }}-${{ matrix.version }}
-          path: |
-            bin/packages/*/jackie264/${{ env.PKG_NAME }}*.ipk
-            bin/packages/*/jackie264/${{ env.PKG_NAME }}*.apk
+          path: bin/packages/*/jackie264/${{ env.PKG_NAME }}*.apk
           if-no-files-found: ignore
 
   release:
@@ -187,9 +166,7 @@ jobs:
         with:
           tag_name: ${{ needs.check.outputs.tag_name }}
           name: Build-${{ needs.check.outputs.tag_name }}
-          files: |
-            ./release-assets/**/*.ipk
-            ./release-assets/**/*.apk
+          files: ./release-assets/**/*.apk
           draft: false
           prerelease: false
         env:
@@ -206,31 +183,31 @@ jobs:
         run: |
           set -e
           CURRENT_PKG="${{ github.event.repository.name }}"
-          mkdir -p custom-packages/releases/packages-24.10/luci
-          mkdir -p custom-packages/releases/packages-25.12/luci
-          echo "Cleaning all old versions for $CURRENT_PKG before updating..."
-          rm -f custom-packages/releases/packages-24.10/luci/${CURRENT_PKG}_*.ipk
-          rm -f custom-packages/releases/packages-25.12/luci/${CURRENT_PKG}-*.apk
-          find ./release-assets -type f \( -name "*.ipk" -o -name "*.apk" \) | while read -r f; do
-            base=$(basename "$f")
-            if [[ "$base" == *.ipk ]]; then
-              echo "Deploying $base to releases/packages-24.10/luci/"
-              cp "$f" custom-packages/releases/packages-24.10/luci/
-            elif [[ "$base" == *.apk ]]; then
-              echo "Deploying $base to releases/packages-25.12/luci/"
-              cp "$f" custom-packages/releases/packages-25.12/luci/
-            fi
+          TARGET_DIR="custom-packages/releases/packages-25.12/luci"
+          mkdir -p "$TARGET_DIR"
+          
+          echo "Cleaning all old versions for $CURRENT_PKG in $TARGET_DIR..."
+          rm -f "$TARGET_DIR/${CURRENT_PKG}"-*.apk
+          
+          find ./release-assets -type f -name "*.apk" | while read -r f; do
+            echo "Deploying $(basename "$f") to $TARGET_DIR/"
+            cp "$f" "$TARGET_DIR/"
           done
-          echo "=== 24.10 Content ==="
-          ls -la custom-packages/releases/packages-24.10/luci/${CURRENT_PKG}* || echo "No IPKs found"
+          
           echo "=== 25.12 Content ==="
-          ls -la custom-packages/releases/packages-25.12/luci/${CURRENT_PKG}* || echo "No APKs found"
+          ls -la "$TARGET_DIR/${CURRENT_PKG}"* || echo "No APKs found"
 
           cd custom-packages
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add releases/packages-24.10/luci/ releases/packages-25.12/luci/
-          git commit -m "Update $CURRENT_PKG to ${{ needs.check.outputs.tag_name }}" || echo "No changes"
+          git add "releases/packages-25.12/luci/"
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          
+          git commit -m "Update $CURRENT_PKG to ${{ needs.check.outputs.tag_name }}"
           for i in {1..5}; do
             git pull --rebase origin main && \
             git push origin main && break || \
