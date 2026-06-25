@@ -3,8 +3,9 @@
 include $(TOPDIR)/rules.mk
 
 LUCI_NAME:=luci-app-adguardhome
-LUCI_MAINTAINER:=George Sapkin <george@sapk.in>
+LUCI_MAINTAINER:=Jackie264 <OneNAS-space>
 PKG_LICENSE:=GPL-2.0-only
+PKG_CPE_ID:=cpe:/a:Jackie264:luci-app-adguardhome
 
 LUCI_TITLE:=LuCI support for AdGuard Home
 LUCI_DEPENDS:=+luci-base
