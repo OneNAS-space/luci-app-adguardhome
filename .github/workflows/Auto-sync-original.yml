@@ -63,7 +63,7 @@ jobs:
 
       - name: Assemble Raw Materials & Generate Precision Changelog
         run: |
-          # 1. 严格切换/创建 Official-original 孤儿分支
+          # 1. Strictly switch/create Official-original orphan branch
           if git ls-remote --exit-code --heads origin Official-original; then
             git fetch origin Official-original
             git checkout Official-original
@@ -72,11 +72,11 @@ jobs:
             git checkout --orphan Official-original
           fi
 
-          # 🎯 核心修改 1：获取当前最新的“路径专属”Hash，避免被大仓库全局变动骚扰
+          # 🎯 Core modification 1: Get the latest "path-exclusive" Hash to avoid being harassed by the global changes of the large warehouse
           NEW_LUCI_HASH=$(git log -n 1 --format="%H" upstream-luci/master -- applications/luci-app-adguardhome)
           NEW_PKG_HASH=$(git log -n 1 --format="%H" upstream-packages/master -- net/adguardhome/files)
 
-          # 🎯 核心修改 2：安全读取或回滚锚点 Hash (确保冷启动也严格基于路径)
+          # 🎯 Core modification 2: Securely read or roll back the anchor point Hash (ensure that cold start is also strictly based on the path)
           if [ -f .upstream_meta ]; then
             OLD_LUCI_HASH=$(sed -n '1p' .upstream_meta)
             OLD_PKG_HASH=$(sed -n '2p' .upstream_meta)
@@ -89,14 +89,14 @@ jobs:
             [ -z "$OLD_PKG_HASH" ] && OLD_PKG_HASH=$NEW_PKG_HASH
           fi
 
-          # 4. 提取历史记录 (由于上下边界全切换为路径 Hash，这里的 Diff 会变得极度纯净)
+          # 4. Extract the history (because the upper and lower boundaries are all switched to the path Hash, the Diff here will become extremely pure)
           LUCI_CHANGELOG=$(git log --oneline ${OLD_LUCI_HASH}..${NEW_LUCI_HASH} -- applications/luci-app-adguardhome)
           PKG_CHANGELOG=$(git log --oneline ${OLD_PKG_HASH}..${NEW_PKG_HASH} -- net/adguardhome/files)
 
           [ -z "$LUCI_CHANGELOG" ] && LUCI_CHANGELOG="No changes in this range."
           [ -z "$PKG_CHANGELOG" ] && PKG_CHANGELOG="No changes in this range."
 
-          # 5. 用大括号包裹，将整段输出准确推入 $GITHUB_ENV
+          # 5. Wrap it in brackets and accurately push the output of the whole segment into $GITHUB_ENV
           {
             echo "SYNC_COMMIT_MSG<<EOF_GHA"
             echo "Sync: Combined upstream updates"
@@ -107,7 +107,7 @@ jobs:
             echo "===== 📌 Packages Backend Commits ====="
             echo "$PKG_CHANGELOG"
             
-            # 关键点：动态添加版本更新信息
+            # Key point: dynamically add version update information
             if [ "$VERSION_CHANGED" = "true" ]; then
               echo ""
               echo "===== 🚀 Official Version Update ====="
@@ -117,7 +117,7 @@ jobs:
             echo "EOF_GHA"
           } >> $GITHUB_ENV
 
-          # 6. 净化工作区 (保留元数据文件)
+          # 6. Purify the work area (retain metadata files)
           git rm -rf --cached . 2>/dev/null || true
           find . -mindepth 1 -maxdepth 1 \
             ! -name '.git' \
@@ -125,7 +125,7 @@ jobs:
             ! -name '.official_json_version' \
             -exec rm -rf {} +
           
-          # 7. 更新锚点文件
+          # 7. Update the anchor file
           echo "$NEW_LUCI_HASH" > .upstream_meta
           echo "$NEW_PKG_HASH" >> .upstream_meta
           echo "$NEW_VER" > .official_json_version
@@ -201,9 +201,20 @@ jobs:
           for patch_file in $PATCH_LIST; do
             echo ""
             if [ -f "patches/$patch_file" ]; then
-              echo "🩹 Applying patches/$patch_file ..."
-              patch --batch -p1 < "patches/$patch_file"
-              echo "✅ $patch_file applied successfully!"
+              echo "🔎 Detecting the patch status: patches/$patch_file ..."
+              if patch -p1 --dry-run -R --silent < "patches/$patch_file" >/dev/null 2>&1; then
+                echo "⏭️ [Skip] The upstream source code already contains the content of this patch, and there is no need to repeat the application."
+                continue
+              fi
+              
+              if patch -p1 --dry-run --silent < "patches/$patch_file" >/dev/null 2>&1; then
+                echo "🩹 Patch is being applied: patches/$patch_file ..."
+                patch --batch -p1 < "patches/$patch_file"
+                echo "✅ $patch_file applied successfully!"
+              else
+                echo "❌ Key error: $patch_file is neither applied in advance nor can it be integrated cleanly."
+                exit 1
+              fi
             else
               echo "❌ Critical Error: patches/$patch_file missing!"
               exit 1
@@ -220,7 +231,7 @@ jobs:
           git add -A
           
           if git diff-index --quiet HEAD --; then
-            # 即使代码没变，但如果版本号变了，我们需要在这里做一个额外判断
+            # Even if the code has not changed, if the version number has changed, we need to make an additional judgment here.
             if [ "$VERSION_CHANGED" = "false" ]; then
               echo "Genius! No modification changes detected on main branch."
               exit 0
