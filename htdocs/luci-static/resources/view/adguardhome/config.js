@@ -21,8 +21,8 @@ const PATH_REGEX = new RegExp('^/etc(/[^/]+)?/?$');
 
 const POLL_INTERVAL = 5;
 
-const RUNNING_SPAN = `<span style="color: var(--success-color-high); font-weight: bold">${_('Running')}</span>`;
-const NOT_RUNNING_SPAN = `<span style="color: var(--error-color-high); font-weight: bold">${_('Not running')}</span>`;
+const RUNNING_SPAN = `<span style="color: green; font-weight: bold">${_('Running')}</span>`;
+const NOT_RUNNING_SPAN = `<span style="color: red; font-weight: bold">${_('Not running')}</span>`;
 
 const STORAGE_KEY = 'luci-app-adguardhome';
 const STORAGE_KEY_CORE = 'luci-app-adguardhome_core_update';
