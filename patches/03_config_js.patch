@@ -1,15 +1,15 @@
-From d78e1a4b8fe025f4224c2e818d0589ae0053e97c Mon Sep 17 00:00:00 2001
+From fc3e12a5860b5da4230293d7e6dc4f3b24b32b23 Mon Sep 17 00:00:00 2001
 From: Jackie264 <125248570+Jackie264@users.noreply.github.com>
-Date: Mon, 1 Jun 2026 20:21:06 +0800
+Date: Sat, 4 Jul 2026 14:19:51 +0800
 Subject: [PATCH] Enhance AdGuard Home config with core update options
 
-Add core update toggle and improve YAML handling
+Updated service status indicators and added core update functionality.
 ---
- .../resources/view/adguardhome/config.js      | 365 +++++++++++++++++-
- 1 file changed, 362 insertions(+), 3 deletions(-)
+ .../resources/view/adguardhome/config.js      | 369 +++++++++++++++++-
+ 1 file changed, 364 insertions(+), 5 deletions(-)
 
 diff --git a/htdocs/luci-static/resources/view/adguardhome/config.js b/htdocs/luci-static/resources/view/adguardhome/config.js
-index 6dc2d45..db6c45d 100644
+index 6dc2d45..12fc3ab 100644
 --- a/htdocs/luci-static/resources/view/adguardhome/config.js
 +++ b/htdocs/luci-static/resources/view/adguardhome/config.js
 @@ -5,6 +5,7 @@
@@ -20,8 +20,14 @@ index 6dc2d45..db6c45d 100644
  'require view';
  
  const DEFAULT_CONFIG_FILE = '/etc/adguardhome/adguardhome.yaml';
-@@ -24,6 +25,7 @@ const RUNNING_SPAN = `<span style="color: var(--success-color-high); font-weight
- const NOT_RUNNING_SPAN = `<span style="color: var(--error-color-high); font-weight: bold">${_('Not running')}</span>`;
+@@ -20,10 +21,11 @@ const PATH_REGEX = new RegExp('^/etc(/[^/]+)?/?$');
+ 
+ const POLL_INTERVAL = 5;
+ 
+-const RUNNING_SPAN = `<span style="color: var(--success-color-high); font-weight: bold">${_('Running')}</span>`;
+-const NOT_RUNNING_SPAN = `<span style="color: var(--error-color-high); font-weight: bold">${_('Not running')}</span>`;
++const RUNNING_SPAN = `<span style="color: green; font-weight: bold">${_('Running')}</span>`;
++const NOT_RUNNING_SPAN = `<span style="color: red; font-weight: bold">${_('Not running')}</span>`;
  
  const STORAGE_KEY = 'luci-app-adguardhome';
 +const STORAGE_KEY_CORE = 'luci-app-adguardhome_core_update';
