@@ -46,19 +46,40 @@ jobs:
 
       - name: Fetch and Compare Official Version
         run: |
-          FEED_URL="https://downloads.openwrt.org/releases/packages-25.12/x86_64/luci/index.json"
           TARGET_PKG="luci-app-adguardhome"
-          NEW_VER=$(curl -sL "$FEED_URL" | jq -r --arg pkg "$TARGET_PKG" '.packages[$pkg]')
+          URLS=(
+            "https://downloads.openwrt.org/releases/packages-25.12/x86_64/luci/index.json"
+            "https://downloads.openwrt.org/releases/packages-25.12/arm_cortex-a7_neon-vfpv4/luci/index.json"
+            "https://downloads.openwrt.org/releases/packages-25.12/aarch64_cortex-a53/luci/index.json"
+          )
+          FETCHED_VERSIONS=""
+          for URL in "${URLS[@]}"; do
+            echo "🔍 Checking: $URL"
+            VER=$(curl -sL --retry 3 "$URL" | jq -r --arg pkg "$TARGET_PKG" '.packages[$pkg] // empty')
+            
+            if [ -n "$VER" ] && [ "$VER" != "null" ]; then
+              echo "   ↳ Found version: $VER"
+              FETCHED_VERSIONS="${FETCHED_VERSIONS}${VER}\n"
+            else
+              echo "   ↳ ⚠️ Package not found or download failed."
+            fi
+          done
+          # NEW_VER=$(curl -sL "$FEED_URL" | jq -r --arg pkg "$TARGET_PKG" '.packages[$pkg]')
+          NEW_VER=$(printf "%b" "$FETCHED_VERSIONS" | sed '/^$/d' | sort -V | tail -n 1)
           OLD_VER=$(cat .official_json_version 2>/dev/null || echo "none")
-          
+
+          if [ -z "$NEW_VER" ]; then
+            echo "❌ Critical Error: Failed to fetch version from ALL sources."
+            exit 1
+          fi
           echo "NEW_VER=$NEW_VER" >> $GITHUB_ENV
           
           if [ "$NEW_VER" != "$OLD_VER" ]; then
              echo "VERSION_CHANGED=true" >> $GITHUB_ENV
              echo "✅ Version changed: $OLD_VER -> $NEW_VER"
-             # echo "$NEW_VER" > .official_json_version
           else
              echo "VERSION_CHANGED=false" >> $GITHUB_ENV
+             echo "💤 Version unchanged: $OLD_VER"
           fi
 
       - name: Assemble Raw Materials & Generate Precision Changelog
