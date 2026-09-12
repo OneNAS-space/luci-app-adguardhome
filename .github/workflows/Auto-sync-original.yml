@@ -48,8 +48,11 @@ jobs:
         run: |
           TARGET_PKG="luci-app-adguardhome"
           URLS=(
+            "https://downloads.openwrt.org/releases/snapshots/x86_64/luci/index.json"
             "https://downloads.openwrt.org/releases/packages-25.12/x86_64/luci/index.json"
+            "https://downloads.openwrt.org/releases/snapshots/arm_cortex-a7_neon-vfpv4/luci/index.json"
             "https://downloads.openwrt.org/releases/packages-25.12/arm_cortex-a7_neon-vfpv4/luci/index.json"
+            "https://downloads.openwrt.org/releases/snapshots/aarch64_cortex-a53/luci/index.json"
             "https://downloads.openwrt.org/releases/packages-25.12/aarch64_cortex-a53/luci/index.json"
           )
           FETCHED_VERSIONS=""
