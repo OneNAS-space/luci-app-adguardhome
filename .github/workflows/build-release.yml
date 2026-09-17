@@ -213,3 +213,26 @@ jobs:
             git push origin main && break || \
             (echo "Conflict detected, retrying in 5s..." && sleep 5)
           done
+
+      - name: 🧹 Keep only the latest 3 releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          KEEP=3
+
+          OLD=$(gh release list --repo "$REPO" --limit 200 \
+                  --json tagName,createdAt \
+                  --jq "sort_by(.createdAt) | reverse | .[${KEEP}:] | .[].tagName")
+
+          if [ -z "$OLD" ]; then
+            echo "Nothing to clean up."
+            exit 0
+          fi
+
+          echo "$OLD" | while read -r tag; do
+            [ -z "$tag" ] && continue
+            echo "🗑️ Deleting release $tag"
+            gh release delete "$tag" --repo "$REPO" --cleanup-tag --yes
+          done
