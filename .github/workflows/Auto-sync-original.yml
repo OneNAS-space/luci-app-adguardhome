@@ -21,7 +21,7 @@ env:
 
 jobs:
   sync-and-sanitize:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout target repo
         uses: actions/checkout@main
