@@ -47,42 +47,59 @@ jobs:
       - name: Fetch and Compare Official Version
         run: |
           TARGET_PKG="luci-app-adguardhome"
-          URLS=(
-            "https://downloads.openwrt.org/snapshots/packages/x86_64/luci/index.json"
-            "https://downloads.openwrt.org/releases/packages-25.12/x86_64/luci/index.json"
-            "https://downloads.openwrt.org/snapshots/packages/arm_cortex-a7_neon-vfpv4/luci/index.json"
-            "https://downloads.openwrt.org/releases/packages-25.12/arm_cortex-a7_neon-vfpv4/luci/index.json"
-            "https://downloads.openwrt.org/snapshots/packages/aarch64_cortex-a53/luci/index.json"
-            "https://downloads.openwrt.org/releases/packages-25.12/aarch64_cortex-a53/luci/index.json"
+          # Each entry: "<url>|<channel>" — channel is "snapshot" or "release"
+          SOURCES=(
+            "https://downloads.openwrt.org/snapshots/packages/x86_64/luci/index.json|snapshot"
+            "https://downloads.openwrt.org/releases/packages-25.12/x86_64/luci/index.json|release"
+            "https://downloads.openwrt.org/snapshots/packages/arm_cortex-a7_neon-vfpv4/luci/index.json|snapshot"
+            "https://downloads.openwrt.org/releases/packages-25.12/arm_cortex-a7_neon-vfpv4/luci/index.json|release"
+            "https://downloads.openwrt.org/snapshots/packages/aarch64_cortex-a53/luci/index.json|snapshot"
+            "https://downloads.openwrt.org/releases/packages-25.12/aarch64_cortex-a53/luci/index.json|release"
           )
-          FETCHED_VERSIONS=""
-          for URL in "${URLS[@]}"; do
-            echo "🔍 Checking: $URL"
+
+          : > /tmp/fetched_versions.txt
+          for SRC in "${SOURCES[@]}"; do
+            URL="${SRC%%|*}"
+            CHANNEL="${SRC##*|}"
+            echo "🔍 Checking [$CHANNEL]: $URL"
             VER=$(curl -sL --retry 3 "$URL" | jq -r --arg pkg "$TARGET_PKG" '.packages[$pkg] // empty')
-            
+
             if [ -n "$VER" ] && [ "$VER" != "null" ]; then
               echo "   ↳ Found version: $VER"
-              FETCHED_VERSIONS="${FETCHED_VERSIONS}${VER}\n"
+              echo "${VER}|${CHANNEL}" >> /tmp/fetched_versions.txt
             else
               echo "   ↳ ⚠️ Package not found or download failed."
             fi
           done
-          # NEW_VER=$(curl -sL "$FEED_URL" | jq -r --arg pkg "$TARGET_PKG" '.packages[$pkg]')
-          NEW_VER=$(printf "%b" "$FETCHED_VERSIONS" | sed '/^$/d' | sort -V | tail -n 1)
-          OLD_VER=$(cat .official_json_version 2>/dev/null || echo "none")
 
-          if [ -z "$NEW_VER" ]; then
+          if [ ! -s /tmp/fetched_versions.txt ]; then
             echo "❌ Critical Error: Failed to fetch version from ALL sources."
             exit 1
           fi
+
+          # Highest version wins. On a tie between channels, prefer "release"
+          # since a stable release build should take priority over a snapshot
+          # that merely happens to carry the same version string.
+          NEW_VER=$(cut -d'|' -f1 /tmp/fetched_versions.txt | sort -V | uniq | tail -n 1)
+          if grep -qx "${NEW_VER}|release" /tmp/fetched_versions.txt; then
+            NEW_CHANNEL="release"
+          else
+            NEW_CHANNEL="snapshot"
+          fi
+
+          OLD_VER=$(cat .official_json_version 2>/dev/null || echo "none")
+          OLD_CHANNEL=$(cat .official_channel 2>/dev/null || echo "none")
+
           echo "NEW_VER=$NEW_VER" >> $GITHUB_ENV
-          
-          if [ "$NEW_VER" != "$OLD_VER" ]; then
+          echo "NEW_CHANNEL=$NEW_CHANNEL" >> $GITHUB_ENV
+          echo "📡 Resolved channel: $NEW_CHANNEL (version $NEW_VER)"
+
+          if [ "$NEW_VER" != "$OLD_VER" ] || [ "$NEW_CHANNEL" != "$OLD_CHANNEL" ]; then
              echo "VERSION_CHANGED=true" >> $GITHUB_ENV
-             echo "✅ Version changed: $OLD_VER -> $NEW_VER"
+             echo "✅ Version changed: $OLD_VER ($OLD_CHANNEL) -> $NEW_VER ($NEW_CHANNEL)"
           else
              echo "VERSION_CHANGED=false" >> $GITHUB_ENV
-             echo "💤 Version unchanged: $OLD_VER"
+             echo "💤 Version unchanged: $OLD_VER ($OLD_CHANNEL)"
           fi
 
       - name: Assemble Raw Materials & Generate Precision Changelog
@@ -136,6 +153,7 @@ jobs:
               echo ""
               echo "===== 🚀 Official Version Update ====="
               echo "New Official Version: $NEW_VER"
+              echo "Channel: $NEW_CHANNEL"
             fi
             
             echo "EOF_GHA"
@@ -147,12 +165,14 @@ jobs:
             ! -name '.git' \
             ! -name '.upstream_meta' \
             ! -name '.official_json_version' \
+            ! -name '.official_channel' \
             -exec rm -rf {} +
           
           # 7. Update the anchor file
           echo "$NEW_LUCI_HASH" > .upstream_meta
           echo "$NEW_PKG_HASH" >> .upstream_meta
           echo "$NEW_VER" > .official_json_version
+          echo "$NEW_CHANNEL" > .official_channel
 
           echo "📥 Extracting frontend from upstream-luci..."
           git checkout upstream-luci/master -- applications/luci-app-adguardhome
@@ -196,6 +216,7 @@ jobs:
             ! -name 'SECURITY.md' \
             ! -name '.upstream_meta' \
             ! -name '.official_json_version' \
+            ! -name '.official_channel' \
             -exec rm -rf {} +
           
           echo "📥 Overlaying pristine raw materials from Official-original..."
