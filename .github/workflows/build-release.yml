@@ -21,10 +21,32 @@ jobs:
       should_build: ${{ steps.check_release.outputs.should_build }}
       tag_name: ${{ steps.version.outputs.tag_name }}
       main_version: ${{ steps.version.outputs.main_version }}
+      channel: ${{ steps.channel.outputs.channel }}
       
     steps:
       - name: 🧾 Checkout repo
         uses: actions/checkout@v7
+
+      - name: 🔀 Detect version channel (snapshot vs release)
+        id: channel
+        run: |
+          # .official_channel is written by the sync-and-sanitize workflow,
+          # based on whether the official version it tracked came from
+          # downloads.openwrt.org/snapshots/... or .../releases/packages-25.12/...
+          if [ -f .official_channel ]; then
+            CH=$(tr -d '[:space:]' < .official_channel)
+          else
+            echo "⚠️ .official_channel not found, defaulting to 'release'."
+            CH="release"
+          fi
+
+          if [ "$CH" != "snapshot" ] && [ "$CH" != "release" ]; then
+            echo "⚠️ Unexpected channel value '$CH', defaulting to 'release'."
+            CH="release"
+          fi
+
+          echo "channel=$CH" >> "$GITHUB_OUTPUT"
+          echo "📡 Detected channel: $CH"
 
       - name: 🏷️ Extract version info from Git Commit
         id: version
@@ -53,12 +75,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.version.outputs.tag_name }}
+          CHANNEL: ${{ steps.channel.outputs.channel }}
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             echo "Manual run detected. Forcing build."
             echo "should_build=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+
+          if [ "$CHANNEL" != "release" ]; then
+            echo "Snapshot channel — no GitHub Release is created for snapshots, so the release-existence check does not apply. Proceeding with build."
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           if gh release view "$TAG" > /dev/null 2>&1; then
             echo "Release $TAG already exists. Skipping build."
             echo "should_build=false" >> "$GITHUB_OUTPUT"
@@ -107,6 +137,7 @@ jobs:
             --exclude='README.md' \
             --exclude='.upstream_meta' \
             --exclude='.official_json_version' \
+            --exclude='.official_channel' \
             ./ feed/luci/applications/${PKG_NAME}/
 
       - name: 🩹 Patch Makefile with dynamic version
@@ -162,6 +193,7 @@ jobs:
           path: ./release-assets
 
       - name: 🗃️ Create GitHub Release
+        if: needs.check.outputs.channel == 'release'
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.check.outputs.tag_name }}
@@ -183,31 +215,43 @@ jobs:
         run: |
           set -e
           CURRENT_PKG="${{ github.event.repository.name }}"
-          TARGET_DIR="custom-packages/releases/packages-25.12/luci"
+          CHANNEL="${{ needs.check.outputs.channel }}"
+
+          # Release-channel packages go into the versioned releases feed;
+          # snapshot-channel packages go into a separate snapshot feed so
+          # the two never mix.
+          if [ "$CHANNEL" = "release" ]; then
+            REL_DIR="releases/packages-25.12/luci"
+          else
+            REL_DIR="snapshot/packages/luci"
+          fi
+          TARGET_DIR="custom-packages/${REL_DIR}"
+          echo "📡 Channel: $CHANNEL -> deploying to $TARGET_DIR"
+
           mkdir -p "$TARGET_DIR"
-          
+
           echo "Cleaning all old versions for $CURRENT_PKG in $TARGET_DIR..."
           rm -f "$TARGET_DIR/${CURRENT_PKG}"-*.apk
-          
+
           find ./release-assets -type f -name "*.apk" | while read -r f; do
             echo "Deploying $(basename "$f") to $TARGET_DIR/"
             cp "$f" "$TARGET_DIR/"
           done
-          
-          echo "=== 25.12 Content ==="
+
+          echo "=== ${CHANNEL} content ==="
           ls -la "$TARGET_DIR/${CURRENT_PKG}"* || echo "No APKs found"
 
           cd custom-packages
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "releases/packages-25.12/luci/"
-          
+          git add "${REL_DIR}/"
+
           if git diff --staged --quiet; then
             echo "No changes to commit"
             exit 0
           fi
-          
-          git commit -m "Update $CURRENT_PKG to ${{ needs.check.outputs.tag_name }}"
+
+          git commit -m "Update $CURRENT_PKG to ${{ needs.check.outputs.tag_name }} [$CHANNEL]"
           for i in {1..5}; do
             git pull --rebase origin main && \
             git push origin main && break || \
@@ -215,6 +259,7 @@ jobs:
           done
 
       - name: 🧹 Keep only the latest 3 releases
+        if: needs.check.outputs.channel == 'release'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
