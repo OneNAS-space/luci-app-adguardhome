@@ -80,27 +80,45 @@ jobs:
           # Highest version wins. On a tie between channels, prefer "release"
           # since a stable release build should take priority over a snapshot
           # that merely happens to carry the same version string.
-          NEW_VER=$(cut -d'|' -f1 /tmp/fetched_versions.txt | sort -V | uniq | tail -n 1)
-          if grep -qx "${NEW_VER}|release" /tmp/fetched_versions.txt; then
+          NEW_REL_VER=$(grep '|release$' /tmp/fetched_versions.txt | cut -d'|' -f1 | sort -V | tail -n 1 || true)
+          NEW_SNAP_VER=$(grep '|snapshot$' /tmp/fetched_versions.txt | cut -d'|' -f1 | sort -V | tail -n 1 || true)
+          [ -z "$NEW_REL_VER" ] && NEW_REL_VER="none"
+          [ -z "$NEW_SNAP_VER" ] && NEW_SNAP_VER="none"
+
+          OLD_REL_VER=$(cat .official_version_release 2>/dev/null || echo "none")
+          OLD_SNAP_VER=$(cat .official_version_snapshot 2>/dev/null || echo "none")
+
+          [ "$NEW_REL_VER" = "none" ] && NEW_REL_VER="$OLD_REL_VER"
+          [ "$NEW_SNAP_VER" = "none" ] && NEW_SNAP_VER="$OLD_SNAP_VER"
+          
+          NEW_CHANNEL=""
+          if [ "$NEW_REL_VER" != "none" ] && [ "$NEW_REL_VER" != "$OLD_REL_VER" ]; then
             NEW_CHANNEL="release"
-          else
-            NEW_CHANNEL="snapshot"
+          fi
+          
+          if [ "$NEW_SNAP_VER" != "none" ] && [ "$NEW_SNAP_VER" != "$OLD_SNAP_VER" ]; then
+            if [ -z "$NEW_CHANNEL" ]; then
+              NEW_CHANNEL="snapshot"
+            else
+              NEW_CHANNEL="both"
+            fi
           fi
 
-          OLD_VER=$(cat .official_json_version 2>/dev/null || echo "none")
-          OLD_CHANNEL=$(cat .official_channel 2>/dev/null || echo "none")
-
-          echo "NEW_VER=$NEW_VER" >> $GITHUB_ENV
-          echo "NEW_CHANNEL=$NEW_CHANNEL" >> $GITHUB_ENV
-          echo "📡 Resolved channel: $NEW_CHANNEL (version $NEW_VER)"
-
-          if [ "$NEW_VER" != "$OLD_VER" ] || [ "$NEW_CHANNEL" != "$OLD_CHANNEL" ]; then
+          if [ -n "$NEW_CHANNEL" ]; then
              echo "VERSION_CHANGED=true" >> $GITHUB_ENV
-             echo "✅ Version changed: $OLD_VER ($OLD_CHANNEL) -> $NEW_VER ($NEW_CHANNEL)"
+             echo "✅ Version changed! Update channel: $NEW_CHANNEL"
+             echo "   ↳ Release: $OLD_REL_VER -> $NEW_REL_VER"
+             echo "   ↳ Snapshot: $OLD_SNAP_VER -> $NEW_SNAP_VER"
           else
              echo "VERSION_CHANGED=false" >> $GITHUB_ENV
-             echo "💤 Version unchanged: $OLD_VER ($OLD_CHANNEL)"
+             echo "💤 Version unchanged."
+             # Bottom: If the version number has not changed, but Commit is still triggered due to the change of the underlying source code, the code package will be updated together at both ends by default.
+             NEW_CHANNEL="both"
           fi
+
+          echo "NEW_REL_VER=$NEW_REL_VER" >> $GITHUB_ENV
+          echo "NEW_SNAP_VER=$NEW_SNAP_VER" >> $GITHUB_ENV
+          echo "NEW_CHANNEL=$NEW_CHANNEL" >> $GITHUB_ENV
 
       - name: Assemble Raw Materials & Generate Precision Changelog
         run: |
@@ -152,8 +170,9 @@ jobs:
             if [ "$VERSION_CHANGED" = "true" ]; then
               echo ""
               echo "===== 🚀 Official Version Update ====="
-              echo "New Official Version: $NEW_VER"
-              echo "Channel: $NEW_CHANNEL"
+              echo "Update Channel: $NEW_CHANNEL"
+              echo "Release Version: $NEW_REL_VER"
+              echo "Snapshot Version: $NEW_SNAP_VER"
             fi
             
             echo "EOF_GHA"
@@ -161,17 +180,20 @@ jobs:
 
           # 6. Purify the work area (retain metadata files)
           git rm -rf --cached . 2>/dev/null || true
+          rm -f .official_json_version 2>/dev/null || true
           find . -mindepth 1 -maxdepth 1 \
             ! -name '.git' \
             ! -name '.upstream_meta' \
-            ! -name '.official_json_version' \
+            ! -name '.official_version_release' \
+            ! -name '.official_version_snapshot' \
             ! -name '.official_channel' \
             -exec rm -rf {} +
           
           # 7. Update the anchor file
           echo "$NEW_LUCI_HASH" > .upstream_meta
           echo "$NEW_PKG_HASH" >> .upstream_meta
-          echo "$NEW_VER" > .official_json_version
+          echo "$NEW_REL_VER" > .official_version_release
+          echo "$NEW_SNAP_VER" > .official_version_snapshot
           echo "$NEW_CHANNEL" > .official_channel
 
           echo "📥 Extracting frontend from upstream-luci..."
@@ -215,7 +237,8 @@ jobs:
             ! -name 'LICENSE' \
             ! -name 'SECURITY.md' \
             ! -name '.upstream_meta' \
-            ! -name '.official_json_version' \
+            ! -name '.official_version_release' \
+            ! -name '.official_version_snapshot' \
             ! -name '.official_channel' \
             -exec rm -rf {} +
           
