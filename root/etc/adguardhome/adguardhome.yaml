@@ -31,19 +31,17 @@ dns:
   refuse_any: true
   upstream_dns:
     - '#https://dns10.quad9.net/dns-query'
-    - '#223.5.5.5'
-    - '#2400:3200::1'
-    - quic://dns.alidns.com:853
+    - 223.5.5.5
+    - 2400:3200::1
     - https://dns.alidns.com/dns-query
   upstream_dns_file: ""
   bootstrap_dns:
     - 119.29.29.29
-    - 223.5.5.5
-    - 2402:4e00::
+    - 114.114.114.114
   fallback_dns:
     - 119.29.29.29
-    - 223.6.6.6
-    - 2400:3200:baba::1
+    - 113.31.119.88
+    - 2400:7fc0:849e:200:62fd:1de3:1c90:1
   upstream_mode: parallel
   fastest_timeout: 1s
   allowed_clients: []
