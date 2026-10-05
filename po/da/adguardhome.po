@@ -1,14 +1,13 @@
 msgid ""
 msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
-"Language: uk\n"
+"Language: da\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Last-Translator: Karakurt <karakurtspider.s0net@gmail.com>\n"
-"Language-Team: Ukrainian <https://hosted.weblate.org/projects/openwrt/"
-"luciapplicationsadguardhome/uk/>\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-"PO-Revision-Date: 2026-10-04 08:24+0000\n"
+"Last-Translator: Hosted Weblate user 168028 <muuvckxh81zd@ve0ai.com>\n"
+"Language-Team: Danish <https://hosted.weblate.org/projects/openwrt/"
+"luciapplicationsadguardhome/da/>\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"PO-Revision-Date: 2026-10-05 13:33+0000\n"
 "X-Generator: Weblate 2026.10.1.dev0\n"
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:244
@@ -17,9 +16,8 @@ msgid ""
 "more frequently as usage approaches the limit to prevent Out-of-Memory (OOM) "
 "kills."
 msgstr ""
-"М'яке обмеження пам'яті для середовища Go що збільшує частоту збору сміття "
-"поки її використання наближується ліміту з метою уникнути зупинки через "
-"відсутність пам'яті (OOM)."
+"En blød hukommelseshætte til Go runtime, så skraldsamleren kan køre oftere "
+"som brug nærmer sig grænsen for at forhindre Out-of-Memory (OOM) dræber."
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:113
 #: applications/luci-app-adguardhome/root/usr/share/luci/menu.d/luci-app-adguardhome.json:3
@@ -29,48 +27,49 @@ msgstr "AdGuard Home"
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:137
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:199
 msgid "Advanced Settings"
-msgstr "Розширені налаштування"
+msgstr "Avancerede indstillinger"
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:146
 msgid "Configuration file"
-msgstr "Файл налаштувань"
+msgstr "Konfigurations fil"
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:89
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:147
 msgid ""
 "Configuration file must be stored in its own directory, and not in '/etc'."
-msgstr ""
+msgstr "Konfigurationsfilen skal gemmes i sin egen mappe, og ikke i '/etc'."
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:159
 msgid "Directory where filters, logs, and statistics are stored."
-msgstr ""
+msgstr "Mappe, hvor filtre, logfiler og statistik gemmes."
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:132
 msgid "File System Access"
-msgstr "Доступ до файлової системи"
+msgstr "Filsystem Adgang"
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:133
 msgid ""
 "Files and directories that AdGuard Home should have read-only or read-write "
 "access to."
 msgstr ""
+"Filer og mapper, som AdGuard Home skal have læst eller skrive adgang til."
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:129
 msgid "General Settings"
-msgstr "Загальні налаштування"
+msgstr "Generelle indstillinger"
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:138
 msgid ""
 "Go environment variables that tune garbage collector and memory management."
-msgstr ""
+msgstr "Go miljøvariabler, der tuner affaldssamler og hukommelsesstyring."
 
 #: applications/luci-app-adguardhome/root/usr/share/rpcd/acl.d/luci-app-adguardhome.json:3
 msgid "Grant permissions for the AdGuard Home LuCI app"
-msgstr ""
+msgstr "giv tilladelser til AdGuard Home LuCI app"
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:181
 msgid "Group the service runs under."
-msgstr ""
+msgstr "Gruppen kører under."
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:149
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:161
@@ -80,93 +79,97 @@ msgstr ""
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:232
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:247
 msgid "If empty, defaults to"
-msgstr ""
+msgstr "Hvis tomme, standarder til"
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:139
 msgid "Modify at your own risk."
-msgstr ""
+msgstr "Rediger på egen risiko."
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:24
 msgid "Not running"
-msgstr "Не працює"
+msgstr "Not running"
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:148
 msgid "Parent directory will be owned by the service user."
-msgstr ""
+msgstr "Forældremappen ejes af tjenestebrugeren."
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:83
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:99
 msgid "Path must be absolute."
-msgstr ""
+msgstr "sti skal være absolut."
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:86
 msgid "Path must not end with a slash."
-msgstr ""
+msgstr "sti må ikke ende med en slash."
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:207
 msgid "Read-only access"
-msgstr ""
+msgstr "Læseadgang"
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:208
 msgid "Read-write access"
-msgstr ""
+msgstr "Læs-skrive adgang"
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:23
 msgid "Running"
-msgstr "Запущено"
+msgstr "Running"
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:122
 msgid "Service Status"
-msgstr "Стан служби"
+msgstr "Servicestatus"
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:180
 msgid "Service group"
-msgstr ""
+msgstr "Servicegruppe"
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:170
 msgid "Service user"
-msgstr ""
+msgstr "Service bruger"
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:230
 msgid ""
 "The maximum number of operating system threads that can execute user-level "
 "Go code simultaneously."
 msgstr ""
+"Det maksimale antal operativsystemtråde, der kan udføre brugerniveau Go kode "
+"samtidigt."
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:215
 msgid ""
 "Tunes the garbage collector's aggressiveness by setting the percentage of "
 "heap growth allowed before the next collection cycle triggers."
 msgstr ""
+"Tunes skraldfangens aggressivitet ved at indstille procentdelen af heap "
+"vækst tilladt før den næste samling cyklus udløsere."
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:171
 msgid "User the service runs under."
-msgstr ""
+msgstr "Bruger tjenesten kører under."
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:191
 msgid "Verbose logging"
-msgstr "Докладне журналювання"
+msgstr "Verbose logging"
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:119
 msgid "Version"
-msgstr "Версія"
+msgstr "Version"
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:160
 msgid "Will be owned by the service user."
-msgstr ""
+msgstr "Vil være ejet af servicebrugeren."
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:158
 msgid "Working directory"
-msgstr ""
+msgstr "Arbejdsmappe"
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:247
 msgid "unset"
-msgstr ""
+msgstr "usæt"
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:217
 msgid "unset and 100"
-msgstr ""
+msgstr "usæt og 100"
 
 #: applications/luci-app-adguardhome/htdocs/luci-static/resources/view/adguardhome/config.js:232
 msgid "unset and matching the number of CPUs"
-msgstr ""
+msgstr "usæt og matchende antallet af CPU'er"
