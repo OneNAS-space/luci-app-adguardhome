@@ -105,7 +105,6 @@ querylog:
     - orirainbow.cc^
     - orirainwe.edu.kg^
     - coriseay.edu.kg^
-    - xzbzcoriseay.win^
     - google.com^
   interval: 7d
   size_memory: 1000
@@ -118,7 +117,6 @@ statistics:
     - orirainbow.cc^
     - orirainwe.edu.kg^
     - coriseay.edu.kg^
-    - xzbzcoriseay.win^
     - google.com^
   interval: 7d
   enabled: true
@@ -137,6 +135,8 @@ user_rules:
   - '@@||ntfy.sh^'
   - '@@||pubnub.com^'
   - '@@||clarity.ms^$important'
+  - '@@||sh-gsg.com^$important'
+  - '@@||sh-mtgc.com^$important'
   - '@@||taobao.com^$important'
   - '@@||tmall.com^$important'
   - '@@||jd.com^important'
@@ -164,7 +164,6 @@ user_rules:
   - '@@||miwifi.com^'
   - '@@||tracker.ai.xiaomi.com^$important'
   - '@@||tracking.miui.com^$important'
-  - '@@||xiaomiyoupin.com^'
   - '#解除 Apple 及其所有子域名的封锁；'
   - '@@||apple.com^'
   - '@@||apple.com.cn^'
@@ -196,6 +195,9 @@ user_rules:
   - '@@||app-measurement.com^$important'
   - '@@||tmdb.org^'
   - '@@||themoviedb.org^'
+  - /googleads.$~script,domain=~googleads.github.io
+  - /pagead/lvz?
+  - '||google.com/pagead/'
   - '||static.doubleclick.net^$domain=youtube.com'
   - '||youtube.com/get_midroll_'
   - '||5hz.org^'
@@ -230,27 +232,7 @@ user_rules:
   - '@@||1ptba.com^'
   - '@@||ptcafe.club^'
   - '||nbpicture.xyz^'
-  - '! ===== Gemini & NotebookLM & Google Labs 核心 API 放行 ====='
-  - '@@||notebooklm.google.com^'
-  - '@@||labs.google.com^'
-  - '@@||gemini.google.com^'
-  - '@@||alkalimakersuite-pa.googleapis.com^'
-  - '@@||generativelanguage.googleapis.com^'
-  - '! ===== Google 基础前端脚本与 API 通讯保障 ====='
-  - '@@||googleapis.com^'
-  - '@@||gstatic.com^'
-  - '@@||googleusercontent.com^'
-  - '@@||apis.google.com^'
-  - '@@||clients1.google.com^'
-  - '@@||clients2.google.com^'
-  - '@@||clients3.google.com^'
-  - '@@||clients4.google.com^'
-  - '@@||clients5.google.com^'
-  - '@@||clients6.google.com^'
-  - '! ===== 仅对 Gemini 域名排除以下广告拦截/过滤规则的影响 ====='
-  - /googleads.$~script,domain=~googleads.github.io&~gemini.google.com
-  - /pagead/lvz?$domain=~gemini.google.com
-  - '||google.com/pagead/^$domain=~gemini.google.com'
+  - ""
 dhcp:
   enabled: false
   interface_name: ""
