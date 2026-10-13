@@ -105,6 +105,7 @@ querylog:
     - orirainbow.cc^
     - orirainwe.edu.kg^
     - coriseay.edu.kg^
+    - xzbzcoriseay.win^
     - google.com^
   interval: 7d
   size_memory: 1000
@@ -117,6 +118,7 @@ statistics:
     - orirainbow.cc^
     - orirainwe.edu.kg^
     - coriseay.edu.kg^
+    - xzbzcoriseay.win^
     - google.com^
   interval: 7d
   enabled: true
@@ -132,12 +134,9 @@ filters:
     id: 2
 whitelist_filters: []
 user_rules:
-  - '@@||coriseay.edu.kg^'
   - '@@||ntfy.sh^'
   - '@@||pubnub.com^'
   - '@@||clarity.ms^$important'
-  - '@@||sh-gsg.com^$important'
-  - '@@||sh-mtgc.com^$important'
   - '@@||taobao.com^$important'
   - '@@||tmall.com^$important'
   - '@@||jd.com^important'
