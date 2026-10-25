@@ -48,6 +48,20 @@ function esc(value) {
 	});
 }
 
+// Classify an old-style full update URL by its parsed host (not a substring match).
+// The value is only used to pick the matching dropdown entry, never to download.
+function isLegacyGithubUrl(value) {
+	if (typeof value !== 'string') {
+		return false;
+	}
+	try {
+		const u = new URL(value);
+		return u.protocol === 'https:' && u.hostname === 'github.com';
+	} catch (e) {
+		return false;
+	}
+}
+
 function hasControlChars(value) {
 	return /[\x00-\x1f\x7f]/.test(value);
 }
@@ -420,8 +434,7 @@ return view.extend({
 			if (UPDATE_SOURCES.indexOf(cur) !== -1) {
 				return cur;
 			}
-			const legacy = uci.get('adguardhome', section_id, 'update_url');
-			return (typeof legacy === 'string' && legacy.indexOf('github.com') !== -1) ? 'github' : 'official';
+			return isLegacyGithubUrl(uci.get('adguardhome', section_id, 'update_url')) ? 'github' : 'official';
 		};
 		coreUrlOpt.write = function(section_id, value) {
 			if (UPDATE_SOURCES.indexOf(value) === -1) {
