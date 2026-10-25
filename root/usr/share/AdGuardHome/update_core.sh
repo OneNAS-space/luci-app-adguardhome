@@ -129,7 +129,7 @@ official|github) ;;
 *)
 	# Migrate old configs that stored a full URL: only classify it, never use it.
 	case "${legacy_url}" in
-	*github.com*) update_source="github" ;;
+	https://github.com/*) update_source="github" ;;
 	*) update_source="official" ;;
 	esac
 	;;
