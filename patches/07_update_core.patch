@@ -10,7 +10,7 @@ Subject: [PATCH] Create update_core.sh
 
 diff --git a/root/usr/share/AdGuardHome/update_core.sh b/root/usr/share/AdGuardHome/update_core.sh
 new file mode 100644
-index 0000000..95cd38e
+index 0000000..746123d
 --- /dev/null
 +++ b/root/usr/share/AdGuardHome/update_core.sh
 @@ -0,0 +1,390 @@
@@ -145,7 +145,7 @@ index 0000000..95cd38e
 +*)
 +	# Migrate old configs that stored a full URL: only classify it, never use it.
 +	case "${legacy_url}" in
-+	*github.com*) update_source="github" ;;
++	https://github.com/*) update_source="github" ;;
 +	*) update_source="official" ;;
 +	esac
 +	;;
