@@ -19,6 +19,20 @@ const DEFAULT_GOMEMLIMIT = '0';
 
 const PATH_REGEX = new RegExp('^/etc(/[^/]+)?/?$');
 
+// bcrypt hash: $2a$/$2b$/$2x$/$2y$ + 2-digit cost + $ + 53 chars
+const BCRYPT_REGEX = /^\$2[abxy]\$\d{2}\$[.\/A-Za-z0-9]{53}$/;
+
+// Fixed list of values the core-update options may hold. The backend script
+// maps 'official'/'github' to hard-coded URLs, so no URL is ever stored in UCI.
+const CORE_VERSIONS = ['latest', 'beta'];
+const UPDATE_SOURCES = ['official', 'github'];
+
+const GITHUB_RELEASE_URL_REGEX = /^https:\/\/github\.com\/AdguardTeam\/AdGuardHome\/releases\//;
+const VERSION_TAG_REGEX = /^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$/;
+
+// Directories that must never be handed to the service read-write.
+const DANGEROUS_RW_PATHS = ['/', '/etc', '/root', '/usr', '/bin', '/sbin', '/lib', '/boot', '/proc', '/sys', '/dev', '/overlay', '/rom'];
+
 const POLL_INTERVAL = 5;
 
 const RUNNING_SPAN = `<span style="color: green; font-weight: bold">${_('Running')}</span>`;
@@ -26,6 +40,21 @@ const NOT_RUNNING_SPAN = `<span style="color: red; font-weight: bold">${_('Not r
 
 const STORAGE_KEY = 'luci-app-adguardhome';
 const STORAGE_KEY_CORE = 'luci-app-adguardhome_core_update';
+
+// Escape a value for safe use in HTML text and quoted attribute values.
+function esc(value) {
+	return String(value == null ? '' : value).replace(/[&<>"']/g, function(c) {
+		return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+	});
+}
+
+function hasControlChars(value) {
+	return /[\x00-\x1f\x7f]/.test(value);
+}
+
+function hasDotDotSegment(value) {
+	return value.split('/').indexOf('..') !== -1;
+}
 
 function getServiceInfo(name) {
 	const fn = rpc.declare({
@@ -79,12 +108,26 @@ function updateStatus(node) {
 		: function() {};
 }
 
+function validateAbsolutePath(value) {
+	if (!value.startsWith('/')) {
+		return _('Path must be absolute.');
+	}
+	if (hasControlChars(value)) {
+		return _('Path contains invalid characters.');
+	}
+	if (hasDotDotSegment(value)) {
+		return _('Path must not contain "..".');
+	}
+	return true;
+}
+
 function validateConfigFile(_unused, value) {
 	if (value == null || value === '') {
 		return true;
 	}
-	if (!value.startsWith('/')) {
-		return _('Path must be absolute.');
+	const abs = validateAbsolutePath(value);
+	if (abs !== true) {
+		return abs;
 	}
 	if (value.endsWith('/')) {
 		return _('Path must not end with a slash.');
@@ -99,10 +142,72 @@ function validateWorkDir(_unused, value) {
 	if (value == null || value === '') {
 		return true;
 	}
-	if (!value.startsWith('/')) {
-		return _('Path must be absolute.');
+	return validateAbsolutePath(value);
+}
+
+function normalizePath(value) {
+	const p = value.replace(/\/+/g, '/');
+	return (p.length > 1 && p.endsWith('/')) ? p.slice(0, -1) : p;
+}
+
+function validateJailMount(_unused, value) {
+	if (value == null || value === '') {
+		return true;
+	}
+	const abs = validateAbsolutePath(value);
+	if (abs !== true) {
+		return abs;
+	}
+	if (normalizePath(value) === '/') {
+		return _('Mounting the whole root filesystem is not allowed.');
 	}
 	return true;
+}
+
+function validateJailMountRw(_unused, value) {
+	const base = validateJailMount(_unused, value);
+	if (base !== true || value == null || value === '') {
+		return base;
+	}
+	if (DANGEROUS_RW_PATHS.indexOf(normalizePath(value)) !== -1) {
+		return _('This directory must not be mounted read-write.');
+	}
+	return true;
+}
+
+function validateHashedPassword(_unused, value) {
+	if (value == null || value === '') {
+		return true;
+	}
+	if (!BCRYPT_REGEX.test(value)) {
+		return _('The password has not been hashed yet. Click the calculate button first, then save.');
+	}
+	return true;
+}
+
+// Returns {host, port} that are safe to put into a URL, or null.
+function parseListenAddress(address) {
+	if (typeof address !== 'string') {
+		return null;
+	}
+	const idx = address.lastIndexOf(':');
+	if (idx < 0) {
+		return null;
+	}
+	let host = address.slice(0, idx).replace(/^\[|\]$/g, '');
+	const port = address.slice(idx + 1);
+
+	if (!/^[0-9]{1,5}$/.test(port) || +port < 1 || +port > 65535) {
+		return null;
+	}
+	if (host !== '' && !/^[A-Za-z0-9.\-]+$/.test(host) && !/^[0-9A-Fa-f:]+$/.test(host)) {
+		return null;
+	}
+	return { host: host, port: port };
+}
+
+function formatUrlHost(host) {
+	return host.indexOf(':') !== -1 ? '[' + host + ']' : host;
 }
 
 return view.extend({
@@ -137,7 +242,6 @@ return view.extend({
 		}
 
 		const sections = uci.sections('adguardhome', 'adguardhome');
-		const savedHttpPort = (sections.length > 0 && sections[0].httpport) ? sections[0].httpport : '3008';
 
 		const map = new form.Map('adguardhome', _('AdGuard Home'));
 
@@ -147,7 +251,9 @@ return view.extend({
 
 		const versionOpt = statusSect.option(form.DummyValue, '_version', _('Version'));
 		versionOpt.cfgvalue = function() {
-			return version || '<span style="color: var(--error-color-high); font-weight: bold;">' + _('Not installed') + '</span>';
+			return version
+				? esc(version)
+				: '<span style="color: var(--error-color-high); font-weight: bold;">' + esc(_('Not installed')) + '</span>';
 		};
 		versionOpt.rawhtml = true;
 
@@ -168,7 +274,7 @@ return view.extend({
 		enabledOpt.default = '0';
 		enabledOpt.rmempty = false;
 		if (!coreExists) {
-			enabledOpt.description = '<span style="color: var(--error-color-high); font-weight: bold;">' + _('Core binary not found. Enable the service to trigger an automatic download.') + '</span>';
+			enabledOpt.description = '<span style="color: var(--error-color-high); font-weight: bold;">' + esc(_('Core binary not found. Enable the service to trigger an automatic download.')) + '</span>';
 		}
 
 		const configFileOpt = mainSect.taboption('general', form.Value, 'config_file', _('Configuration file'));
@@ -207,8 +313,10 @@ return view.extend({
 		coreUpdateToggleOpt.remove = function() {};
 		coreUpdateToggleOpt.write = function(_, value) { sessionStorage.setItem(STORAGE_KEY_CORE, value); };
 
-		mainSect.taboption('jail', form.DynamicList, 'jail_mount', _('Read-only access'));
-		mainSect.taboption('jail', form.DynamicList, 'jail_mount_rw', _('Read-write access'));
+		const jailRoOpt = mainSect.taboption('jail', form.DynamicList, 'jail_mount', _('Read-only access'));
+		jailRoOpt.validate = validateJailMount;
+		const jailRwOpt = mainSect.taboption('jail', form.DynamicList, 'jail_mount_rw', _('Read-write access'));
+		jailRwOpt.validate = validateJailMountRw;
 
 		const gcOpt = mainSect.taboption('advanced', form.Value, 'gc', 'GOGC');
 		gcOpt.datatype = 'uinteger';
@@ -228,45 +336,59 @@ return view.extend({
 		memLimitOpt.placeholder = DEFAULT_GOMEMLIMIT;
 		memLimitOpt.retain = true;
 
+		// ---- WebUI address / link ------------------------------------------
 		let realHttpAddress = '0.0.0.0:3008';
 		if (yamlContent) {
 			const addrMatch = yamlContent.match(/address:\s*([^\s]+)/);
 			if (addrMatch && addrMatch[1]) realHttpAddress = addrMatch[1];
 		}
 
-		let linkIp = window.location.hostname;
+		// Everything that ends up in the link is validated; fall back to safe defaults.
+		let linkHost = window.location.hostname;
 		let linkPort = '3008';
-		const addrParts = realHttpAddress.split(':');
-		if (addrParts.length >= 2) {
-			linkPort = addrParts.pop();
-			let ipPart = addrParts.join(':').replace(/\[|\]/g, '');
-			if (ipPart !== '0.0.0.0' && ipPart !== '') linkIp = ipPart;
+		const parsedAddr = parseListenAddress(realHttpAddress);
+		if (parsedAddr) {
+			linkPort = parsedAddr.port;
+			if (parsedAddr.host !== '' && parsedAddr.host !== '0.0.0.0' && parsedAddr.host !== '::') {
+				linkHost = parsedAddr.host;
+			}
 		}
+		const webuiUrl = 'http://' + formatUrlHost(linkHost) + ':' + linkPort;
 
 		const isServiceEnabled = sections.length > 0 && sections[0].enabled === '1';
 		const disabledHint = _('Service is disabled. Please go to "General Settings" to enable it.');
 
 		const webuiBtnHtml = isServiceEnabled
-			? '<a class="btn cbi-button cbi-button-link" style="font-weight:bold; display:inline-block; margin-top:5px;" href="http://' + linkIp + ':' + linkPort + '" target="_blank">' + _('Open AdGuardHome WebUI') + '</a>'
-			: '<span title="' + disabledHint + '" style="display:inline-block; margin-top:5px; cursor:not-allowed;">' +
-					'<a class="btn cbi-button cbi-button-link" style="font-weight:bold; pointer-events:none; opacity:0.5; margin-top:0;" href="javascript:void(0);">' + _('Open AdGuardHome WebUI') + '</a>' +
+			? '<a class="btn cbi-button cbi-button-link" style="font-weight:bold; display:inline-block; margin-top:5px;" href="' + esc(webuiUrl) + '" target="_blank" rel="noopener noreferrer">' + esc(_('Open AdGuardHome WebUI')) + '</a>'
+			: '<span title="' + esc(disabledHint) + '" style="display:inline-block; margin-top:5px; cursor:not-allowed;">' +
+					'<a class="btn cbi-button cbi-button-link" style="font-weight:bold; pointer-events:none; opacity:0.5; margin-top:0;" href="javascript:void(0);">' + esc(_('Open AdGuardHome WebUI')) + '</a>' +
 			  '</span>';
 
-		const httpAddressOpt = mainSect.taboption('dns_redirect', form.Value, 'http_address', _('WebUI listener (address:port)'), '<br />' + webuiBtnHtml);
+		const listensOnAll = /^(0\.0\.0\.0|\[?::\]?):/.test(realHttpAddress);
+		const exposureWarning = listensOnAll
+			? '<br /><span style="color: var(--warn-color-high, #c60); font-weight: bold;">' +
+				esc(_('The WebUI is served over plain HTTP and listens on all interfaces. Consider binding it to the LAN address.')) + '</span>'
+			: '';
+
+		const httpAddressOpt = mainSect.taboption('dns_redirect', form.Value, 'http_address', _('WebUI listener (address:port)'), '<br />' + webuiBtnHtml + exposureWarning);
 		httpAddressOpt.placeholder = '0.0.0.0:3008';
 		httpAddressOpt.default = '0.0.0.0:3008';
 		httpAddressOpt.datatype = 'hostport';
 		httpAddressOpt.rmempty = false;
 		httpAddressOpt.cfgvalue = function() { return realHttpAddress; };
 
+		// ---- password -------------------------------------------------------
 		const isPasswordEmpty = yamlContent ? /password:[ \t]*(\r?\n|$)/.test(yamlContent) : false;
-		const hashPassOpt = mainSect.taboption('dns_redirect', form.Value, 'hashpass', _('Change password'), _('Enter the password here. Click the Load calculate Module button below and go on.') + '<br /><button class="btn cbi-button cbi-button-apply" type="button" id="btn-agh-calc-hash" style="display:inline-block; margin-top:5px;">' + _(' ... Load calculate Module ... ') + '</button>');
+		const hashPassOpt = mainSect.taboption('dns_redirect', form.Value, 'hashpass', _('Change password'), esc(_('Enter the password here. Click the Load calculate Module button below and go on.')) + '<br /><button class="btn cbi-button cbi-button-apply" type="button" id="btn-agh-calc-hash" style="display:inline-block; margin-top:5px;">' + esc(_(' ... Load calculate Module ... ')) + '</button>');
 		hashPassOpt.default = '';
 		hashPassOpt.datatype = 'string';
 		hashPassOpt.password = true;
 		hashPassOpt.rmempty = true;
 		hashPassOpt.placeholder = isPasswordEmpty ? _('Please create a new password.') : '';
 		hashPassOpt.cfgvalue = function() { return ''; };
+		// Refuse to save anything that is not a bcrypt hash, so a plaintext
+		// password can never end up in the UCI config.
+		hashPassOpt.validate = validateHashedPassword;
 
 		const redirectOpt = mainSect.taboption('dns_redirect', form.ListValue, 'redirect', dnsPort + ' ' + _('Redirect'), _('AdGuardHome redirect mode'));
 		redirectOpt.value('none', _('No redirect'));
@@ -276,6 +398,7 @@ return view.extend({
 		redirectOpt.default = 'none';
 		redirectOpt.rmempty = false;
 
+		// ---- core update ----------------------------------------------------
 		const coreVersionOpt = mainSect.taboption('core_update', form.ListValue, 'core_version', _('Core Branch'), _('Select the branch for the core binary update.'));
 		coreVersionOpt.value('latest', _('Latest Version'));
 		coreVersionOpt.value('beta', _('Beta Version'));
@@ -283,20 +406,37 @@ return view.extend({
 		coreVersionOpt.depends('enable_core_update', '1');
 		coreVersionOpt.retain = true;
 
-		const coreUrlOpt = mainSect.taboption('core_update', form.ListValue, 'update_url', _('Update URL'), _('Select the download link for the core update.'));
-		coreUrlOpt.value('https://static.adtidy.org/adguardhome/release/AdGuardHome_linux_${Arch}.tar.gz', _('Official Mirror (AdTidy - Recommended)'));
-		coreUrlOpt.value('https://github.com/AdguardTeam/AdGuardHome/releases/download/${Cloud_Version}/AdGuardHome_linux_${Arch}.tar.gz', _('GitHub Releases (Original)'));
-		coreUrlOpt.default = 'https://static.adtidy.org/adguardhome/release/AdGuardHome_linux_${Arch}.tar.gz';
+		// The option stores a fixed key; update_core.sh maps it to the real URL.
+		const coreUrlOpt = mainSect.taboption('core_update', form.ListValue, 'update_source', _('Update URL'), _('Select the download source for the core update. Downloads are verified against the SHA-256 checksums published with the GitHub release.'));
+		coreUrlOpt.value('official', _('Official Mirror (AdTidy - Recommended)'));
+		coreUrlOpt.value('github', _('GitHub Releases (Original)'));
+		coreUrlOpt.default = 'official';
 		coreUrlOpt.rmempty = false;
 		coreUrlOpt.depends('enable_core_update', '1');
 		coreUrlOpt.retain = true;
+		// Show the right entry for configs written by older versions (which stored a full URL).
+		coreUrlOpt.cfgvalue = function(section_id) {
+			const cur = uci.get('adguardhome', section_id, 'update_source');
+			if (UPDATE_SOURCES.indexOf(cur) !== -1) {
+				return cur;
+			}
+			const legacy = uci.get('adguardhome', section_id, 'update_url');
+			return (typeof legacy === 'string' && legacy.indexOf('github.com') !== -1) ? 'github' : 'official';
+		};
+		coreUrlOpt.write = function(section_id, value) {
+			if (UPDATE_SOURCES.indexOf(value) === -1) {
+				value = 'official';
+			}
+			uci.set('adguardhome', section_id, 'update_source', value);
+			uci.unset('adguardhome', section_id, 'update_url');
+		};
 
 		const updateActionOpt = mainSect.taboption('core_update', form.DummyValue, '_update_action', _('Action'));
 		updateActionOpt.rawhtml = true;
 		updateActionOpt.cfgvalue = function() {
 			return '<div class="cbi-value-description" style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">' +
-				'<input class="btn cbi-button cbi-button-apply" type="button" id="btn-agh-action" value="' + _('Check update') + '" />' +
-				'<input class="btn cbi-button cbi-button-apply" type="button" id="btn-agh-force" value="' + _('Force update') + '" style="display: none;" />' +
+				'<input class="btn cbi-button cbi-button-apply" type="button" id="btn-agh-action" value="' + esc(_('Check update')) + '" />' +
+				'<input class="btn cbi-button cbi-button-apply" type="button" id="btn-agh-force" value="' + esc(_('Force update')) + '" style="display: none;" />' +
 				'<span id="btn-agh-detail" style="font-weight: bold;"></span>' +
 			'</div>';
 		};
@@ -321,6 +461,13 @@ return view.extend({
 		let updatePollId = null;
 		let currentState = 'init';
 
+		function setDetail(node) {
+			const detail = document.getElementById('btn-agh-detail');
+			if (detail) {
+				dom.content(detail, node || '');
+			}
+		}
+
 		function startLogPolling() {
 			if (updatePollId) clearInterval(updatePollId);
 
@@ -334,7 +481,6 @@ return view.extend({
 			const pollAction = function() {
 				const btnAction = document.getElementById('btn-agh-action');
 				const btnForce = document.getElementById('btn-agh-force');
-				const detail = document.getElementById('btn-agh-detail');
 
 				if (currentState === 'updating') {
 					if (displayPercent < targetPercent) {
@@ -350,19 +496,12 @@ return view.extend({
 
 				fs.read('/tmp/AdGuardHome_update.log').then(function(txt) {
 					if (txt && currentState === 'updating') {
-						const lines = txt.split('\n');
+						// curl's progress bar redraws with \r, so split on both \r and \n.
+						const lines = txt.split(/[\r\n]+/);
 						let foundPercent = null;
 						for (let i = lines.length - 1; i >= 0; i--) {
 							const line = lines[i];
-							const match = line.match(/^\s*(\d{1,3})\s+[\d\.]+[kMGTP]?\s+/);
-							if (match) {
-								const p = parseInt(match[1], 10);
-								if (p >= 0 && p <= 100) {
-									foundPercent = p;
-									break;
-								}
-							}
-							const pctMatch = line.match(/(\d{1,3})%/);
+							const pctMatch = line.match(/(\d{1,3})(?:\.\d+)?\s*%/);
 							if (pctMatch) {
 								const p = parseInt(pctMatch[1], 10);
 								if (p >= 0 && p <= 100) {
@@ -391,7 +530,7 @@ return view.extend({
 						fs.remove('/var/run/update_core_done').catch(function() {});
 						window.onbeforeunload = undefined;
 						currentState = 'success';
-						
+
 						displayPercent = 100;
 						if (btnAction) {
 							btnAction.value = _('Updating...') + ' 100%';
@@ -403,8 +542,8 @@ return view.extend({
 								btnAction.value = _('Update successful');
 							}
 							if (btnForce) btnForce.style.display = 'none';
-							if (detail) detail.textContent = '';
-							
+							setDetail('');
+
 							sessionStorage.setItem('agh_active_tab', 'core_update');
 							sessionStorage.setItem(STORAGE_KEY_CORE, '1');
 							window.location.hash = 'core_update';
@@ -426,9 +565,7 @@ return view.extend({
 							btnForce.style.display = 'inline-block';
 							btnForce.disabled = false;
 						}
-						if (detail) {
-							detail.innerHTML = '<span style="color: red;">' + _('Update failed') + '</span>';
-						}
+						setDetail(E('span', { 'style': 'color: red;' }, _('Update failed')));
 					}
 				});
 			};
@@ -440,20 +577,24 @@ return view.extend({
 		function triggerCheck() {
 			const btnAction = document.getElementById('btn-agh-action');
 			const btnForce = document.getElementById('btn-agh-force');
-			const detail = document.getElementById('btn-agh-detail');
 
 			currentState = 'checking';
 			if (btnAction) {
 				btnAction.value = _('Checking...');
 				btnAction.disabled = true;
 			}
-			if (detail) detail.textContent = '';
+			setDetail('');
 
 			fetch('https://api.github.com/repos/AdguardTeam/AdGuardHome/releases/latest')
-				.then(function(res) { return res.json(); })
+				.then(function(res) {
+					if (!res.ok) {
+						throw new Error('HTTP ' + res.status);
+					}
+					return res.json();
+				})
 				.then(function(data) {
-					const remoteVersion = (data && data.tag_name) ? data.tag_name : null;
-					if (!remoteVersion) {
+					const remoteVersion = (data && typeof data.tag_name === 'string') ? data.tag_name : null;
+					if (!remoteVersion || !VERSION_TAG_REGEX.test(remoteVersion)) {
 						throw new Error('Invalid version data');
 					}
 					const cleanLocal = coreExists ? version.replace(/^v/, '') : '';
@@ -468,13 +609,13 @@ return view.extend({
 						if (btnForce) {
 							btnForce.style.display = 'none';
 						}
-						if (detail) {
-							let urlNode = '<em style="color: red;">' + remoteVersion + '</em>';
-							if (data && data.html_url) {
-								urlNode = '<a href="' + data.html_url + '" target="_blank">' + urlNode + '</a>';
-							}
-							detail.innerHTML = urlNode;
+
+						// Text only; link only if it points at the project's own releases.
+						let node = E('em', { 'style': 'color: red;' }, remoteVersion);
+						if (typeof data.html_url === 'string' && GITHUB_RELEASE_URL_REGEX.test(data.html_url)) {
+							node = E('a', { 'href': data.html_url, 'target': '_blank', 'rel': 'noopener noreferrer' }, node);
 						}
+						setDetail(node);
 					} else {
 						currentState = 'latest';
 						if (btnAction) {
@@ -485,9 +626,7 @@ return view.extend({
 							btnForce.style.display = 'inline-block';
 							btnForce.disabled = false;
 						}
-						if (detail) {
-							detail.innerHTML = '';
-						}
+						setDetail('');
 					}
 				})
 				.catch(function() {
@@ -499,9 +638,7 @@ return view.extend({
 					if (btnForce) {
 						btnForce.style.display = 'none';
 					}
-					if (detail) {
-						detail.innerHTML = '<em style="color: red;">' + _('Check failed') + '</em>';
-					}
+					setDetail(E('em', { 'style': 'color: red;' }, _('Check failed')));
 				});
 		}
 
@@ -516,22 +653,25 @@ return view.extend({
 			}
 			if (btnForce) btnForce.disabled = true;
 
+			// Pass the currently selected branch/source to the script as arguments
+			// instead of staging them in UCI, so no "unsaved changes" are left behind.
+			// Only whitelisted values are sent; the script validates them again.
+			let wantVersion = '';
+			let wantSource = '';
 			try {
-				const coreVersionEl = document.querySelector('select[data-name="core_version"]');
-				const updateUrlEl = document.querySelector('select[data-name="update_url"]');
 				const adguardSections = uci.sections('adguardhome', 'adguardhome');
 				const secId = adguardSections.length > 0 ? adguardSections[0]['.name'] : null;
 				if (secId) {
-					if (coreVersionEl) uci.set('adguardhome', secId, 'core_version', coreVersionEl.value);
-					if (updateUrlEl) uci.set('adguardhome', secId, 'update_url', updateUrlEl.value);
-					uci.save();
+					const v = coreVersionOpt.formvalue(secId);
+					const s = coreUrlOpt.formvalue(secId);
+					if (CORE_VERSIONS.indexOf(v) !== -1) wantVersion = v;
+					if (UPDATE_SOURCES.indexOf(s) !== -1) wantSource = s;
 				}
 			} catch (err) {
-				console.error('Silent UCI save failed:', err);
+				console.error('Reading the selected update options failed:', err);
 			}
 
-			const arg = isForce ? 'force' : '';
-			fs.exec('/usr/share/AdGuardHome/update_core.sh', [arg]).catch(function(err) {
+			fs.exec('/usr/share/AdGuardHome/update_core.sh', [isForce ? 'force' : '', wantVersion, wantSource]).catch(function(err) {
 				console.error('Failed to trigger update script:', err);
 			});
 			startLogPolling();
@@ -585,7 +725,8 @@ return view.extend({
 					document.head.appendChild(script);
 				} else {
 					if (passInput.value) {
-						if (passInput.value.startsWith('$2a$') || passInput.value.startsWith('$2y$')) {
+						// Only a complete, well-formed bcrypt hash counts as "already done".
+						if (BCRYPT_REGEX.test(passInput.value)) {
 							btn.textContent = _('Calculation already DONE !');
 							return;
 						}
