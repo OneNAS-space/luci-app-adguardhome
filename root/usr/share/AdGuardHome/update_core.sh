@@ -73,11 +73,12 @@ Check_Updates(){
 	Check_Downloader
 	case "${PKG}" in
 	curl)
-		Downloader="curl -L -k -o"
+		# 💡 优化：加入连接超时(10s)、传输超时(300s)、失败重试(3次)以及显示详细下载进度的参数
+		Downloader="curl -L -k --connect-timeout 10 -m 300 --retry 3 --progress-bar -o"
 		_Downloader="curl -s"
 	;;
 	wget)
-		Downloader="wget --no-check-certificate -T 5 -O"
+		Downloader="wget --no-check-certificate -T 10 -t 3 -O"
 		_Downloader="wget -q -O -"
 	;;
 	esac
@@ -141,20 +142,20 @@ Update_Core(){
 		downloadbin="/tmp/AdGuardHome_Update/${link##*/}"
 	fi
 
-	chmod +x "${downloadbin}" 2>/dev/null || true
-	echo "Core size: $(awk 'BEGIN{printf "%.2fMB\n",'$((`ls -l $downloadbin | awk '{print $5}'`))'/1000000}')"
+    chmod +x "${downloadbin}" 2>/dev/null || true
+    echo "Core size: $(awk 'BEGIN{printf "%.2fMB\n",'$((`ls -l $downloadbin | awk '{print $5}'`))'/1000000}')"
 
-	/etc/init.d/AdGuardHome stop > /dev/null 2>&1
-	echo "Moving AdGuardHome binary to ${binpath%/*} ..."
+    /etc/init.d/AdGuardHome stop > /dev/null 2>&1
+    echo "Moving AdGuardHome binary to ${binpath%/*} ..."
 
-	if ! mv -f "${downloadbin}" "${binpath}"; then
-		echo -e "The core movement failed! \nIt may be caused by insufficient space."
-		rm -rf "/tmp/AdGuardHome_Update"
-		EXIT 1
-	fi
+    if ! mv -f "${downloadbin}" "${binpath}"; then
+        echo -e "The core movement failed! \nIt may be caused by insufficient space."
+        rm -rf "/tmp/AdGuardHome_Update"
+        EXIT 1
+    fi
 
-	rm -rf /tmp/AdGuardHome_Update
-	chmod +x ${binpath}
+    rm -rf /tmp/AdGuardHome_Update
+    chmod +x ${binpath}
     echo "Restarting AdGuardHome service ..."
     /etc/init.d/adguardhome restart > /dev/null 2>&1
 
