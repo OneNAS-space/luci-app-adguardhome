@@ -263,6 +263,7 @@ jobs:
             10_yaml_helper.patch
             11_AGH_yaml.patch
             12_twin-bcrypt.patch
+            13_uci-defaults.patch
             prepare.patch
           "
 
