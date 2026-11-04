@@ -8,6 +8,7 @@ on:
       - main
     paths-ignore:
       - '.github/**'
+      - 'patches/**'
       - 'README.md'
       - 'LICENSE'
       - 'SECURITY.md'
