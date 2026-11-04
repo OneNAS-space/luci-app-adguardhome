@@ -260,43 +260,30 @@ jobs:
         run: |
           set -e
 
-          PATCH_LIST="
-            00_makefile.patch
-            01_init.patch
-            02_acl.patch
-            03_config_js.patch
-            04_etc_config.patch
-            05_nft_tpl.patch
-            06_nft.patch
-            07_update_core.patch
-            08_control.patch
-            09_watchconfig.patch
-            10_yaml_helper.patch
-            11_AGH_yaml.patch
-            12_twin-bcrypt.patch
-            13_uci-defaults.patch
-            prepare.patch
-          "
+          # Every patches/*.patch is applied, in name order (C locale: 00_..., 01_..., then
+          # names such as prepare.patch). A new patch only has to be dropped into patches/.
+          PATCH_FILES=$(ls -1 patches/*.patch 2>/dev/null | LC_ALL=C sort || true)
+          if [ -z "$PATCH_FILES" ]; then
+            echo "❌ Critical Error: no patches found in patches/!"
+            exit 1
+          fi
+          echo "📋 Patches, in the order they are applied:"
+          echo "$PATCH_FILES" | sed 's/^/   /'
 
-          for patch_file in $PATCH_LIST; do
+          for patch_path in $PATCH_FILES; do
             echo ""
-            if [ -f "patches/$patch_file" ]; then
-              echo "🔎 Detecting the patch status: patches/$patch_file ..."
-              if patch -p1 --dry-run -R --silent < "patches/$patch_file" >/dev/null 2>&1; then
-                echo "⏭️ [Skip] The upstream source code already contains the content of this patch, and there is no need to repeat the application."
-                continue
-              fi
-              
-              if patch -p1 --dry-run --silent < "patches/$patch_file" >/dev/null 2>&1; then
-                echo "🩹 Patch is being applied: patches/$patch_file ..."
-                patch --batch -p1 < "patches/$patch_file"
-                echo "✅ $patch_file applied successfully!"
-              else
-                echo "❌ Key error: $patch_file is neither applied in advance nor can it be integrated cleanly."
-                exit 1
-              fi
+            echo "🔎 Detecting the patch status: $patch_path ..."
+            if patch -p1 --dry-run -R --silent < "$patch_path" >/dev/null 2>&1; then
+              echo "⏭️ [Skip] The upstream source code already contains the content of this patch, and there is no need to repeat the application."
+              continue
+            fi
+
+            if patch -p1 --dry-run --silent < "$patch_path" >/dev/null 2>&1; then
+              echo "🩹 Patch is being applied: $patch_path ..."
+              patch --batch -p1 < "$patch_path"
+              echo "✅ $(basename "$patch_path") applied successfully!"
             else
-              echo "❌ Critical Error: patches/$patch_file missing!"
+              echo "❌ Key error: $(basename "$patch_path") is neither applied in advance nor can it be integrated cleanly."
               exit 1
             fi
           done
