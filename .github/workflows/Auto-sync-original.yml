@@ -1,20 +1,24 @@
 name: Auto sync and sanitize upstream repo
 permissions:
   contents: write
+  actions: write
 
 on:
   schedule:
     - cron: '18 */2 * * *'
   workflow_dispatch:
+  # A change to the patches must be synced and re-applied first; the build follows
+  # from this workflow (see "Commit and push to main" / "Trigger the build").
   push:
     branches:
       - main
     paths:
-      - '!**/patches/**'
-      - '!**/.github/**'
-      - '!README.md'
-      - '!LICENSE'
-      - '!SECURITY.md'
+      - 'patches/**'
+
+# One run at a time: several patch pushes in a row are queued instead of racing.
+concurrency:
+  group: auto-sync-original
+  cancel-in-progress: false
 
 env:
   TZ: Asia/Shanghai
@@ -114,6 +118,13 @@ jobs:
              echo "💤 Version unchanged."
              # Bottom: If the version number has not changed, but Commit is still triggered due to the change of the underlying source code, the code package will be updated together at both ends by default.
              NEW_CHANNEL="both"
+          fi
+
+          # A patch change always has to produce a full build: release and snapshot.
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "🩹 Triggered by a patch change: forcing channel 'both'."
+            NEW_CHANNEL="both"
+            echo "FORCE_BUILD=true" >> $GITHUB_ENV
           fi
 
           echo "NEW_REL_VER=$NEW_REL_VER" >> $GITHUB_ENV
@@ -302,10 +313,24 @@ jobs:
           if git diff-index --quiet HEAD --; then
             # Even if the code has not changed, if the version number has changed, we need to make an additional judgment here.
             if [ "$VERSION_CHANGED" = "false" ]; then
-              echo "Genius! No modification changes detected on main branch."
+              if [ "$FORCE_BUILD" = "true" ]; then
+                echo "Patches re-applied, main is unchanged: the build will be started explicitly."
+                echo "DISPATCH_BUILD=true" >> $GITHUB_ENV
+              else
+                echo "Genius! No modification changes detected on main branch."
+              fi
               exit 0
             fi
           fi
           
           git commit -m "[Patched] $SYNC_COMMIT_MSG"
           git push "https://x-access-token:${{ secrets.TOKEN_ADGUARDHOME }}@github.com/${{ github.repository }}.git" main --force
+
+      # A push made with the PAT starts the build by itself. Without a new commit
+      # nothing would start, so start the build explicitly (workflow_dispatch is
+      # allowed for GITHUB_TOKEN).
+      - name: Trigger the build
+        if: env.DISPATCH_BUILD == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run build-release.yml --ref main
